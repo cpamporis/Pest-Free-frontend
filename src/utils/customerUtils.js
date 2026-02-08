@@ -1,3 +1,4 @@
+//customerUtils.js
 import porfiMapDefault from "../../assets/porfi_01.png";
 import porfiMapFinal from "../../assets/porfi_storage_final.png";
 import katoopsiMapDefault from "../../assets/katoopsi_exo.png";

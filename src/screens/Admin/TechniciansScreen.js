@@ -1,3 +1,4 @@
+// TechniciansScreen.js
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -9,10 +10,13 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
-  SafeAreaView,
-  Platform
+  Platform,
+  Image
 } from "react-native";
-import apiService, { API_BASE_URL } from "../../services/apiService";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
+import apiService from "../../services/apiService";
+import pestfreeLogo from "../../../assets/pestfree_logo.png";
 
 // Technician Modal Component
 const TechnicianModal = ({ isEdit, visible, onClose, onSubmit, technician, loading }) => {
@@ -69,125 +73,157 @@ const TechnicianModal = ({ isEdit, visible, onClose, onSubmit, technician, loadi
       visible={visible}
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.modalOverlay}
-        activeOpacity={1}
-        onPress={onClose}
-      >
-        <TouchableOpacity activeOpacity={1}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {isEdit ? "Edit Technician" : "Add Technician"}
-            </Text>
+      <SafeAreaView style={styles.modalSafeArea}>
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={onClose}
+        >
+          <TouchableOpacity activeOpacity={1}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalIconContainer}>
+                  <MaterialIcons 
+                    name={isEdit ? "edit" : "person-add"} 
+                    size={24} 
+                    color="#fff" 
+                  />
+                </View>
+                <Text style={styles.modalTitle}>
+                  {isEdit ? "Edit Technician" : "Add New Technician"}
+                </Text>
+                <Text style={styles.modalSubtitle}>
+                  {isEdit ? "Update technician details" : "Fill in the details below"}
+                </Text>
+              </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>First Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter first name"
-                placeholderTextColor="#999"
-                value={formData.firstName}
-                onChangeText={(text) => updateField('firstName', text)}
-                editable={!loading}
-              />
-            </View>
+              <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+                <View style={styles.inputRow}>
+                  <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
+                    <Text style={styles.inputLabel}>
+                      First Name <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter first name"
+                      placeholderTextColor="#999"
+                      value={formData.firstName}
+                      onChangeText={(text) => updateField('firstName', text)}
+                      editable={!loading}
+                    />
+                  </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Last Name *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter last name"
-                placeholderTextColor="#999"
-                value={formData.lastName}
-                onChangeText={(text) => updateField('lastName', text)}
-                editable={!loading}
-              />
-            </View>
+                  <View style={[styles.inputContainer, { flex: 1 }]}>
+                    <Text style={styles.inputLabel}>
+                      Last Name <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter last name"
+                      placeholderTextColor="#999"
+                      value={formData.lastName}
+                      onChangeText={(text) => updateField('lastName', text)}
+                      editable={!loading}
+                    />
+                  </View>
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Age</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter age"
-                placeholderTextColor="#999"
-                keyboardType="numeric"
-                value={formData.age}
-                onChangeText={(text) => updateField('age', text)}
-                editable={!loading}
-              />
-            </View>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Age</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter age (optional)"
+                    placeholderTextColor="#999"
+                    keyboardType="numeric"
+                    value={formData.age}
+                    onChangeText={(text) => updateField('age', text)}
+                    editable={!loading}
+                  />
+                </View>
 
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Username *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter username"
-                placeholderTextColor="#999"
-                autoCapitalize="none"
-                value={formData.username}
-                onChangeText={(text) => updateField('username', text)}
-                editable={!loading}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="username@pest-free.gr"
-                placeholderTextColor="#999"
-                autoCapitalize="none"
-                keyboardType="email-address"
-                value={formData.email}
-                onChangeText={(text) => updateField('email', text)}
-                editable={!loading}
-              />
-              <Text style={styles.inputHint}>
-                Leave blank to auto-generate: username@pest-free.gr
-              </Text>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>
-                {isEdit ? "New Password (leave blank to keep current)" : "Password *"}
-              </Text>
-              <TextInput
-                style={styles.input}
-                placeholder={isEdit ? "Enter new password" : "Enter password"}
-                placeholderTextColor="#999"
-                secureTextEntry
-                value={formData.password}
-                onChangeText={(text) => updateField('password', text)}
-                editable={!loading}
-              />
-            </View>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.saveButton, loading && { opacity: 0.7 }]}
-                onPress={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Text style={styles.saveButtonText}>
-                    {isEdit ? "Update" : "Save"}
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>
+                    Username <Text style={styles.requiredStar}>*</Text>
                   </Text>
-                )}
-              </TouchableOpacity>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter username"
+                    placeholderTextColor="#999"
+                    autoCapitalize="none"
+                    value={formData.username}
+                    onChangeText={(text) => updateField('username', text)}
+                    editable={!loading}
+                  />
+                </View>
 
-              <TouchableOpacity
-                style={[styles.cancelButton, loading && { opacity: 0.7 }]}
-                onPress={onClose}
-                disabled={loading}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>Email Address</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="username@pest-free.gr"
+                    placeholderTextColor="#999"
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    value={formData.email}
+                    onChangeText={(text) => updateField('email', text)}
+                    editable={!loading}
+                  />
+                  <Text style={styles.inputHint}>
+                    Leave blank to auto-generate: username@pest-free.gr
+                  </Text>
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>
+                    {isEdit ? "New Password (optional)" : "Password *"}
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={isEdit ? "Enter new password" : "Enter password"}
+                    placeholderTextColor="#999"
+                    secureTextEntry
+                    value={formData.password}
+                    onChangeText={(text) => updateField('password', text)}
+                    editable={!loading}
+                  />
+                  {isEdit && (
+                    <Text style={styles.inputHint}>
+                      Leave blank to keep current password
+                    </Text>
+                  )}
+                </View>
+              </ScrollView>
+
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.cancelButton, loading && { opacity: 0.7 }]}
+                  onPress={onClose}
+                  disabled={loading}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.saveButton, loading && { opacity: 0.7 }]}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#fff" size="small" />
+                  ) : (
+                    <>
+                      <MaterialIcons name={isEdit ? "check-circle" : "save"} size={18} color="#fff" />
+                      <Text style={styles.saveButtonText}>
+                        {isEdit ? "Update Technician" : "Save Technician"}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          </TouchableOpacity>
         </TouchableOpacity>
-      </TouchableOpacity>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -201,6 +237,7 @@ export default function TechniciansScreen({ onClose }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [technicianToDelete, setTechnicianToDelete] = useState(null);
   const [saveLoading, setSaveLoading] = useState(false);
+  const activeTechs = technicians.filter(t => t.isActive !== false);
 
   useEffect(() => {
     loadTechnicians();
@@ -210,18 +247,19 @@ export default function TechniciansScreen({ onClose }) {
     setLoading(true);
     try {
       console.log("=== LOADING TECHNICIANS ===");
+
       const result = await apiService.getTechnicians();
-      
+
       console.log("Technicians API Result:", result);
-      
+
       if (Array.isArray(result)) {
         console.log(`✅ Found ${result.length} technicians`);
         setTechnicians(result);
       } else {
         console.log("❌ Invalid response format");
-        Alert.alert("Info", "No technicians found");
         setTechnicians([]);
       }
+
     } catch (error) {
       console.error("Failed to load technicians:", error);
       Alert.alert("Error", "Failed to load technicians. Check backend connection.");
@@ -323,97 +361,213 @@ export default function TechniciansScreen({ onClose }) {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Technicians</Text>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Text style={styles.closeButtonText}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#1f9c8d" />
-            <Text style={styles.loadingText}>Loading technicians...</Text>
-          </View>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#1f9c8b" />
+          <Text style={styles.loadingText}>Loading Technicians...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* HEADER */}
         <View style={styles.header}>
-          <Text style={styles.title}>Technicians</Text>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>✕</Text>
+          <View style={styles.headerTop}>
+            <View style={styles.brandContainer}>
+              <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
+              <View style={styles.adminBadge}>
+                <MaterialIcons name="engineering" size={14} color="#fff" />
+                <Text style={styles.adminBadgeText}>TECHNICIANS</Text>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="close" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.headerContent}>
+            <Text style={styles.welcomeText}>Technician Management</Text>
+            <Text style={styles.title}>Manage Technician Profiles</Text>
+            <Text style={styles.subtitle}>
+              Add, edit, or remove technicians from the system
+            </Text>
+          </View>
+        </View>
+
+        {/* STATS BAR */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <View style={[styles.statIconContainer, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
+              <MaterialIcons name="engineering" size={18} color="#1f9c8b" />
+            </View>
+            <Text style={styles.statNumber}>{activeTechs.length}</Text>
+            <Text style={styles.statLabel}>Total Technicians</Text>
+          </View>
+
+          <View style={styles.statDivider} />
+
+          <View style={styles.statItem}>
+            <View style={[styles.statIconContainer, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
+              <MaterialIcons name="check-circle" size={18} color="#1f9c8b" />
+            </View>
+            <Text style={styles.statNumber}>{activeTechs.length}</Text>
+            <Text style={styles.statLabel}>Active</Text>
+          </View>
+
+          <View style={styles.statDivider} />
+
+          <View style={styles.statItem}>
+            <View style={[styles.statIconContainer, { backgroundColor: 'rgba(76, 175, 80, 0.1)' }]}>
+              <MaterialIcons name="new-releases" size={18} color="#1f9c8b" />
+            </View>
+            <Text style={styles.statNumber}>
+              {technicians.filter(t => {
+                if (!t.createdAt) return false;
+                try {
+                  const createdDate = new Date(t.createdAt);
+                  const now = new Date();
+                  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                  return createdDate >= startOfMonth;
+                } catch (e) {
+                  return false;
+                }
+              }).length}
+            </Text>
+            <Text style={styles.statLabel}>New This Month</Text>
+          </View>
+        </View>
+
+        {/* ACTION HEADER */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <MaterialIcons name="list-alt" size={20} color="#2c3e50" />
+            <Text style={styles.sectionTitle}>Technician List</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => setShowAddModal(true)}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="person-add" size={18} color="#fff" />
+            <Text style={styles.addButtonText}>Add Technician</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Test Button */}
-        <TouchableOpacity 
-          style={[styles.addButton, { backgroundColor: '#6c757d', marginBottom: 10 }]} 
-          onPress={async () => {
-            try {
-              const test = await apiService.getTechnicians();
-              Alert.alert("API Test", 
-                `Found ${Array.isArray(test) ? test.length : 0} technicians\n` +
-                `API URL: ${API_BASE_URL}/technicians`
-              );
-            } catch (error) {
-              Alert.alert("API Test Failed", error.message);
-            }
-          }}
-        >
-          <Text style={styles.addButtonText}>Test API Connection</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.addButton} onPress={() => setShowAddModal(true)}>
-          <Text style={styles.addButtonText}>+ Add Technician</Text>
-        </TouchableOpacity>
-
+        {/* TECHNICIANS LIST */}
         {technicians.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No technicians found</Text>
-            <Text style={styles.emptyStateSubtext}>
-              Click "Add Technician" to create your first technician
+            <View style={styles.emptyIconContainer}>
+              <MaterialIcons name="engineering" size={60} color="#ddd" />
+            </View>
+            <Text style={styles.emptyStateTitle}>No Technicians Found</Text>
+            <Text style={styles.emptyStateText}>
+              Start by adding your first technician to the system
             </Text>
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={() => setShowAddModal(true)}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="person-add" size={18} color="#fff" />
+              <Text style={styles.emptyStateButtonText}>Add First Technician</Text>
+            </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView style={styles.listContainer} showsVerticalScrollIndicator={false}>
-            {technicians.map((tech) => (
-              <View key={tech.technicianId} style={styles.techCard}>
-                <View style={styles.techInfo}>
-                  <Text style={styles.techName}>
-                    {tech.firstName} {tech.lastName}
-                  </Text>
-                  <Text style={styles.techDetails}>
-                    Username: {tech.username} • Email: {tech.email}
-                  </Text>
-                  <Text style={styles.techDetails}>
-                    Age: {tech.age || "N/A"} • ID: {tech.technicianId}
-                  </Text>
+          <ScrollView
+            key={technicians.length}
+            style={styles.listContainer}
+            showsVerticalScrollIndicator={false}
+          >
+            
+            {activeTechs.map((tech) => (
+              <View
+                key={tech.technicianId}
+                style={styles.techCard}
+              >
+                <View style={styles.techHeader}>
+                  <View style={styles.techAvatar}>
+                    <MaterialIcons name="engineering" size={24} color="#fff" />
+                  </View>
+
+                  <View style={styles.techInfo}>
+                    <Text style={styles.techName}>
+                      {tech.firstName} {tech.lastName}
+                    </Text>
+
+                    <View style={styles.techMeta}>
+                      <View style={styles.techMetaItem}>
+                        <MaterialIcons name="person" size={12} color="#666" />
+                        <Text style={styles.techMetaText}>{tech.username}</Text>
+                      </View>
+
+                      <View style={styles.techMetaItem}>
+                        <MaterialIcons name="mail" size={12} color="#666" />
+                        <Text style={styles.techMetaText}>{tech.email}</Text>
+                      </View>
+
+                      {tech.age !== null && (
+                        <View style={styles.techMetaItem}>
+                          <MaterialIcons name="cake" size={12} color="#666" />
+                          <Text style={styles.techMetaText}>{tech.age} years</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+
+                  <View style={styles.techIdBadge}>
+                    <Text style={styles.techIdText}>
+                      ID: {tech.technicianId.length > 10 
+                        ? `${tech.technicianId.substring(0, 8)}...` 
+                        : tech.technicianId}
+                    </Text>
+                  </View>
                 </View>
-                
+
                 <View style={styles.techActions}>
                   <TouchableOpacity
-                    style={styles.editButton}
+                    style={styles.actionButton}
                     onPress={() => openEditModal(tech)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.editButtonText}>Edit</Text>
+                    <MaterialIcons name="edit" size={16} color="#1f9c8b" />
+                    <Text style={[styles.actionButtonText, { color: "#1f9c8b" }]}>
+                      Edit
+                    </Text>
                   </TouchableOpacity>
-                  
+
                   <TouchableOpacity
-                    style={styles.deleteButton}
+                    style={styles.actionButton}
                     onPress={() => handleDeleteTechnician(tech.technicianId)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
+                    <MaterialIcons name="delete" size={16} color="#F44336" />
+                    <Text style={[styles.actionButtonText, { color: "#F44336" }]}>
+                      Delete
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
             ))}
           </ScrollView>
         )}
+
+        {/* FOOTER */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Technician Management System</Text>
+          <Text style={styles.footerSubtext}>
+            Version 1.0 • Last updated: {new Date().toLocaleDateString()}
+          </Text>
+          <Text style={styles.footerCopyright}>
+            © {new Date().getFullYear()} Pest-Free. All rights reserved.
+          </Text>
+        </View>
 
         {/* Modals */}
         <TechnicianModal
@@ -438,32 +592,38 @@ export default function TechniciansScreen({ onClose }) {
 
         {/* Delete Confirmation Modal */}
         <Modal animationType="fade" transparent visible={deleteConfirm}>
-          <View style={styles.overlay}>
-            <View style={styles.confirmationCard}>
-              <Text style={styles.confirmationTitle}>Confirm Delete</Text>
-              <Text style={styles.confirmationText}>
-                Are you sure you want to delete this technician?
+          <View style={styles.confirmOverlay}>
+            <View style={styles.confirmCard}>
+              <View style={styles.confirmIconContainer}>
+                <MaterialIcons name="warning" size={40} color="#F44336" />
+              </View>
+              <Text style={styles.confirmTitle}>Delete Technician</Text>
+              <Text style={styles.confirmText}>
+                Are you sure you want to delete this technician? This action cannot be undone.
               </Text>
-              <Text style={styles.warningText}>
-                This action cannot be undone.
+              <Text style={styles.confirmWarning}>
+                All assigned visits and history will be permanently removed.
               </Text>
               
-              <View style={styles.confirmationButtons}>
+              <View style={styles.confirmButtons}>
                 <TouchableOpacity
-                  style={styles.dangerButton}
-                  onPress={confirmDelete}
-                >
-                  <Text style={styles.dangerButtonText}>Delete</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={styles.confirmCancelButton}
                   onPress={() => {
                     setDeleteConfirm(false);
                     setTechnicianToDelete(null);
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                  <Text style={styles.confirmCancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.confirmDeleteButton}
+                  onPress={confirmDelete}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="delete" size={18} color="#fff" />
+                  <Text style={styles.confirmDeleteButtonText}>Delete</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -475,254 +635,581 @@ export default function TechniciansScreen({ onClose }) {
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 10 : 20, // Extra padding for iOS
   },
+  
+  // HEADER
   header: {
+    backgroundColor: "#1f9c8b",
+    paddingTop: 40,
+    paddingBottom: 30,
+    paddingHorizontal: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 20,
-    marginTop: Platform.OS === 'ios' ? 5 : 0, // Adjust for iOS
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
+  brandContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  logo: {
+    width: 120,
+    height: 50,
+  },
+  adminBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginLeft: 10,
+  },
+  adminBadgeText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+    marginLeft: 4,
+    fontFamily: 'System',
   },
   closeButton: {
-    backgroundColor: "#1f9c8d",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     width: 36,
     height: 36,
     borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
-  closeButtonText: {
+  headerContent: {
+    marginTop: 10,
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginBottom: 4,
+    fontFamily: 'System',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
     color: "#fff",
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.8)",
+    lineHeight: 20,
+    fontFamily: 'System',
+  },
+  
+  // STATS BAR
+  statsBar: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    marginHorizontal: 24,
+    marginTop: -16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  statItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#2c3e50",
+    marginBottom: 4,
+    fontFamily: 'System',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#666",
+    fontFamily: 'System',
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "#f0f0f0",
+    marginHorizontal: 10,
+  },
+  
+  // SECTION HEADER
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 32,
+    marginBottom: 16,
+    marginHorizontal: 24,
+  },
+  sectionTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionTitle: {
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginLeft: 8,
+    fontFamily: 'System',
   },
   addButton: {
-    backgroundColor: "#1f9c8d",
-    padding: 15,
-    borderRadius: 8,
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    backgroundColor: "#1f9c8b",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   addButtonText: {
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 6,
+    fontFamily: 'System',
   },
+  
+  // TECHNICIAN CARDS
   listContainer: {
     flex: 1,
+    paddingHorizontal: 24,
   },
   techCard: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 10,
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: "#e9ecef",
+    borderColor: "#f0f0f0",
+  },
+  techHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  techAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#1f9c8b",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 16,
   },
   techInfo: {
-    marginBottom: 10,
+    flex: 1,
   },
   techName: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 5,
+    fontWeight: "600",
+    color: "#2c3e50",
+    marginBottom: 8,
+    fontFamily: 'System',
   },
-  techDetails: {
-    fontSize: 14,
+  techMeta: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  techMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 16,
+    marginBottom: 4,
+  },
+  techMetaText: {
+    fontSize: 12,
     color: "#666",
-    marginBottom: 2,
+    marginLeft: 4,
+    fontFamily: 'System',
+  },
+  techIdBadge: {
+    backgroundColor: "#f8f9fa",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+  },
+  techIdText: {
+    fontSize: 11,
+    color: "#666",
+    fontWeight: "600",
+    fontFamily: 'System',
   },
   techActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#f8f9fa",
+    paddingTop: 16,
   },
-  editButton: {
-    backgroundColor: "#1f9c8d",
-    paddingHorizontal: 15,
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: 'rgba((33, 150, 243, 0.1)',
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 6,
+    borderRadius: 8,
+    marginLeft: 12,
   },
-  editButtonText: {
-    color: "#fff",
+  actionButtonText: {
     fontSize: 14,
-    fontWeight: "bold",
+    fontWeight: "600",
+    marginLeft: 6,
+    fontFamily: 'System',
   },
-  deleteButton: {
-    backgroundColor: "#dc3545",
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 6,
-  },
-  deleteButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
-  },
+  
+  // EMPTY STATE
   emptyState: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    paddingHorizontal: 24,
+  },
+  emptyIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#f8f9fa",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  emptyStateTitle: {
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#666",
+    marginBottom: 12,
+    fontFamily: 'System',
   },
   emptyStateText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#666",
-    marginBottom: 10,
-  },
-  emptyStateSubtext: {
     fontSize: 16,
     color: "#999",
     textAlign: "center",
+    marginBottom: 32,
+    fontFamily: 'System',
+    lineHeight: 22,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
+  emptyStateButton: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#1f9c8b",
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 8,
   },
-  loadingText: {
-    marginTop: 10,
+  emptyStateButtonText: {
+    color: "#fff",
     fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+    fontFamily: 'System',
+  },
+  
+  // FOOTER
+  footer: {
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  footerText: {
+    fontSize: 14,
+    fontWeight: "600",
     color: "#666",
+    marginBottom: 4,
+    fontFamily: 'System',
+  },
+  footerSubtext: {
+    fontSize: 12,
+    color: "#999",
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
+  footerCopyright: {
+    fontSize: 11,
+    color: "#aaa",
+    fontFamily: 'System',
+  },
+  
+  // MODAL STYLES
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: "#0008",
   },
   modalOverlay: {
     flex: 1,
     justifyContent: "center",
-    backgroundColor: "#0008",
     padding: 20,
   },
   modalCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 24,
+    borderRadius: 16,
+    maxHeight: "80%",
     maxWidth: 500,
     alignSelf: "center",
     width: "100%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalHeader: {
+    backgroundColor: "#1f9c8b",
+    padding: 24,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    alignItems: "center",
+  },
+  modalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 4,
+    fontFamily: 'System',
     textAlign: "center",
-    color: "#333",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    fontFamily: 'System',
+    textAlign: "center",
+  },
+  modalForm: {
+    padding: 24,
+  },
+  inputRow: {
+    flexDirection: "row",
+    marginBottom: 16,
   },
   inputContainer: {
-    marginBottom: 15,
+    marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
     fontWeight: "600",
-    marginBottom: 5,
-    color: "#555",
+    color: "#2c3e50",
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
+  requiredStar: {
+    color: "#F44336",
   },
   input: {
-    width: "100%",
-    backgroundColor: "#f8f8f8",
-    padding: 12,
+    backgroundColor: "#f8f9fa",
+    padding: 14,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#e9ecef",
     fontSize: 16,
+    fontFamily: 'System',
+    color: "#333",
   },
   inputHint: {
     fontSize: 12,
     color: "#666",
-    marginTop: 4,
+    marginTop: 6,
+    fontFamily: 'System',
     fontStyle: "italic",
   },
   modalButtons: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
+    padding: 24,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
+    gap: 12,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: "#1f9c8d",
-    padding: 14,
-    borderRadius: 8,
-    marginRight: 10,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1f9c8b",
+    padding: 16,
+    borderRadius: 8,
+    gap: 8,
   },
   saveButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    fontFamily: 'System',
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#6c757d",
-    padding: 14,
-    borderRadius: 8,
-    marginLeft: 10,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#6c757d",
+    padding: 16,
+    borderRadius: 8,
   },
   cancelButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    fontFamily: 'System',
   },
-  overlay: {
+  
+  // CONFIRMATION MODAL
+  confirmOverlay: {
     flex: 1,
     justifyContent: "center",
     backgroundColor: "#0008",
     padding: 20,
   },
-  confirmationCard: {
+  confirmCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 24,
     maxWidth: 400,
     alignSelf: "center",
     width: "100%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 10,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
   },
-  confirmationTitle: {
+  confirmIconContainer: {
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  confirmTitle: {
     fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 15,
+    fontWeight: "700",
+    color: "#F44336",
     textAlign: "center",
-    color: "#dc3545",
+    marginBottom: 12,
+    fontFamily: 'System',
   },
-  confirmationText: {
+  confirmText: {
     fontSize: 16,
-    marginBottom: 10,
-    textAlign: "center",
     color: "#333",
+    textAlign: "center",
+    marginBottom: 8,
+    fontFamily: 'System',
+    lineHeight: 22,
   },
-  warningText: {
+  confirmWarning: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 25,
     textAlign: "center",
+    marginBottom: 24,
+    fontFamily: 'System',
     fontStyle: "italic",
   },
-  confirmationButtons: {
+  confirmButtons: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 20,
+    gap: 12,
   },
-  dangerButton: {
+  confirmCancelButton: {
     flex: 1,
-    backgroundColor: "#dc3545",
-    padding: 14,
-    borderRadius: 8,
-    marginRight: 10,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#6c757d",
+    padding: 16,
+    borderRadius: 8,
   },
-  dangerButtonText: {
+  confirmCancelButtonText: {
     color: "#fff",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "600",
+    fontFamily: 'System',
+  },
+  confirmDeleteButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F44336",
+    padding: 16,
+    borderRadius: 8,
+    gap: 8,
+  },
+  confirmDeleteButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+    fontFamily: 'System',
+  },
+  
+  // LOADING
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
+    fontFamily: 'System',
+    fontWeight: '500',
   },
 });
