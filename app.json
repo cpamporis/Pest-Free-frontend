@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.cpamporis.pestfree.dev",
+      "bundleIdentifier": "com.cpamporis.pestfree",
+      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload inspection photos.",
@@ -27,7 +28,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.cpamporis.pestfree.dev"
+      "package": "com.cpamporis.pestfree"
     },
     "web": {
       "favicon": "./assets/favicon.png"
