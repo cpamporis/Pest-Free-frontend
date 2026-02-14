@@ -1238,7 +1238,7 @@ export default function Statistics({ onClose }) {
                 {Object.entries(appointmentsByStatus).map(([status, count], index) => {
                   const total = Object.values(appointmentsByStatus).reduce((a, b) => a + b, 0);
                   const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
-                  const colors = ['#1f9c8b', '#95a5a6', '#b9cd63'];
+                  const colors = ['#b9cd63', '#1f9c8b', '#95a5a6', ];
                   
                   return (
                     <View 
@@ -1265,7 +1265,7 @@ export default function Statistics({ onClose }) {
               {Object.entries(appointmentsByStatus).map(([status, count], index) => {
                 const total = Object.values(appointmentsByStatus).reduce((a, b) => a + b, 0);
                 const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
-                const colors = ['#1f9c8b', '#95a5a6', '#b9cd63'];
+                const colors = ['#b9cd63', '#1f9c8b', '#95a5a6', ];
                 
                 return (
                   <StatusItem

@@ -394,8 +394,6 @@ const getSpecialServiceLabel = (subtype) => {
     switch (status?.toLowerCase()) {
       case "completed":
         return "#1f9c8b";
-      case "in_progress":
-        return "#7E57C2";
       case "scheduled":  
         return "#1E88E5";
       case "cancelled":
@@ -409,8 +407,6 @@ const getSpecialServiceLabel = (subtype) => {
     switch (status?.toLowerCase()) {
       case "completed":
         return "Completed";
-      case "in_progress":
-        return "In Progress";
       case "scheduled":
         return "Scheduled";
       case "cancelled":
@@ -714,7 +710,7 @@ const getSpecialServiceLabel = (subtype) => {
         </View>
 
         <View style={styles.legendContainer}>
-            {['scheduled', 'in_progress', 'completed', 'cancelled'].map(status => (
+            {['scheduled', 'completed', 'cancelled'].map(status => (
             <View key={status} style={styles.legendItem}>
                 <View style={[styles.legendDot, { backgroundColor: getStatusColor(status) }]} />
                 <Text style={styles.legendText}>{getStatusLabel(status)}</Text>

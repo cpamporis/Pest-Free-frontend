@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Pest-Free",
+    "name": "Pestify",
     "slug": "snack-afcf5c09-a1e0-4fe9-8bfa-23c265329215",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,9 +13,9 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.cpamporis.pestfree",
-      "buildNumber": "1",
+      "buildNumber": "2",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload inspection photos.",

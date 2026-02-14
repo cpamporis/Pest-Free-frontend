@@ -483,7 +483,7 @@ export default function AdminHomeScreen({ onLogout }) {
 
         {/* FOOTER */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Pest - Free Admin System</Text>
+          <Text style={styles.footerText}>Pestify Admin System</Text>
           <Text style={styles.footerSubtext}>
             Version 1.0 • Last updated: {new Date().toLocaleDateString()}
           </Text>

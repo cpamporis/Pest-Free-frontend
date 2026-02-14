@@ -121,44 +121,44 @@ export default function LoginScreen({
           >
             <View style={styles.modalTextContainer}>
               <Text style={styles.modalText}>
-                Privacy Policy – Pest-Free{"\n\n"}
-                Pest-Free is a business-to-business mobile application designed to support
-                professional pest control operations, including inspections, service logging,
-                and compliance reporting.{"\n\n"}
-                This application is intended exclusively for authorized business users,
-                such as administrators, technicians, and approved customer representatives.
-                It is not intended for public or consumer use.{"\n\n"}
-                Data We Process{"\n"}
-                We process only the data necessary to provide the service, which may include:{"\n"}
-                • User identification details (name, email address, role){"\n"}
-                • Authentication credentials (securely encrypted){"\n"}
-                • Top-view photos of the property uploaded by users{"\n"}
-                • Service logs, visit records, and compliance reports{"\n"}
-                • Customer and location identifiers related to inspections{"\n\n"}
-                Purpose of Processing{"\n"}
-                All data is processed solely for:{"\n"}
-                • User authentication and access control{"\n"}
-                • Performing and documenting pest control services{"\n"}
-                • Generating inspection and compliance reports{"\n"}
-                • Meeting regulatory and contractual obligations{"\n"}
-                • Ensuring system security and operational integrity{"\n\n"}
-                We do not use data for advertising, tracking, profiling, or marketing purposes.{"\n\n"}
-                Data Storage & Security{"\n"}
-                All data is stored on secure cloud infrastructure using encrypted
-                communications (HTTPS). Access to data is strictly limited to authorized users
-                within the same organization and is protected by role-based permissions.{"\n\n"}
-                Data Sharing{"\n"}
-                Personal data is not sold, rented, or shared with third parties.
-                Data may be processed by infrastructure providers solely for hosting
-                and technical operation purposes.{"\n\n"}
-                User Rights{"\n"}
-                Users have the right to access, correct, or request deletion of their data
-                in accordance with the General Data Protection Regulation (GDPR).
-                Such requests must be made through the organization administering access
-                to the application.{"\n\n"}
-                By using this application, you acknowledge and accept this Privacy Policy.{"\n\n"}
-                For full legal details or privacy-related inquiries, contact:{"\n"}
-                info@pest-free.gr
+                              <Text style={styles.bold}>Privacy Policy – Pestify</Text>{"\n\n"}
+                              Pestify is a business-to-business mobile application created and owned by <Text style={styles.bold}>Pest-Free</Text> and it's designed to support
+                              professional pest control operations, including inspections, service logging,
+                              and compliance reporting.{"\n\n"}
+                              This application is intended exclusively for authorized business users,
+                              such as administrators, technicians, and approved customer representatives.
+                              It is not intended for public or consumer use.{"\n\n"}
+                              <Text style={styles.bold}>Data We Process{"\n"}</Text>
+                              We process only the data necessary to provide the service, which may include:{"\n"}
+                              • User identification details (name, email address, role){"\n"}
+                              • Authentication credentials (securely encrypted){"\n"}
+                              • Top-view photos of the property uploaded by users{"\n"}
+                              • Service logs, visit records, and compliance reports{"\n"}
+                              • Customer and location identifiers related to inspections{"\n\n"}
+                              <Text style={styles.bold}>Purpose of Processing{"\n"}</Text>
+                              All data is processed solely for:{"\n"}
+                              • User authentication and access control{"\n"}
+                              • Performing and documenting pest control services{"\n"}
+                              • Generating inspection and compliance reports{"\n"}
+                              • Meeting regulatory and contractual obligations{"\n"}
+                              • Ensuring system security and operational integrity{"\n\n"}
+                              We do not use data for advertising, tracking, profiling, or marketing purposes.{"\n\n"}
+                              <Text style={styles.bold}>Data Storage & Security{"\n"}</Text>
+                              All data is stored on secure cloud infrastructure using encrypted
+                              communications (HTTPS). Access to data is strictly limited to authorized users
+                              within the same organization and is protected by role-based permissions.{"\n\n"}
+                              <Text style={styles.bold}>Data Sharing{"\n"}</Text>
+                              Personal data is not sold, rented, or shared with third parties.
+                              Data may be processed by infrastructure providers solely for hosting
+                              and technical operation purposes.{"\n\n"}
+                              <Text style={styles.bold}>User Rights{"\n"}</Text>
+                              Users have the right to access, correct, or request deletion of their data
+                              in accordance with the General Data Protection Regulation (GDPR).
+                              Such requests must be made through the organization administering access
+                              to the application.{"\n\n"}
+                              By using this application, you acknowledge and accept this Privacy Policy.{"\n\n"}
+                              For full legal details or privacy-related inquiries, contact:
+                              <Text style={styles.bold}> info@pest-free.gr</Text>
               </Text>
             </View>
           </ScrollView>
@@ -182,41 +182,41 @@ export default function LoginScreen({
           >
             <View style={styles.modalTextContainer}>
               <Text style={styles.modalText}>
-                Terms of Use – Pest-Free{"\n\n"}
-                Pest-Free is a professional business-to-business application provided for
-                authorized use in pest control operations, inspections, and reporting.{"\n\n"}
-                Authorized Use{"\n"}
-                This application may only be used by individuals who have been granted
-                explicit authorization by their organization. Unauthorized access or use
-                is strictly prohibited.{"\n\n"}
-                User Responsibilities{"\n"}
-                Users are responsible for:{"\n"}
-                • Maintaining the confidentiality of their login credentials{"\n"}
-                • Ensuring the accuracy and completeness of submitted data{"\n"}
-                • Using the application only for lawful and professional purposes{"\n"}
-                • Complying with applicable laws, regulations, and internal company policies{"\n\n"}
-                Accuracy of Data{"\n"}
-                All inspection data, reports, photos, and records entered into the application
-                are the responsibility of the user and their organization.{"\n\n"}
-                Availability{"\n"}
-                The application is provided "as is" and "as available".
-                While reasonable efforts are made to ensure reliability, uninterrupted
-                availability is not guaranteed.{"\n\n"}
-                Limitation of Liability{"\n"}
-                Pest-Free shall not be liable for:{"\n"}
-                • Incorrect or incomplete data entered by users{"\n"}
-                • Operational or business decisions made based on application data{"\n"}
-                • Misuse of the application or violation of these terms{"\n"}
-                • Service interruptions beyond reasonable technical control{"\n\n"}
-                Account Management{"\n"}
-                Access to the application may be suspended or revoked at any time
-                for security, compliance, or operational reasons.{"\n\n"}
-                Governing Law{"\n"}
-                Use of this application is governed by the laws of Greece and
-                applicable European Union regulations.{"\n\n"}
-                By using this application, you agree to these Terms of Use.{"\n\n"}
-                For questions regarding usage or access, contact:{"\n"}
-                info@pest-free.gr
+                              <Text style={styles.bold}>Terms of Use - Pestify{"\n\n"}</Text>
+                              Pestify is a professional business-to-business application created and owned by <Text style={styles.bold}>Pest-Free</Text>, provided for
+                              authorized use in pest control operations, inspections, and reporting.{"\n\n"}
+                              <Text style={styles.bold}>Authorized Use{"\n"}</Text>
+                              This application may only be used by individuals who have been granted
+                              explicit authorization by their organization. Unauthorized access or use
+                              is strictly prohibited.{"\n\n"}
+                              <Text style={styles.bold}>User Responsibilities{"\n"}</Text>
+                              Users are responsible for:{"\n"}
+                              • Maintaining the confidentiality of their login credentials{"\n"}
+                              • Ensuring the accuracy and completeness of submitted data{"\n"}
+                              • Using the application only for lawful and professional purposes{"\n"}
+                              • Complying with applicable laws, regulations, and internal company policies{"\n\n"}
+                              <Text style={styles.bold}>Accuracy of Data{"\n"}</Text>
+                              All inspection data, reports, photos, and records entered into the application
+                              are the responsibility of the user and their organization.{"\n\n"}
+                              <Text style={styles.bold}>Availability{"\n"}</Text>
+                              The application is provided "as is" and "as available".
+                              While reasonable efforts are made to ensure reliability, uninterrupted
+                              availability is not guaranteed.{"\n\n"}
+                              <Text style={styles.bold}>Limitation of Liability{"\n"}</Text>
+                              Pest-Free shall not be liable for:{"\n"}
+                              • Incorrect or incomplete data entered by users{"\n"}
+                              • Operational or business decisions made based on application data{"\n"}
+                              • Misuse of the application or violation of these terms{"\n"}
+                              • Service interruptions beyond reasonable technical control{"\n\n"}
+                              <Text style={styles.bold}>Account Management{"\n"}</Text>
+                              Access to the application may be suspended or revoked at any time
+                              for security, compliance, or operational reasons.{"\n\n"}
+                              <Text style={styles.bold}>Governing Law{"\n"}</Text>
+                              Use of this application is governed by the laws of Greece and
+                              applicable European Union regulations.{"\n\n"}
+                              By using this application, you agree to these Terms of Use.{"\n\n"}
+                              For questions regarding usage or access, contact:{"\n"}
+                              <Text style={styles.bold}>info@pest-free.gr</Text>
               </Text>
             </View>
           </ScrollView>
@@ -329,6 +329,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 16,
     alignItems: "center",
+  },
+  bold: {
+    fontWeight: "bold",
   },
   modalCloseText: {
     color: "#fff",
