@@ -2,7 +2,7 @@
   "expo": {
     "name": "Pestify",
     "slug": "snack-afcf5c09-a1e0-4fe9-8bfa-23c265329215",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,6 +19,7 @@
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to upload inspection photos.",
+        "NSPhotoLibraryAddUsageDescription": "This app may save inspection photos to your photo library.",
         "NSCameraUsageDescription": "This app uses the camera to take inspection photos during field inspections."
       }
     },
@@ -40,7 +41,8 @@
     },
     "owner": "cpamporis",
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-localization"
     ]
   }
 }

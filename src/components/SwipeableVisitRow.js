@@ -14,6 +14,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import apiService from '../services/apiService';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import i18n from "../services/i18n";
 
 export default function SwipeableVisitRow({ 
   visit, 
@@ -35,19 +36,20 @@ export default function SwipeableVisitRow({
     setIsAlertVisible(true);
     
     Alert.alert(
-      "Download Report",
-      `Download PDF report for ${visit.serviceType || 'service'}?`,
+      i18n.t("components.swipeableVisitRow.downloadReport"),
+      i18n.t("components.swipeableVisitRow.downloadConfirm", { 
+        service: visit.serviceType || i18n.t("components.swipeableVisitRow.service") || 'service' 
+      }),
       [
         { 
-          text: "Cancel", 
+          text: i18n.t("components.swipeableVisitRow.cancel"), 
           style: "cancel", 
           onPress: () => {
             setIsAlertVisible(false);
-            console.log("❌ Download cancelled by user");
           }
         },
         { 
-          text: "Download", 
+          text: i18n.t("components.swipeableVisitRow.download"), 
           style: "default",
           onPress: async () => {
             if (isAlertVisible) {
@@ -65,7 +67,6 @@ export default function SwipeableVisitRow({
         // Add onDismiss callback for when alert is dismissed by tapping outside
         onDismiss: () => {
           setIsAlertVisible(false);
-          console.log("❌ Alert dismissed (tapped outside)");
         }
       }
     );
@@ -74,7 +75,6 @@ export default function SwipeableVisitRow({
   const downloadPDF = async () => {
     // Double-check we're not already downloading
     if (isDownloading) {
-      console.log("⚠️ Download already in progress");
       return;
     }
     
@@ -82,7 +82,6 @@ export default function SwipeableVisitRow({
     setDownloadProgress(0);
 
     try {
-      console.log("📥 Starting PDF download for:", visit.visitId);
       
       const token = apiService.getCurrentToken();
       const customerNameSlug = customerName 
@@ -91,7 +90,8 @@ export default function SwipeableVisitRow({
       const serviceType = visit.serviceType || 'service';
       const filename = `report_${customerNameSlug}_${serviceType}_${visit.visitId.substring(0, 8)}.pdf`;
       
-      const url = `${apiService.API_BASE_URL}/reports/pdf/${visit.visitId}`;
+      const lang = i18n.getLocale();
+      const url = `${apiService.API_BASE_URL}/reports/pdf/${visit.visitId}?lang=${lang}`;
       
       const getDownloadDirectory = () => {
         if (FileSystem.documentDirectory) {
@@ -106,9 +106,6 @@ export default function SwipeableVisitRow({
       const downloadDir = getDownloadDirectory();
       const fileUri = downloadDir + filename;
       
-      console.log("📥 Downloading from:", url);
-      console.log("💾 Saving to:", fileUri);
-      
       const downloadResumable = FileSystem.createDownloadResumable(
         url,
         fileUri,
@@ -120,23 +117,22 @@ export default function SwipeableVisitRow({
       );
 
       const { uri } = await downloadResumable.downloadAsync();
-      
-      console.log("✅ PDF downloaded to:", uri);
+    
       
       const canShare = await Sharing.isAvailableAsync();
       
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Download Report',
+          dialogTitle: i18n.t("components.swipeableVisitRow.downloadReport"),
           UTI: 'com.adobe.pdf'
         });
         
       } else {
         Alert.alert(
-          "Success", 
-          `PDF saved to: ${uri}`,
-          [{ text: "OK" }]
+          i18n.t("components.swipeableVisitRow.success"), 
+          i18n.t("components.swipeableVisitRow.pdfSaved", { path: uri }),
+          [{ text: i18n.t("common.ok") || "OK" }]
         );
       }
       
@@ -146,19 +142,19 @@ export default function SwipeableVisitRow({
       let errorMessage = error.message;
       
       if (error.message.includes('Network request failed')) {
-        errorMessage = "Network error. Please check your internet connection.";
+        errorMessage = i18n.t("components.swipeableVisitRow.errors.network");
       } else if (error.message.includes('401') || error.message.includes('403')) {
-        errorMessage = "Authentication error. Please log in again.";
+        errorMessage = i18n.t("components.swipeableVisitRow.errors.auth");
       } else if (error.message.includes('404')) {
-        errorMessage = "Report not found on server.";
+        errorMessage = i18n.t("components.swipeableVisitRow.errors.notFound");
       } else if (error.message.includes('Document directory not available')) {
-        errorMessage = "Storage permission required. Please check app permissions.";
+        errorMessage = i18n.t("components.swipeableVisitRow.errors.storage");
       }
       
       Alert.alert(
-        "Download Failed", 
+        i18n.t("components.swipeableVisitRow.downloadFailed"), 
         errorMessage,
-        [{ text: "OK" }]
+        [{ text: i18n.t("common.ok") || "OK" }]
       );
     } finally {
       setIsDownloading(false);
@@ -185,7 +181,7 @@ export default function SwipeableVisitRow({
           >
             <View style={styles.pdfButtonContent}>
               <MaterialIcons name="picture-as-pdf" size={22} color="#fff" />
-              <Text style={styles.pdfButtonText}>PDF</Text>
+              <Text style={styles.pdfButtonText}>{i18n.t("components.swipeableVisitRow.download")}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -217,7 +213,7 @@ export default function SwipeableVisitRow({
             <Text style={styles.customerName}>
               {visit.serviceType
                 ? visit.serviceType.charAt(0).toUpperCase() + visit.serviceType.slice(1)
-                : "Service"}
+                : i18n.t("components.swipeableVisitRow.service") || "Service"}
             </Text>
             <View style={styles.customerMeta}>
               <View style={styles.customerMetaItem}>
@@ -225,14 +221,14 @@ export default function SwipeableVisitRow({
                 <Text style={styles.customerMetaText}>
                   {visit.appointmentDate
                     ? new Date(visit.appointmentDate).toLocaleDateString()
-                    : "Unknown date"}
+                    : i18n.t("components.swipeableVisitRow.unknownDate")}
                 </Text>
               </View>
               {visit.duration && (
                 <View style={styles.customerMetaItem}>
                   <MaterialIcons name="timer" size={12} color="#666" />
                   <Text style={styles.customerMetaText}>
-                    {Math.floor(visit.duration / 60)} min
+                    {Math.floor(visit.duration / 60)} {i18n.t("components.swipeableVisitRow.minutes")}
                   </Text>
                 </View>
               )}
@@ -250,7 +246,9 @@ export default function SwipeableVisitRow({
               <View style={styles.appointmentIdContainer}>
                 <MaterialIcons name="fingerprint" size={10} color="#888" />
                 <Text style={styles.appointmentIdText}>
-                  Appointment ID: {appointmentId || visit.appointmentId}
+                  {i18n.t("components.swipeableVisitRow.appointmentId", { 
+                    id: appointmentId || visit.appointmentId 
+                  })}
                 </Text>
               </View>
             )}

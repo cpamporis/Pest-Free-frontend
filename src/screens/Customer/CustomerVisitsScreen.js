@@ -1,4 +1,4 @@
-// CustomerVisitsScreen.js - FIXED VERSION
+// CustomerVisitsScreen.js - FIXED VERSION with i18n
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -17,6 +17,7 @@ import { MaterialIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-ico
 import * as Sharing from "expo-sharing";
 import * as FileSystem from 'expo-file-system/legacy';
 import { formatTimeInGreece, formatDateInGreece } from "../../utils/timeZoneUtils";
+import i18n from "../../services/i18n";
 
 export default function CustomerVisitsScreen({ 
   onSelectVisit, 
@@ -34,59 +35,33 @@ export default function CustomerVisitsScreen({
     try {
       const res = await apiService.getCustomerVisitHistory();
       
-      console.log("📋 API Response:", JSON.stringify(res, null, 2));
-      
       if (res?.success) {
-        let visits = res.visits || [];
+        let visitsData = res.visits || [];
         
-        // CREATE A UNIQUE KEY FOR EACH ITEM
-        const getItemKey = (item) => {
-          const idFields = ['visitId', 'id', 'visit_id', 'log_id'];
-          for (const field of idFields) {
-            if (item[field]) return `${field}_${item[field]}`;
-          }
-          // Fallback to timestamp
-          const timestamp = item.startTime || item.created_at || item.service_start_time;
-          if (timestamp) {
-            // Remove problematic characters
-            return `time_${String(timestamp).replace(/[^a-zA-Z0-9]/g, '_')}`;
-          }
-          return null;
-        };
+        // Process each visit to ensure consistent format
+        const processedVisits = visitsData.map(visit => ({
+          ...visit,
+          // Ensure visitId exists
+          visitId: visit.visitId || visit.id || visit.visit_id,
+          // Ensure serviceType is set
+          serviceType: visit.serviceType || visit.service_type || 'myocide',
+          // Format service type for display
+          serviceTypeDisplay: visit.serviceTypeDisplay || 
+                            formatServiceTypeDisplay(visit.serviceType || visit.service_type, 
+                                                      visit.serviceSubtype, 
+                                                      visit.otherPestName),
+          // Ensure timestamp exists
+          startTime: visit.startTime || visit.start_time || visit.createdAt,
+        }));
         
-        // REMOVE DUPLICATES
-        const uniqueVisits = [];
-        const seenKeys = new Set();
-        
-        visits.forEach((item, index) => {
-          const key = getItemKey(item) || `index_${index}`;
-          
-          if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            // Add the key to the item for debugging
-            item._key = key;
-            uniqueVisits.push(item);
-          } else {
-            console.warn(`⚠️ Removed duplicate with key: ${key}`, item);
-          }
-        });
-        
-        console.log(`✅ Removed ${visits.length - uniqueVisits.length} duplicates`);
-        console.log(`📊 Unique visits: ${uniqueVisits.length}`);
-        
-        // DEBUG: Log all unique items
-        uniqueVisits.forEach((item, idx) => {
-          console.log(`Unique ${idx}: key=${item._key}, service=${item.serviceType || item.service_type}, time=${item.startTime}`);
-        });
-        
-        setVisits(uniqueVisits);
+        setVisits(processedVisits);
       } else {
-        Alert.alert("Error", res?.error || "Failed to load visit history");
+        Alert.alert(i18n.t("common.error"), res?.error || i18n.t("customer.visits.errors.loadFailed"));
         setVisits([]);
       }
     } catch (error) {
-      console.error("Load visits error:", error);
-      Alert.alert("Error", "Failed to load visits");
+      console.error("❌ Load visits error:", error);
+      Alert.alert(i18n.t("common.error"), i18n.t("customer.visits.errors.loadFailed"));
       setVisits([]);
     } finally {
       setLoading(false);
@@ -117,13 +92,13 @@ export default function CustomerVisitsScreen({
       const reportId = visit.visitId; // Use visit.visitId
       
       if (!reportId) {
-        Alert.alert("Error", "No report ID found for this visit");
+        Alert.alert(i18n.t("common.error"), i18n.t("customer.visits.errors.noReportId"));
         return;
       }
       
       const token = apiService.getCurrentToken();
       if (!token) {
-        Alert.alert("Error", "Authentication required. Please login again.");
+        Alert.alert(i18n.t("common.error"), i18n.t("customer.visits.errors.authRequired"));
         return;
       }
       
@@ -138,13 +113,8 @@ export default function CustomerVisitsScreen({
       const fileName = `Service_Report_${safeName}_${dateStr}.pdf`;
       
       const API_BASE_URL = apiService.API_BASE_URL || "http://192.168.1.79:3000/api";
-      const pdfUrl = `${API_BASE_URL}/reports/pdf/${reportId}`;
-      
-      console.log("📥 Downloading PDF:", {
-        url: pdfUrl,
-        serviceType: visit.serviceType || visit.workType,
-        visitId: reportId
-      });
+      const lang = i18n.getLocale();
+      const pdfUrl = `${API_BASE_URL}/reports/pdf/${reportId}?lang=${lang}`;
       
       const downloadResult = await FileSystem.downloadAsync(
         pdfUrl,
@@ -156,38 +126,61 @@ export default function CustomerVisitsScreen({
         }
       );
       
-      console.log("✅ Download result:", {
-        status: downloadResult.status,
-        uri: downloadResult.uri
-      });
-      
       if (downloadResult.status === 200) {
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(downloadResult.uri, {
             mimeType: "application/pdf",
-            dialogTitle: "Service Report",
+            dialogTitle: i18n.t("customer.visits.alerts.downloadComplete"),
             UTI: "com.adobe.pdf",
           });
         } else {
           Alert.alert(
-            "Download Complete",
-            `The PDF report has been downloaded to:\n${downloadResult.uri}`,
-            [{ text: "OK" }]
+            i18n.t("customer.visits.alerts.downloadComplete"),
+            i18n.t("customer.visits.alerts.downloadCompleteMessage", { path: downloadResult.uri }),
+            [{ text: i18n.t("common.ok") || "OK" }]
           );
         }
       } else {
-        throw new Error(`Download failed with status ${downloadResult.status}`);
+        throw new Error(i18n.t("customer.visits.alerts.downloadFailed") + ` ${downloadResult.status}`);
       }
       
     } catch (error) {
       console.error("❌ PDF download error:", error);
       Alert.alert(
-        "Download Failed",
-        error.message || "The report could not be downloaded."
+        i18n.t("customer.visits.alerts.downloadFailed"),
+        error.message || i18n.t("customer.visits.errors.downloadFailed")
       );
     } finally {
       setDownloadingId(null);
     }
+  };
+
+  const formatServiceTypeDisplay = (serviceType, subtype, otherPestName) => {
+    if (!serviceType) return i18n.t("customer.visits.serviceTypes.default") || 'Service';
+    
+    const type = String(serviceType).toLowerCase();
+    
+    if (type === 'myocide' || type.includes('myocide')) {
+      return i18n.t("customer.visits.serviceTypes.myocide");
+    } else if (type === 'disinfection' || type.includes('disinfection')) {
+      return i18n.t("customer.visits.serviceTypes.disinfection");
+    } else if (type === 'insecticide' || type.includes('insecticide')) {
+      return i18n.t("customer.visits.serviceTypes.insecticide");
+    } else if (type === 'special' || type.includes('special')) {
+      if (subtype === 'other' && otherPestName) {
+        return i18n.t("customer.serviceDisplay.special", { name: otherPestName });
+      } else if (subtype) {
+        // Format subtype (e.g., "grass_cutworm" -> "Grass Cutworm")
+        const subtypeLabel = subtype.split('_').map(word => 
+          word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
+        return i18n.t("customer.serviceDisplay.specialWithSubtype", { subtype: subtypeLabel });
+      }
+      return i18n.t("customer.visits.serviceTypes.special");
+    }
+    
+    // Default: capitalize
+    return serviceType.charAt(0).toUpperCase() + serviceType.slice(1);
   };
 
   const generateUniqueKey = (item, index) => {
@@ -216,49 +209,30 @@ export default function CustomerVisitsScreen({
   };
 
   const handleViewDetails = (visit) => {
-    console.log("🔍 handleViewDetails called with visit:", visit);
 
     const visitId = visit.visitId || visit.id || visit.visit_id;
 
     if (!visitId) {
       console.error("❌ No visitId found in visit object:", visit);
-      Alert.alert("Error", "Could not find visit ID. Please try again.");
+      Alert.alert(i18n.t("common.error"), i18n.t("customer.visits.errors.noVisitId"));
       return;
     }
 
-    onSelectVisit({
-      visit_id: visitId,
-      service_type:
-        visit.serviceType ||
-        visit.work_type ||
-        visit.workType ||
-        "myocide",
-      customerName:
-        visit.customer_name ||
-        visit.customerName ||
-        "Customer",
-      technicianName:
-        visit.technicianName ||
-        visit.technician_name ||
-        "Technician",
-      startTime:
-        visit.startTime ||
-        visit.start_time ||
-        visit.created_at
-    });
+    const visitPayload = {
+      visitId: visitId,
+      serviceType: visit.serviceType || visit.service_type || "myocide",
+      customerName: visit.customerName || visit.customer_name || i18n.t("customer.welcome.customer"),
+      technicianName: visit.technicianName || visit.technician_name || i18n.t("customer.visits.card.technician"),
+      startTime: visit.startTime || visit.start_time || visit.createdAt
+    };
+    onSelectVisit(visitPayload);
   };
 
   const renderVisitItem = ({ item }) => {
-    // Debug time for non-myocide services
-    if (item.serviceType && 
-        !item.serviceType.includes('myocide') && 
-        !item.serviceType.includes('scheduled')) {
-      console.log("🔍 Visit time debug:", {
-        serviceType: item.serviceType,
-        startTime: item.startTime,
-        formatted: formatTimeInGreece(item.startTime)
-      });
-    }
+    const serviceType = item.serviceType || 'myocide';
+    const serviceDisplay = item.serviceTypeDisplay || formatServiceTypeDisplay(serviceType);
+    const iconName = getServiceIcon(serviceType);
+    const color = getServiceColor(serviceType);
 
     return (
       <TouchableOpacity
@@ -267,20 +241,15 @@ export default function CustomerVisitsScreen({
         activeOpacity={0.7}
       >
         <View style={styles.visitHeader}>
-          <View style={[styles.serviceTypeBadge, 
-            { backgroundColor: getServiceColor(item.serviceType || item.workType) }]}>
-            <MaterialIcons 
-              name={getServiceIcon(item.serviceType || item.workType)} 
-              size={12} 
-              color="#fff" 
-            />
-            <Text style={styles.serviceTypeText}>
-              {formatServiceType(item.serviceType || item.workType)}
+          <View style={[styles.serviceTypeBadge, { backgroundColor: color }]}>
+            <MaterialIcons name={iconName} size={12} color="#fff" />
+            <Text style={styles.serviceTypeText} numberOfLines={1}>
+              {serviceDisplay}
             </Text>
           </View>
           <View style={styles.visitStatus}>
             <View style={[styles.statusDot, { backgroundColor: '#4CAF50' }]} />
-            <Text style={styles.statusText}>Completed</Text>
+            <Text style={styles.statusText}>{i18n.t("customer.visits.card.status")}</Text>
           </View>
         </View>
 
@@ -288,32 +257,32 @@ export default function CustomerVisitsScreen({
           <View style={styles.detailRow}>
             <MaterialIcons name="calendar-today" size={16} color="#666" />
             <Text style={styles.detailText}>
-              {/* UPDATE THIS LINE: */}
               {item.startTime 
                 ? formatDateInGreece(item.startTime)
-                : 'Date not available'}
+                : i18n.t("customer.visits.card.dateNotAvailable")}
             </Text>
           </View>
           
           <View style={styles.detailRow}>
             <MaterialIcons name="schedule" size={16} color="#666" />
             <Text style={styles.detailText}>
-              {/* UPDATE THIS LINE: */}
               {item.startTime
                 ? formatTimeInGreece(item.startTime)
-                : 'Time not available'}
+                : i18n.t("customer.visits.card.timeNotAvailable")}
             </Text>
           </View>
           
           <View style={styles.detailRow}>
             <MaterialIcons name="person" size={16} color="#666" />
-            <Text style={styles.detailText}>{item.technicianName || 'Technician'}</Text>
+            <Text style={styles.detailText}>
+              {item.technicianName || i18n.t("customer.visits.card.technician")}
+            </Text>
           </View>
           
           <View style={styles.detailRow}>
             <MaterialIcons name="category" size={16} color="#666" />
             <Text style={styles.detailText}>
-              Service: {formatServiceType(item.serviceType || item.workType)}
+              {i18n.t("customer.visits.card.service", { type: formatServiceType(item.serviceType || item.workType) })}
             </Text>
           </View>
         </View>
@@ -324,7 +293,7 @@ export default function CustomerVisitsScreen({
               style={styles.viewButton}
               onPress={() => handleViewDetails(item)}
             >
-              <Text style={styles.viewButtonText}>View Report</Text>
+              <Text style={styles.viewButtonText}>{i18n.t("customer.visits.card.viewReport")}</Text>
               <MaterialIcons name="visibility" size={16} color="#1f9c8b" />
             </TouchableOpacity>
             
@@ -338,7 +307,7 @@ export default function CustomerVisitsScreen({
               ) : (
                 <>
                   <MaterialIcons name="picture-as-pdf" size={16} color="#fff" />
-                  <Text style={styles.downloadButtonText}>Download PDF</Text>
+                  <Text style={styles.downloadButtonText}>{i18n.t("customer.visits.card.downloadPDF")}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -352,7 +321,7 @@ export default function CustomerVisitsScreen({
     return (
       <SafeAreaView style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#1f9c8b" />
-        <Text style={styles.loadingText}>Loading Visits...</Text>
+        <Text style={styles.loadingText}>{i18n.t("customer.visits.loading")}</Text>
       </SafeAreaView>
     );
   }
@@ -369,19 +338,19 @@ export default function CustomerVisitsScreen({
           activeOpacity={0.7}
         >
           <MaterialIcons name="arrow-back" size={24} color="#1f9c8b" />
-          <Text style={styles.backButtonText}>Back</Text>
+          <Text style={styles.backButtonText}>{i18n.t("customer.visits.back")}</Text>
         </TouchableOpacity>
         
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>All Service Visits</Text>
+          <Text style={styles.headerTitle}>{i18n.t("customer.visits.title")}</Text>
           <Text style={styles.headerSubtitle}>
-            Tap any visit to view full report
+            {i18n.t("customer.visits.subtitle")}
           </Text>
         </View>
         
         <View style={styles.headerStats}>
           <Text style={styles.visitsCount}>{visits.length}</Text>
-          <Text style={styles.visitsLabel}>Total</Text>
+          <Text style={styles.visitsLabel}>{i18n.t("customer.visits.total")}</Text>
         </View>
       </View>
 
@@ -389,7 +358,7 @@ export default function CustomerVisitsScreen({
       <View style={styles.infoBanner}>
         <MaterialIcons name="info" size={18} color="#1f9c8b" />
         <Text style={styles.infoText}>
-          Tap "View Report" to see details or "Download PDF" to save
+          {i18n.t("customer.visits.infoBanner")}
         </Text>
       </View>
 
@@ -397,9 +366,9 @@ export default function CustomerVisitsScreen({
       {visits.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialIcons name="history" size={64} color="#e0e0e0" />
-          <Text style={styles.emptyStateTitle}>No Visits Found</Text>
+          <Text style={styles.emptyStateTitle}>{i18n.t("customer.visits.empty.title")}</Text>
           <Text style={styles.emptyStateText}>
-            There are no completed service visits to display yet.
+            {i18n.t("customer.visits.empty.text")}
           </Text>
           <TouchableOpacity 
             style={styles.refreshButton}
@@ -407,13 +376,13 @@ export default function CustomerVisitsScreen({
             activeOpacity={0.7}
           >
             <MaterialIcons name="refresh" size={18} color="#1f9c8b" />
-            <Text style={styles.refreshButtonText}>Refresh</Text>
+            <Text style={styles.refreshButtonText}>{i18n.t("customer.visits.empty.refresh")}</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={visits}
-          keyExtractor={(item, index) => generateUniqueKey(item, index)}
+          keyExtractor={(item, index) => `${item.visitId}_${item.source || "visit"}_${index}`}
           renderItem={renderVisitItem}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
@@ -427,9 +396,9 @@ export default function CustomerVisitsScreen({
           }
           ListHeaderComponent={
             <View style={styles.listHeader}>
-              <Text style={styles.listTitle}>Service History</Text>
+              <Text style={styles.listTitle}>{i18n.t("customer.visits.listTitle")}</Text>
               <Text style={styles.listSubtitle}>
-                All completed service visits
+                {i18n.t("customer.visits.listSubtitle")}
               </Text>
             </View>
           }
@@ -446,30 +415,19 @@ const getServiceColor = (serviceType) => {
 };
 
 const getServiceIcon = (serviceType) => {
-  const type = String(serviceType || '').toLowerCase().trim();
+  const type = String(serviceType || '').toLowerCase();
   
-  // Map service types to icons
-  if (type.includes('myocide') || type.includes('scheduled')) {
-    return 'pest-control-rodent'; // This is the computer mouse
-    // OR for rodent mouse, you could use:
-    // return 'mouse'; // This might be rodent mouse in some icon sets
+  if (type.includes('myocide')) {
+    return 'pest-control-rodent';
   } else if (type.includes('disinfection')) {
     return 'clean-hands';
   } else if (type.includes('insecticide')) {
     return 'bug-report';
   } else if (type.includes('special')) {
     return 'star';
-  } else if (type.includes('inspection')) {
-    return 'search';
-  } else if (type.includes('emergency')) {
-    return 'exclamation-triangle';
-  } else if (type.includes('installation')) {
-    return 'tools';
-  } else if (type.includes('follow-up') || type.includes('followup')) {
-    return 'redo';
   }
   
-  return 'clipboard-check';
+  return 'description';
 };
 
 const formatServiceType = (serviceType) => {
@@ -477,27 +435,27 @@ const formatServiceType = (serviceType) => {
   
   // Map service types to display names
   if (type.includes('myocide') || type.includes('scheduled')) {
-    return 'Myocide Service';
+    return i18n.t("customer.visits.serviceTypes.myocide");
   } else if (type.includes('disinfection')) {
-    return 'Disinfection Service';
+    return i18n.t("customer.visits.serviceTypes.disinfection");
   } else if (type.includes('insecticide')) {
-    return 'Insecticide Service';
+    return i18n.t("customer.visits.serviceTypes.insecticide");
   } else if (type.includes('special')) {
-    return 'Special Service';
+    return i18n.t("customer.visits.serviceTypes.special");
   } else if (type.includes('inspection')) {
-    return 'Inspection Service';
+    return i18n.t("customer.visits.serviceTypes.inspection");
   } else if (type.includes('emergency')) {
-    return 'Emergency Service';
+    return i18n.t("customer.visits.serviceTypes.emergency");
   } else if (type.includes('installation')) {
-    return 'Installation Service';
+    return i18n.t("customer.visits.serviceTypes.installation");
   } else if (type.includes('follow-up') || type.includes('followup')) {
-    return 'Follow-up Service';
+    return i18n.t("customer.visits.serviceTypes.followUp");
   } else if (type.includes('regular')) {
-    return 'Regular Service';
+    return i18n.t("customer.visits.serviceTypes.regular");
   }
   
   // If we don't recognize it, capitalize it
-  return type.charAt(0).toUpperCase() + type.slice(1) + ' Service';
+  return type.charAt(0).toUpperCase() + type.slice(1) + ' ' + i18n.t("customer.visits.serviceTypes.default");
 };
 
 // Styles remain the same as previous
