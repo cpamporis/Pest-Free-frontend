@@ -279,7 +279,8 @@
         "title": "Compliance Validity",
         "validUntil": "Valid Until",
         "selectDate": "Select compliance date",
-        "requiredForMyocide": "Required for Myocide"
+        "requiredForMyocide": "Required for Myocide",
+        "missing": "Compliance date missing"
       },
       "dateTime": {
         "title": "Date & Time",
@@ -342,7 +343,8 @@
       },
       "servicePrice": {
         "title": "Service Price",
-        "placeholder": "Enter service price in Euro (e.g. 80)"
+        "placeholder": "Enter service price in Euro (e.g. 80)",
+        "invalid": "Enter a value for price with up to two decimals"
       },
       "appointments": {
         "title": "Appointments for {{date}}",
@@ -351,7 +353,10 @@
         "unknownCustomer": "Unknown Customer",
         "customerId": "Customer ID: {{id}}",
         "completed": "Completed",
-        "cancelled": "Cancelled"
+        "cancelled": "Cancelled",
+        "removeTitle": "Διαγραφή Ραντεβού",
+        "removeConfirm": "Θέλετε να διαγράψετε αυτό το ραντεβού;",
+        "removeSuccess": "Το ραντεβού διαγράφτηκε επιτυχώς"
       },
       "addCustomer": {
         "title": "Add Customer Appointment",
@@ -361,7 +366,8 @@
         "noCustomers": "No customers available",
         "id": "ID: {{id}}",
         "scheduleButton": "Schedule Appointment",
-        "createSuccess": "Appointment created successfully"
+        "createSuccess": "Appointment created successfully",
+        "noTime": "Please set the time for the appointment"
       },
       "editModal": {
         "title": "Edit Appointment",
@@ -380,7 +386,9 @@
         "time_current": "Time: {{time}}",
         "technician_current": "Technician: {{name}}",
         "saveChanges": "Save Changes",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "updateSuccess": "Appointment updated successfully",
+        "treatmentDetails": "Service Details"
       },
       "modals": {
         "selectService": "Select Service Type",
@@ -623,7 +631,11 @@
         "passwordPlaceholder": "Enter password",
         "customerNamePlaceholder": "Customer's name",
         "addressPlaceholder": "Residence address",
-        "emailPlaceholder": "Email address"
+        "emailPlaceholder": "Email address",
+        "customerNameRequired": "Please add customer's name",
+        "createSuccess": "Client created successfully",
+        "createWithLoginSuccess": "Customer account created successfully",
+        "createWithoutLoginSuccess": "Customer's account was not created"
       },
       "editModal": {
         "title": "Edit Customer",
@@ -656,7 +668,8 @@
         "title": "Confirm Permanent Delete",
         "message": "Are you ABSOLUTELY sure you want to PERMANENTLY delete \"{{name}}\"?",
         "warning": "This will remove all customer data including appointments, maps, and stations.",
-        "deleteForever": "Delete Forever"
+        "deleteForever": "Delete Forever",
+        "success": "Customer has been successfully deleted"
       },
       "selectModal": {
         "select": "Select Customer to {{action}}",
@@ -1460,7 +1473,13 @@
         },
         "appointmentId": "Appointment ID: {{id}}",
         "unknownDate": "Unknown date",
-        "minutes": "min"
+        "minutes": "min",
+        "serviceTypes": {
+          "myocide": "Myocide",
+          "insecticide": "Insecticide",
+          "disinfection": "Disinfection",
+          "special": "Special Service"
+        }
       }
     },
 
@@ -1830,7 +1849,7 @@
         "editMode": "Edit Service",
         "editModeMessage": "You are now editing the completed service.",
         "serviceStarted": "Service Started",
-        "serviceStartedMessage": "{{type}} service started for {{name}}",
+        "serviceStartedMessage": "The service started for {{name}}",
         "serviceCompleted": "Service Completed",
         "serviceCompletedMessage": "Data saved successfully.\n\nYou can now generate a report.",
         "serviceUpdated": "Service Updated",

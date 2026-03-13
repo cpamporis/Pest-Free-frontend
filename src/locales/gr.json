@@ -274,7 +274,8 @@
         "title": "Ημερομηνία Συμμόρφωσης",
         "validUntil": "Ισχύει Έως",
         "selectDate": "Επιλέξτε ημερομηνία πιστοποίησης",
-        "requiredForMyocide": "Απαιτείται για Μυοκτονία"
+        "requiredForMyocide": "Απαιτείται για Μυοκτονία",
+        "missing": "Ημερομηνία λήξης πιστοποιητικού"
       },
       "dateTime": {
         "title": "Ημερομηνία & Ώρα",
@@ -337,7 +338,8 @@
       },
       "servicePrice": {
         "title": "Τιμή Υπηρεσίας",
-        "placeholder": "Εισάγετε τιμή υπηρεσίας σε Ευρώ (π.χ. 80)"
+        "placeholder": "Εισάγετε τιμή υπηρεσίας σε Ευρώ (π.χ. 80)",
+        "invalid": "Εισάγετε έγκυρη τιμή μέχρι δύο δεκαδικά"
       },
       "appointments": {
         "title": "Ραντεβού για {{date}}",
@@ -346,7 +348,10 @@
         "unknownCustomer": "Άγνωστος Πελάτης",
         "customerId": "ID Πελάτη: {{id}}",
         "completed": "Ολοκληρωμένο",
-        "cancelled": "Ακυρωμένο"
+        "cancelled": "Ακυρωμένο",
+        "removeTitle": "Διαγραφή Ραντεβού",
+        "removeConfirm": "Θέλετε να διαγράψετε αυτό το ραντεβού;",
+        "removeSuccess": "Το ραντεβού διαγράφτηκε επιτυχώς"
       },
       "addCustomer": {
         "title": "Προσθήκη Ραντεβού Πελάτη",
@@ -356,7 +361,8 @@
         "noCustomers": "Δεν υπάρχουν διαθέσιμοι πελάτες",
         "id": "ID: {{id}}",
         "scheduleButton": "Προγραμματισμός Ραντεβού",
-        "createSuccess": "Επιτυχής δημιουργία ραντεβού"
+        "createSuccess": "Επιτυχής δημιουργία ραντεβού",
+        "noTime": "Παρακαλώ εισάγετε την ώρα του ραντεβού"
       },
       "editModal": {
         "title": "Επεξεργασία Ραντεβού",
@@ -375,7 +381,9 @@
         "time_current": "Ώρα: {{time}}",
         "technician_current": "Τεχνικός: {{name}}",
         "saveChanges": "Αποθήκευση Αλλαγών",
-        "cancel": "Ακύρωση"
+        "cancel": "Ακύρωση",
+        "updateSuccess": "Επιτυχής ανανέωση ραντεβού",
+        "treatmentDetails": "Πληροφορίες Υπηρεσίας"
       },
       "modals": {
         "selectService": "Επιλογή Τύπου Υπηρεσίας",
@@ -615,7 +623,11 @@
         "passwordPlaceholder": "Εισάγετε κωδικό",
         "customerNamePlaceholder": "Όνομα πελάτη",
         "addressPlaceholder": "Διεύθυνση κατοικίας",
-        "emailPlaceholder": "Διεύθυνση email"
+        "emailPlaceholder": "Διεύθυνση email",
+        "customerNameRequired": "Παρακαλώ προσθέστε το όνομα πελάτη",
+        "createSuccess": "Επιτυχής δημιουργία πελάτη",
+        "createWithLoginSuccess": "Ο λογαριασμός πελάτη δημιουργήθηκε με επιτυχία",
+        "createWithoutLoginSuccess": "Δεν δημιουργήθηκε λογαριασμός πελάτη"
       },
       "editModal": {
         "title": "Επεξεργασία Πελάτη",
@@ -647,7 +659,8 @@
         "title": "Επιβεβαίωση Μόνιμης Διαγραφής",
         "message": "Είστε ΑΠΟΛΥΤΑ σίγουροι ότι θέλετε να διαγράψετε ΜΟΝΙΜΑ τον \"{{name}}\";",
         "warning": "Αυτό θα αφαιρέσει όλα τα δεδομένα πελάτη, συμπεριλαμβανομένων ραντεβού, κατόψεων και σταθμών.",
-        "deleteForever": "Μόνιμη Διαγραφή"
+        "deleteForever": "Μόνιμη Διαγραφή",
+        "success": "Ο πελάτης διαγράφτηκε με επιτυχία"
       },
       "selectModal": {
         "select": "Επιλέξτε Πελάτη για {{action}}",
@@ -1444,7 +1457,13 @@
       },
       "appointmentId": "ID Ραντεβού: {{id}}",
       "unknownDate": "Άγνωστη ημερομηνία",
-      "minutes": "λεπ"
+      "minutes": "λεπ",
+       "serviceTypes": {
+          "myocide": "Μυοκτόνο",
+          "insecticide": "Απεντόμωση",
+          "disinfection": "Απολύμανση",
+          "special": "Ειδική Επέμβαση"
+        }
     }
   },
   "technician": {
@@ -1814,7 +1833,7 @@
         "editMode": "Επεξεργασία Υπηρεσίας",
         "editModeMessage": "Τώρα επεξεργάζεστε την ολοκληρωμένη υπηρεσία.",
         "serviceStarted": "Η Υπηρεσία Ξεκίνησε",
-        "serviceStartedMessage": "Η υπηρεσία {{type}} ξεκίνησε για τον {{name}}",
+        "serviceStartedMessage": "Η υπηρεσία ξεκίνησε για τον {{name}}",
         "serviceCompleted": "Η Υπηρεσία Ολοκληρώθηκε",
         "serviceCompletedMessage": "Τα δεδομένα αποθηκεύτηκαν επιτυχώς.\n\nΜπορείτε τώρα να δημιουργήσετε μια αναφορά.",
         "serviceUpdated": "Η Υπηρεσία Ενημερώθηκε",
@@ -1958,6 +1977,7 @@
       }
     }
   },
+  
   "language": {
     "en": "EN",
     "gr": "GR"
