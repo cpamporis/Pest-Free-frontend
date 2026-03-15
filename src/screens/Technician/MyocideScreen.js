@@ -159,7 +159,7 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   const removeNewImage = (index) => {
     setReportImages(prev => prev.filter((_, i) => i !== index));
   };
-
+  const dragStartRef = useRef({});
   const removeExistingImage = (index) => {
     setExistingImages(prev => prev.filter((_, i) => i !== index));
   };
@@ -1117,17 +1117,37 @@ const handleSaveAll = async () => {
     }
   };
 
-  const startDrag = (id, gestureX, gestureY) => {
-    const newStations = stations.map((s) =>
-      s.id === id
-        ? {
-            ...s,
-            x: Math.max(0, Math.min(1, (gestureX - offsetX) / (deviceWidth * scale))),
-            y: Math.max(0, Math.min(1, (gestureY - offsetY) / (deviceWidth * scale)))
-          }
-        : s
+  const handleDragStart = (id, type) => {
+    const st = stations.find(s => s.id === id && (s.type || "BS") === type);
+    if (!st) return;
+
+    dragStartRef.current = {
+      id,
+      type,
+      startX: st.x,
+      startY: st.y
+    };
+  };
+
+  const handleDragMove = (evt) => {
+    const { translationX, translationY } = evt.nativeEvent;
+    const drag = dragStartRef.current;
+
+    if (!drag?.id) return;
+
+    const deltaX = translationX / (deviceWidth * scale);
+    const deltaY = translationY / (deviceWidth * scale);
+
+    const newX = Math.max(0, Math.min(1, drag.startX + deltaX));
+    const newY = Math.max(0, Math.min(1, drag.startY + deltaY));
+
+    setStations(prev =>
+      prev.map(st =>
+        st.id === drag.id && (st.type || "BS") === drag.type
+          ? { ...st, x: newX, y: newY }
+          : st
+      )
     );
-    setStations(newStations);
   };
 
   const debugStationCompletion = () => {
@@ -1535,10 +1555,8 @@ const handleSaveAll = async () => {
                       return (
                         <View key={uniqueKey} style={styles.markerWrapper}> 
                           <PanGestureHandler
-                            onGestureEvent={(evt) =>
-                              editMode &&
-                              startDrag(st.id, evt.nativeEvent.x, evt.nativeEvent.y)
-                            }
+                            onBegan={() => handleDragStart(st.id, st.type || "BS")}
+                            onGestureEvent={handleDragMove}
                           >
                             <Animated.View
                               style={[
