@@ -1,6 +1,7 @@
 // RootApp.js - COMPLETE VERSION WITH REPORT REFRESH
 import React, { useState } from "react";
-import { View, Text } from "react-native";
+import { useEffect } from "react";
+import { View, Text, AppState } from "react-native";
 import LoginScreen from "./screens/LoginScreen";
 import AdminHomeScreen from "./screens/Admin/AdminHomeScreen";
 import TechnicianHomeScreen from "./screens/Technician/TechnicianHomeScreen";
@@ -14,6 +15,25 @@ import CustomerHomeScreen from "./screens/Customer/CustomerHomeScreen";
 import CustomerVisitsScreen from "./screens/Customer/CustomerVisitsScreen";
 import CustomerProfile from "./screens/Admin/CustomerProfile";
 import PasswordRecovery from "./screens/PasswordRecovery";
+
+async function checkForUpdate() {
+  try {
+    const Updates = await import("expo-updates");
+
+    const update = await Updates.checkForUpdateAsync();
+
+    if (update.isAvailable) {
+      await Updates.fetchUpdateAsync();
+
+      setTimeout(() => {
+        Updates.reloadAsync();
+      }, 500);
+    }
+  } catch (e) {
+    // Ignore in dev / Expo Go
+    console.log("Updates not available:", e?.message);
+  }
+}
 
 export default function RootApp() {
   const [loggedTechnician, setLoggedTechnician] = useState(null);
@@ -30,6 +50,22 @@ export default function RootApp() {
   const [adminView, setAdminView] = useState("home"); 
   const [adminCustomerId, setAdminCustomerId] = useState(null);
   const [authView, setAuthView] = useState("login"); 
+
+  useEffect(() => {
+    if (!__DEV__) {
+      checkForUpdate();
+    }
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active" && !__DEV__) {
+        checkForUpdate();
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
 
   const handleLogout = () => {
     setLoggedTechnician(null);

@@ -1,4 +1,4 @@
-// MyocideScreen.js - Updated with properly positioned status indicators
+// MyocideScreen.js - Production iOS
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
@@ -46,6 +46,25 @@ const getStationLabel = (stationType) => {
     default:
       return i18n.t("technician.myocide.stationTypes.baitStation");
   }
+};
+
+const calculateImageLayout = (containerW, containerH, imageW, imageH) => {
+  const imageRatio = imageW / imageH;
+  const containerRatio = containerW / containerH;
+
+  let width, height, offsetX = 0, offsetY = 0;
+
+  if (imageRatio > containerRatio) {
+    width = containerW;
+    height = containerW / imageRatio;
+    offsetY = (containerH - height) / 2;
+  } else {
+    height = containerH;
+    width = containerH * imageRatio;
+    offsetX = (containerW - width) / 2;
+  }
+
+  return { width, height, offsetX, offsetY };
 };
 
 const getStationColor = (type, isCompleted) => {
@@ -179,10 +198,12 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
     return [];
   }, [customerWithMaps, normalizedCustomer]);
 
-
-
-
-
+  const [imageLayout, setImageLayout] = useState({
+    width: 0,
+    height: 0,
+    offsetX: 0,
+    offsetY: 0
+  });
   
   // TIMER STATES
   const [timerActive, setTimerActive] = useState(false);
@@ -1135,8 +1156,8 @@ const handleSaveAll = async () => {
 
     if (!drag?.id) return;
 
-    const deltaX = translationX / (deviceWidth * scale);
-    const deltaY = translationY / (deviceWidth * scale);
+    const deltaX = translationX / imageLayout.width;
+    const deltaY = translationY / imageLayout.height;
 
     const newX = Math.max(0, Math.min(1, drag.startX + deltaX));
     const newY = Math.max(0, Math.min(1, drag.startY + deltaY));
@@ -1343,8 +1364,8 @@ const handleSaveAll = async () => {
     const newStation = {
       id: getNextIdForType(editStationType),
       type: editStationType,
-      x: x / (deviceWidth * scale),
-      y: y / (deviceWidth * scale)
+      x: (x - imageLayout.offsetX) / imageLayout.width,
+      y: (y - imageLayout.offsetY) / imageLayout.height
     };
 
     setStations([...stations, newStation]);
@@ -1535,7 +1556,21 @@ const handleSaveAll = async () => {
                         source={{ uri: currentImageUri }}
                         style={styles.map}
                         resizeMode="contain"
-                        onLoad={() => console.log("✅ Image loaded:", currentImageUri)}
+                        onLoad={(e) => {
+                          const { width: imgW, height: imgH } = e.nativeEvent.source;
+
+                          const containerW = deviceWidth;
+                          const containerH = deviceWidth;
+
+                          const layout = calculateImageLayout(
+                            containerW,
+                            containerH,
+                            imgW,
+                            imgH
+                          );
+
+                          setImageLayout(layout);
+                        }}
                         onError={(e) => {
                           console.error("❌ Image load failed:", e.nativeEvent.error);
                           setImageError(true);
@@ -1549,8 +1584,8 @@ const handleSaveAll = async () => {
                     {stations.map((st, index) => {            
                       const uniqueKey = `${st.type || "BS"}_${st.id}_${index}`;
                       
-                      const left = st.x * deviceWidth * scale;
-                      const top = st.y * deviceWidth * scale;
+                      const left = imageLayout.offsetX + (st.x * imageLayout.width);
+                      const top = imageLayout.offsetY + (st.y * imageLayout.height);
 
                       return (
                         <View key={uniqueKey} style={styles.markerWrapper}> 
