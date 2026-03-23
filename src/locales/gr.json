@@ -74,7 +74,8 @@
     "hours_other": "ώρες",
     "minutes_one": "λεπτό",
     "minutes_other": "λεπτά",
-    "chooseOption": "Επιλέξτε επιλογή"
+    "chooseOption": "Επιλέξτε επιλογή",
+    "ok":"OK"
   },
   "admin": {
     "home": {
@@ -351,7 +352,9 @@
         "cancelled": "Ακυρωμένο",
         "removeTitle": "Διαγραφή Ραντεβού",
         "removeConfirm": "Θέλετε να διαγράψετε αυτό το ραντεβού;",
-        "removeSuccess": "Το ραντεβού διαγράφτηκε επιτυχώς"
+        "removeSuccess": "Το ραντεβού διαγράφτηκε επιτυχώς",
+        "cancelConfirm": "Το ραντεβού ακυρώθηκε επιτυχώς",
+        "cancelTitle": "Ακύρωση Ραντεβού"
       },
       "addCustomer": {
         "title": "Προσθήκη Ραντεβού Πελάτη",
@@ -541,7 +544,7 @@
         "priority": "ΠΡΟΤΕΡΑΙΟΤΗΤΑ {{priority}}",
         "noDescription": "Δεν παρέχεται περιγραφή",
         "preferred": "Προτιμώμενο: {{datetime}}",
-        "viewDetails": "Προβολή Λεπτομερειών",
+        "viewDetails": "Λεπτομέρειες",
         "decline": "Απόρριψη",
         "accept": "Αποδοχή"
       },
@@ -588,7 +591,9 @@
         "noTechnicians": "Δεν υπάρχουν διαθέσιμοι τεχνικοί. Προσθέστε τεχνικούς πρώτα.",
         "cancel": "Ακύρωση",
         "createAppointment": "Δημιουργία Ραντεβού",
-        "approveReschedule": "Έγκριση Αναπρογραμματισμού"
+        "approveReschedule": "Έγκριση Αναπρογραμματισμού",
+        "createSuccess": "Το ραντεβού μετά από αίτημα πελάτη δημιουργήθηκε επιτυχώς",
+        "rescheduleSuccessDetailed": "Το ραντεβού επαναπρογραμματίστηκε επιτυχώς"
       },
       "passwordModal": {
         "title": "Επαναφορά Κωδικού Πελάτη",
@@ -597,7 +602,8 @@
         "confirmPassword": "Επιβεβαίωση Κωδικού",
         "updatePassword": "Ενημέρωση Κωδικού",
         "newPasswordPlaceholder": "Εισάγετε νέο κωδικό",
-        "confirmPasswordPlaceholder": "Επιβεβαιώστε τον νέο κωδικό"
+        "confirmPasswordPlaceholder": "Επιβεβαιώστε τον νέο κωδικό",
+        "updateSuccess": "Ο κωδικός ανανεώθηκε επιτυχώς"
       },
       "footer": {
         "system": "Σύστημα Διαχείρισης Αιτημάτων Πελατών",
@@ -959,7 +965,8 @@
         "title": "Διαγραφή Τεχνικού",
         "message": "Είστε σίγουροι ότι θέλετε να διαγράψετε αυτόν τον τεχνικό; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί.",
         "warning": "Όλες οι ανατεθειμένες επισκέψεις και το ιστορικό θα αφαιρεθούν μόνιμα.",
-        "delete": "Διαγραφή"
+        "delete": "Διαγραφή",
+        "success": "Επιτυχής διαγραφή τεχνικού"
       },
       "footer": {
         "system": "Σύστημα Διαχείρισης Τεχνικών",
@@ -1500,6 +1507,7 @@
     "swipeableVisitRow": {
       "downloadReport": "Λήψη Αναφοράς",
       "downloadConfirm": "Λήψη αναφοράς PDF για {{service}};",
+      "downloadStarted": "Ολοκληρώθηκε η λήψη αναφοράς",
       "download": "Λήψη",
       "cancel": "Ακύρωση",
       "success": "Επιτυχία",
@@ -1548,6 +1556,7 @@
       "phone": "Τηλέφωνο",
       "email": "Email",
       "navigate": "Πλοήγηση",
+      "noAdress": "Δεν υπάρχει καταχωρημένη διεύθυνση",
       "copyright": "© {{year}} Pestify. Με την επιφύλαξη παντός δικαιώματος."
     },
     "home": {

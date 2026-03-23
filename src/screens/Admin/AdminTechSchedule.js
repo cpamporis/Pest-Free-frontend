@@ -1,4 +1,4 @@
-// AdminTechSchedule.js - Professional Styled Version
+// AdminTechSchedule.js - iOS
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -292,8 +292,21 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     if (!time.trim()) return Alert.alert(i18n.t("common.error"), i18n.t("admin.schedule.addCustomer.noTime") || "Please enter appointment time");
     
     // 🚨 CRITICAL FIX: Require price for ALL service types
-    if (!servicePrice || isNaN(servicePrice) || Number(servicePrice) <= 0) {
-      return Alert.alert(i18n.t("admin.schedule.servicePrice.title") || "Invalid Price", i18n.t("admin.schedule.servicePrice.invalid") || "Please enter a valid service price (greater than 0).");
+    const normalizedPrice = servicePrice.replace(",", ".").trim();
+
+    if (!normalizedPrice || normalizedPrice === "." || normalizedPrice.endsWith(".")) {
+      return Alert.alert(
+        i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+        i18n.t("admin.schedule.servicePrice.invalidFormat") || "Enter a valid price (e.g. 40,05)"
+      );
+    }
+
+    const price = parseFloat(normalizedPrice);
+
+    if (isNaN(price) || price <= 0) {
+      return Alert.alert(
+        i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+        i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0");
     }
     
     if (!serviceType) return Alert.alert(i18n.t("common.error"), i18n.t("admin.schedule.addCustomer.noServiceType") || "Please select a service type");
@@ -360,7 +373,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         appointmentTime: time.trim(),
         serviceType,
         appointmentCategory,
-        servicePrice: Number(servicePrice),
+        servicePrice: Number(price.toFixed(2)),
         status: "scheduled",
         ...(complianceValidUntil && {
           compliance_valid_until: complianceValidUntil
@@ -670,8 +683,24 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     
     try {
       // Validate required fields
-      if (!editServicePrice || isNaN(editServicePrice) || Number(editServicePrice) <= 0) {
-        Alert.alert(i18n.t("admin.schedule.servicePrice.title") || "Invalid Price", i18n.t("admin.schedule.servicePrice.invalid") || "Please enter a valid service price (greater than 0).");
+      const normalizedPrice = editServicePrice.replace(",", ".").trim();
+
+      if (!normalizedPrice || normalizedPrice === "." || normalizedPrice.endsWith(".")) {
+        Alert.alert(
+          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+          i18n.t("admin.schedule.servicePrice.invalidFormat") || "Enter a valid price (e.g. 40,05)"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const price = parseFloat(normalizedPrice);
+
+      if (isNaN(price) || price <= 0) {
+        Alert.alert(
+          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+          i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0"
+        );
         setProcessing(false);
         return;
       }
@@ -708,7 +737,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
       
       // Build the update payload
       const payload = {
-        servicePrice: Number(editServicePrice),
+        servicePrice: Number(price.toFixed(2)),
         appointmentCategory: editAppointmentCategory,
         serviceType: editServiceType,
         specialServiceSubtype: editSpecialServiceSubtype,
@@ -1300,7 +1329,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
             style={styles.detailsInput}
             placeholder={i18n.t("admin.schedule.servicePrice.placeholder")}
             placeholderTextColor="#999"
-            keyboardType="numeric"
+            keyboardType="decimal-pad"
             value={servicePrice}
             onChangeText={setServicePrice}
           />
@@ -1792,7 +1821,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                     <MaterialIcons name="euro" size={20} color="#666" style={styles.inputIcon} />
                     <TextInput
                       style={styles.formInput}
-                      keyboardType="number-pad"
+                      keyboardType="decimal-pad"
                       placeholder="e.g. 80"
                       value={editServicePrice}
                       onChangeText={setEditServicePrice}

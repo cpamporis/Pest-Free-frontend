@@ -205,8 +205,18 @@ export default function CustomerRequestScreen({ onClose }) {
 
   const extractOriginalDate = (description) => {
     if (!description) return null;
-    const match = description.match(/Original appointment: (\d{4}-\d{2}-\d{2})/);
-    return match ? match[1] : null;
+
+    const match = description.match(/Original appointment: (.+?) at/);
+    if (!match) return null;
+
+    try {
+      const date = new Date(match[1]);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0]; // YYYY-MM-DD
+      }
+    } catch {}
+
+    return null;
   };
 
   const extractOriginalTime = (description) => {
@@ -485,6 +495,30 @@ export default function CustomerRequestScreen({ onClose }) {
     try {
       setProcessing(true);
 
+      const normalizedPrice = appointmentPrice.replace(",", ".").trim();
+
+      if (!normalizedPrice || normalizedPrice === "." || normalizedPrice.endsWith(".")) {
+        Alert.alert(
+          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+          i18n.t("admin.schedule.servicePrice.invalidFormat") || "Enter a valid price (e.g. 40,05)"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const parsed = parseFloat(normalizedPrice);
+
+      if (isNaN(parsed) || parsed <= 0) {
+        Alert.alert(
+          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+          i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const price = Number(parsed.toFixed(2));
+
       const payload = {
         technicianId: appointmentData.technicianId,
         customerId: selectedRequest.customer_id,
@@ -492,7 +526,7 @@ export default function CustomerRequestScreen({ onClose }) {
         appointmentTime: appointmentData.time,
         serviceType: finalServiceType,
         status: "scheduled",
-        servicePrice: Number(appointmentPrice),
+        servicePrice: price,
         compliance_valid_until: complianceValidUntil || null,
         appointmentCategory,
       };
@@ -642,12 +676,37 @@ export default function CustomerRequestScreen({ onClose }) {
     try {
       setProcessing(true);
 
+      // ✅ ADD SAME PRICE LOGIC HERE
+      const normalizedPrice = appointmentPrice.replace(",", ".").trim();
+
+      if (!normalizedPrice || normalizedPrice === "." || normalizedPrice.endsWith(".")) {
+        Alert.alert(
+          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+          i18n.t("admin.schedule.servicePrice.invalidFormat") || "Enter a valid price (e.g. 40,05)"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const parsed = parseFloat(normalizedPrice);
+
+      if (isNaN(parsed) || parsed <= 0) {
+        Alert.alert(
+          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+          i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const price = Number(parsed.toFixed(2));
+
       // ✅ Create the payload with ALL fields including technicianId
       const payload = {
         action: "approve",
         requestedDate: appointmentData.date,
         requestedTime: appointmentData.time,
-        servicePrice: Number(appointmentPrice),
+        servicePrice: price,
         complianceValidUntil: complianceValidUntil || null,
         technicianId: appointmentData.technicianId, // Include technicianId
         appointmentCategory: appointmentCategory,
@@ -1335,7 +1394,7 @@ export default function CustomerRequestScreen({ onClose }) {
                     <MaterialIcons name="euro" size={20} color="#666" style={styles.inputIcon} />
                     <TextInput
                       style={styles.formInput}
-                      keyboardType="number-pad"
+                      keyboardType="decimal-pad"
                       placeholder="e.g. 80"
                       value={appointmentPrice}
                       onChangeText={setAppointmentPrice}

@@ -114,11 +114,10 @@ async function verifyTokenWithBackend(token) {
     const response = await fetch(`${API_BASE_URL}/verify-token`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ token })
+        'Authorization': `Bearer ${token}`
+      }
     });
-    
+
     const result = await response.json();
     return result;
   } catch (error) {
@@ -378,10 +377,10 @@ const apiService = {
       }
     }
 
-    if (result.role === "admin") {
+    if (result.role === "admin" || result.role === "super_admin") {
       return {
         success: true,
-        role: "admin",
+        role: result.role,
         token: result.token
       };
     }
@@ -405,6 +404,46 @@ const apiService = {
     }
 
     return { success: false, error: "Invalid credentials" };
+  },
+
+  async getOrganizations() {
+    return request("GET", "/super-admin/organizations");
+  },
+
+  async updateOrganization(id, data) {
+    return request("PUT", `/super-admin/organizations/${id}`, data);
+  },
+
+  async getOrganizationAdmins(id) {
+    return request("GET", `/super-admin/organizations/${id}/admins`);
+  },
+
+  async createOrganizationAdmin(id, data) {
+    return request("POST", `/super-admin/organizations/${id}/admins`, data);
+  },
+
+  async updateOrganizationAdmin(orgId, adminId, data) {
+    return request(
+      "PUT",
+      `/super-admin/organizations/${orgId}/admins/${adminId}`,
+      data
+    );
+  },
+
+   async deactivateOrganization(id) {
+    return request("PUT", `/super-admin/organizations/${id}/deactivate`);
+  },
+
+  async restoreOrganization(id) {
+    return request("PUT", `/super-admin/organizations/${id}/restore`);
+  },
+
+  async createOrganization(data) {
+    return request("POST", "/super-admin/organizations", data);
+  },
+
+  async hardDeleteOrganization(id) {
+    return request("DELETE", `/super-admin/organizations/${id}/permanent`);
   },
 
   async getCustomerStats() {

@@ -75,7 +75,8 @@
     "hours_other": "hours",
     "minutes_one": "minute",
     "minutes_other": "minutes",
-    "chooseOption": "Choose option"
+    "chooseOption": "Choose option",
+    "ok":"OK"
   },
 
   "admin": {
@@ -354,9 +355,11 @@
         "customerId": "Customer ID: {{id}}",
         "completed": "Completed",
         "cancelled": "Cancelled",
-        "removeTitle": "Διαγραφή Ραντεβού",
-        "removeConfirm": "Θέλετε να διαγράψετε αυτό το ραντεβού;",
-        "removeSuccess": "Το ραντεβού διαγράφτηκε επιτυχώς"
+        "removeTitle": "Delete Appointment",
+        "removeConfirm": "Do you want to delete this appointment?",
+        "removeSuccess": "Appointment deleted successfully",
+        "cancelConfirm": "Appointment cancelled successfully",
+        "cancelTitle": "Appointment Cancellation"
       },
       "addCustomer": {
         "title": "Add Customer Appointment",
@@ -595,7 +598,9 @@
         "noTechnicians": "No technicians available. Please add technicians first.",
         "cancel": "Cancel",
         "createAppointment": "Create Appointment",
-        "approveReschedule": "Approve Reschedule"
+        "approveReschedule": "Approve Reschedule",
+        "createSuccess": "Appointment successfully created after request",
+        "rescheduleSuccessDetailed": "Appointment rescheduled successfully"
       },
       "passwordModal": {
         "title": "Reset Customer Password",
@@ -604,7 +609,8 @@
         "confirmPassword": "Confirm Password",
         "updatePassword": "Update Password",
         "newPasswordPlaceholder": "Enter new password",
-        "confirmPasswordPlaceholder": "Confirm new password"
+        "confirmPasswordPlaceholder": "Confirm new password",
+        "updateSuccess": "Password updated successfully"
      },
       "footer": {
         "system": "Customer Request Management System",
@@ -971,7 +977,8 @@
         "title": "Delete Technician",
         "message": "Are you sure you want to delete this technician? This action cannot be undone.",
         "warning": "All assigned visits and history will be permanently removed.",
-        "delete": "Delete"
+        "delete": "Delete",
+        "success": "Technician deleted successfully"
       },
       "footer": {
         "system": "Technician Management System",
@@ -1521,6 +1528,7 @@
         "success": "Success",
         "pdfSaved": "PDF saved to: {{path}}",
         "downloadFailed": "Download Failed",
+        "downloadStarted": "Download has been completed",
         "errors": {
           "network": "Network error. Please check your internet connection.",
           "auth": "Authentication error. Please log in again.",
@@ -1565,6 +1573,7 @@
       "phone": "Phone",
       "email": "Email",
       "navigate": "Navigate",
+      "noAdress": "No registered address",
       "copyright":"© {{year}} Pestify. All rights reserved."
     },
     "home": {
