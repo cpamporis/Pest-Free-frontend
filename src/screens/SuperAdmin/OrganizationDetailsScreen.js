@@ -28,6 +28,9 @@ export default function OrganizationDetailsScreen({ organization, onClose }) {
   });
   const [selectedLogo, setSelectedLogo] = useState(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [plan, setPlan] = useState(organization.subscription_plan);
+  const [maxTech, setMaxTech] = useState(String(organization.max_technicians));
+  const [maxCust, setMaxCust] = useState(String(organization.max_customers));
 
   useEffect(() => {
     loadAdmins();
@@ -123,14 +126,17 @@ export default function OrganizationDetailsScreen({ organization, onClose }) {
   const handleSave = async () => {
     const res = await apiService.updateOrganization(organization.id, {
       name,
-      brandColor: color
+      brandColor: color,
+      subscriptionPlan: plan,
+      maxTechnicians: plan === "custom" ? Number(maxTech) : undefined,
+      maxCustomers: plan === "custom" ? Number(maxCust) : undefined
     });
 
     if (res?.success) {
       Alert.alert("Saved");
       onClose();
     } else {
-      Alert.alert("Error");
+      Alert.alert("Error", res?.error || "Failed");
     }
   };
 
@@ -143,6 +149,25 @@ export default function OrganizationDetailsScreen({ organization, onClose }) {
 
       <Text>Brand Color</Text>
       <TextInput value={color} onChangeText={setColor} style={styles.input} />
+
+      <Text style={{ marginTop: 10 }}>Plan</Text>
+
+      <View style={{ flexDirection: "row", marginBottom: 10 }}>
+        {["basic", "premium", "custom"].map((p) => (
+          <TouchableOpacity
+            key={p}
+            onPress={() => setPlan(p)}
+            style={{
+              padding: 8,
+              marginRight: 8,
+              borderRadius: 6,
+              backgroundColor: plan === p ? "#1f9c8b" : "#ccc"
+            }}
+          >
+            <Text style={{ color: "#fff" }}>{p.toUpperCase()}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       <Text style={{ marginTop: 20, fontWeight: "bold" }}>
         Organization Logo
@@ -240,6 +265,26 @@ export default function OrganizationDetailsScreen({ organization, onClose }) {
               setEditData({ ...editData, password: text })
             }
           />
+
+          {plan === "custom" && (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Max Technicians"
+                keyboardType="numeric"
+                value={maxTech}
+                onChangeText={setMaxTech}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Max Customers"
+                keyboardType="numeric"
+                value={maxCust}
+                onChangeText={setMaxCust}
+              />
+            </>
+          )}
 
           <TouchableOpacity
             style={styles.btn}

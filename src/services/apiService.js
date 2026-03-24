@@ -446,6 +446,10 @@ const apiService = {
     return request("DELETE", `/super-admin/organizations/${id}/permanent`);
   },
 
+    async getOrganizationUsage() {
+    return request("GET", "/admin/usage");
+  },
+
   async getCustomerStats() {
     const res = await request("GET", "/customers/stats");
 

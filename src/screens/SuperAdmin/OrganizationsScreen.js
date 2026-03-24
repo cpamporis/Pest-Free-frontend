@@ -25,7 +25,10 @@ export default function OrganizationsScreen({ onClose }) {
     name: "",
     brandColor: "#1f9c8b",
     adminEmail: "",
-    adminPassword: ""
+    adminPassword: "",
+    subscriptionPlan: "basic",
+    maxTechnicians: "",
+    maxCustomers: ""
   });
 
   useEffect(() => {
@@ -88,11 +91,11 @@ export default function OrganizationsScreen({ onClose }) {
             </Text>
 
             <Text style={styles.meta}>
-              Plan: {org.subscriptionPlan}
+              Plan: {org.subscription_plan}
             </Text>
 
             <Text style={styles.meta}>
-              Created: {new Date(org.createdAt).toLocaleDateString()}
+              Created: {new Date(org.created_at).toLocaleDateString()}
             </Text>
 
             {/* 🔴 ACTION BUTTON */}
@@ -201,6 +204,52 @@ export default function OrganizationsScreen({ onClose }) {
             onChangeText={(text) => setNewOrg({ ...newOrg, adminPassword: text })}
           />
 
+          {newOrg.subscriptionPlan === "custom" && (
+            <>
+              <TextInput
+                style={styles.input}
+                placeholder="Max Technicians"
+                keyboardType="numeric"
+                value={newOrg.maxTechnicians}
+                onChangeText={(text) =>
+                  setNewOrg({ ...newOrg, maxTechnicians: text })
+                }
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Max Customers"
+                keyboardType="numeric"
+                value={newOrg.maxCustomers}
+                onChangeText={(text) =>
+                  setNewOrg({ ...newOrg, maxCustomers: text })
+                }
+              />
+            </>
+          )}
+
+          <Text style={{ marginTop: 10 }}>Plan</Text>
+
+          <View style={{ flexDirection: "row", marginBottom: 10 }}>
+            {["basic", "premium", "custom"].map((plan) => (
+              <TouchableOpacity
+                key={plan}
+                onPress={() =>
+                  setNewOrg({ ...newOrg, subscriptionPlan: plan })
+                }
+                style={{
+                  padding: 8,
+                  marginRight: 8,
+                  borderRadius: 6,
+                  backgroundColor:
+                    newOrg.subscriptionPlan === plan ? "#1f9c8b" : "#ccc"
+                }}
+              >
+                <Text style={{ color: "#fff" }}>{plan.toUpperCase()}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <TouchableOpacity
             style={styles.createButton}
             onPress={async () => {
@@ -213,7 +262,10 @@ export default function OrganizationsScreen({ onClose }) {
                     name: "",
                     brandColor: "#1f9c8b",
                     adminEmail: "",
-                    adminPassword: ""
+                    adminPassword: "",
+                    subscriptionPlan: "basic",
+                    maxTechnicians: "",
+                    maxCustomers: ""
                   });
                   loadOrganizations();
                 } else {

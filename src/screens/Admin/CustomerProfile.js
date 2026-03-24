@@ -7,11 +7,11 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  SafeAreaView,
   Image,
   Dimensions
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Dropdown from "../../components/Dropdown";
 import apiService from "../../services/apiService";
 import ReportScreen from "../Technician/ReportScreen";
