@@ -446,7 +446,7 @@ const apiService = {
     return request("DELETE", `/super-admin/organizations/${id}/permanent`);
   },
 
-    async getOrganizationUsage() {
+  async getOrganizationUsage() {
     return request("GET", "/admin/usage");
   },
 
