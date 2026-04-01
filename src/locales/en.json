@@ -722,7 +722,9 @@
         "chooseGallery": "Choose from Gallery",
         "changeImage": "Change Image",
         "uploadMap": "Upload Map",
-        "saveChanges": "Save Changes"
+        "saveChanges": "Save Changes",
+        "saveSuccess": "Profile updated successfully",
+        "mapAddSuccess": "Map added successfully"
       },
       "deleteModal": {
         "title": "Remove Customer",
@@ -963,7 +965,8 @@
         "agePlaceholder": "Enter age",
         "emailPlaceholder": "Email address",
         "usernamePlaceholder":"Enter username",
-        "passwordPlaceholder":"Enter password"
+        "passwordPlaceholder":"Enter password",
+        "success": "Technician created successfully"
       },
       "editModal": {
         "title": "Edit Technician",
@@ -1579,7 +1582,7 @@
       "phone": "Phone",
       "email": "Email",
       "navigate": "Navigate",
-      "noAdress": "No registered address",
+      "noAddress": "No registered address",
       "copyright":"© {{year}} Pestify. All rights reserved."
     },
     "home": {

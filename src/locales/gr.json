@@ -714,7 +714,9 @@
         "chooseGallery": "Επιλογή από Συλλογή",
         "changeImage": "Αλλαγή Εικόνας",
         "uploadMap": "Μεταφόρτωση Κάτοψης",
-        "saveChanges": "Αποθήκευση Αλλαγών"
+        "saveChanges": "Αποθήκευση Αλλαγών",
+        "saveSuccess": "Το προφίλ ενημερώθηκε με επιτυχία",
+        "mapAddSuccess": "Η κάτοψη προστέθηκε με επιτυχία"
       },
       "deleteModal": {
         "title": "Αφαίρεση Πελάτη",
@@ -951,7 +953,8 @@
         "agePlaceholder": "Εισάγετε ηλικία",
         "emailPlaceholder": "Διεύθυνση email",
         "usernamePlaceholder": "Εισάγετε όνομα χρήστη",
-        "passwordPlaceholder": "Εισάγετε κωδικό"
+        "passwordPlaceholder": "Εισάγετε κωδικό",
+        "success": "Ο τεχνικός δημιουργήθηκε με επιτυχία"
       },
       "editModal": {
         "title": "Επεξεργασία Τεχνικού",
@@ -1562,7 +1565,7 @@
       "phone": "Τηλέφωνο",
       "email": "Email",
       "navigate": "Πλοήγηση",
-      "noAdress": "Δεν υπάρχει καταχωρημένη διεύθυνση",
+      "noAddress": "Δεν υπάρχει καταχωρημένη διεύθυνση",
       "copyright": "© {{year}} Pestify. Με την επιφύλαξη παντός δικαιώματος."
     },
     "home": {
