@@ -56,6 +56,34 @@ export default function Statistics({ onClose }) {
   const [showRevenueDetails, setShowRevenueDetails] = useState(false);
   const [selectedBarIndex, setSelectedBarIndex] = useState(null);
 
+  const getCurrentMonthKey = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  };
+
+  const getPreviousMonthKey = () => {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const year = prev.getFullYear();
+    const month = String(prev.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  };
+
+  const getRevenueForMonth = (monthKey) => {
+    const monthData = monthlyRevenue.find(item => item.month === monthKey);
+    return parseFloat(monthData?.revenue || 0);
+  };
+
+  const getAppointmentsForMonth = (monthKey) => {
+    const monthData = monthlyRevenue.find(item => item.month === monthKey);
+    return parseInt(monthData?.appointments || 0, 10);
+  };
+
+  const currentMonthRevenue = getRevenueForMonth(getCurrentMonthKey());
+  const previousMonthRevenue = getRevenueForMonth(getPreviousMonthKey());
+
   useEffect(() => {
     loadStatistics();
   }, []);
@@ -379,24 +407,19 @@ export default function Statistics({ onClose }) {
 
   const getFilteredMonthlyRevenue = () => {
     if (!monthlyRevenue || monthlyRevenue.length === 0) return [];
-    
+
     let filteredData = [...monthlyRevenue];
-    
-    // Sort by date (most recent first)
-    filteredData.sort((a, b) => {
-      const [aYear, aMonth] = a.month.split('-').map(Number);
-      const [bYear, bMonth] = b.month.split('-').map(Number);
-      return bYear - aYear || bMonth - aMonth;
-    });
-    
-    // Filter based on time period
-    switch(timePeriod) {
+
+    // monthlyRevenue comes from backend DESC, so reverse to oldest -> newest for chart display
+    filteredData.sort((a, b) => a.month.localeCompare(b.month));
+
+    switch (timePeriod) {
       case '3months':
-        return filteredData.slice(0, 3);
+        return filteredData.slice(-3);
       case '6months':
-        return filteredData.slice(0, 6);
+        return filteredData.slice(-6);
       case '1year':
-        return filteredData.slice(0, 12);
+        return filteredData.slice(-12);
       case 'all':
       default:
         return filteredData;
@@ -460,6 +483,12 @@ export default function Statistics({ onClose }) {
     const [year, month] = monthString.split('-').map(Number);
     
     return year === currentYear && month === currentMonth;
+  };
+
+  const getCurrentMonthRevenue = () => {
+    const currentMonthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const currentMonthData = monthlyRevenue.find(item => item.month === currentMonthKey);
+    return parseFloat(currentMonthData?.revenue || 0);
   };
 
   const calculateEnhancedKPIs = (customersData, appointmentsData, revenueStatsData, monthlyRevenueData, technicianRevenueData, revenueByServiceData) => {
@@ -675,7 +704,7 @@ export default function Statistics({ onClose }) {
           <View style={styles.kpiRow}>
             <KPICard 
               title={i18n.t("admin.statistics.kpi.monthlyRevenue")}
-              value={`€${parseFloat(monthlyRevenue[0]?.revenue || 0).toFixed(0)}`}
+              value={`€${currentMonthRevenue.toFixed(0)}`}
               change={kpiData.revenueGrowth || 0}
               icon="euro"
               isCurrency={true}
@@ -793,7 +822,7 @@ export default function Statistics({ onClose }) {
                   <View style={styles.chartStatItem}>
                     <Text style={styles.chartStatLabel}>{i18n.t("admin.statistics.revenueTrends.currentMonth")}</Text>
                     <Text style={styles.chartStatValue}>
-                      €{parseFloat(monthlyRevenue[0]?.revenue || 0).toFixed(0)}
+                      €{currentMonthRevenue.toFixed(0)}
                     </Text>
                   </View>
                   <View style={styles.chartStatItem}>
