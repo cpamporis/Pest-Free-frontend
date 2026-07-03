@@ -343,11 +343,6 @@
         "emergency": "Επείγουσα Κλήση",
         "contract_service": "Συμβόλαιο / Επαναλαμβανόμενη Υπηρεσία"
       },
-      "servicePrice": {
-        "title": "Τιμή Υπηρεσίας",
-        "placeholder": "Εισάγετε τιμή υπηρεσίας σε Ευρώ (π.χ. 80)",
-        "invalid": "Εισάγετε έγκυρη τιμή μέχρι δύο δεκαδικά"
-      },
       "appointments": {
         "title": "Ραντεβού για {{date}}",
         "noAppointments": "Δεν υπάρχουν Ραντεβού",
@@ -361,6 +356,17 @@
         "removeSuccess": "Το ραντεβού διαγράφτηκε επιτυχώς",
         "cancelConfirm": "Το ραντεβού ακυρώθηκε επιτυχώς",
         "cancelTitle": "Ακύρωση Ραντεβού"
+      },
+      "serviceVat": {
+        "title": "ΦΠΑ",
+        "placeholder": "π.χ. 24",
+        "invalid": "Συμπλήρωσε έγκυρο ποσοστό ΦΠΑ."
+      },
+      "servicePrice": {
+        "title": "Καθαρή Τιμή",
+        "placeholder": "Συμπλήρωσε καθαρή τιμή υπηρεσίας",
+        "invalid": "Συμπλήρωσε έγκυρη καθαρή τιμή μεγαλύτερη από 0.",
+        "totalWithVat": "Σύνολο με ΦΠΑ"
       },
       "addCustomer": {
         "title": "Προσθήκη Ραντεβού Πελάτη",
@@ -696,7 +702,11 @@
         "customerNameRequired": "Παρακαλώ προσθέστε το όνομα πελάτη",
         "createSuccess": "Επιτυχής δημιουργία πελάτη",
         "createWithLoginSuccess": "Ο λογαριασμός πελάτη δημιουργήθηκε με επιτυχία",
-        "createWithoutLoginSuccess": "Δεν δημιουργήθηκε λογαριασμός πελάτη"
+        "createWithoutLoginSuccess": "Δεν δημιουργήθηκε λογαριασμός πελάτη",
+        "tin": "ΑΦΜ",
+        "tinPlaceholder": "π.χ. 123456789",
+        "ama": "ΑΜΑ",
+        "amaPlaceholder": "π.χ. αριθμός ΑΜΑ"
       },
       "editModal": {
         "title": "Επεξεργασία Πελάτη",
@@ -830,7 +840,9 @@
         "ticketDesc": "ανά υπηρεσία",
         "visitFrequency": "Συχνότητα Επισκέψεων",
         "frequencyDesc": "μεταξύ υπηρεσιών",
-        "excellent": ""
+        "excellent": "",
+        "monthlyVat": "ΦΠΑ Μήνα",
+        "monthlyVatDesc": "Σύνολο ΦΠΑ τρέχοντος μήνα"
       },
       "insights": {
         "title": "Γρήγορες Πληροφορίες",
@@ -843,7 +855,9 @@
         "totalRevenue": "Συνολικά Έσοδα",
         "thisYear": "Φέτος",
         "avgPrice": "Μέση Τιμή",
-        "completed": "Ολοκληρωμένα"
+        "completed": "Ολοκληρωμένα",
+        "netRevenue": "Καθαρά Έσοδα",
+        "vat": "ΦΠΑ"
       },
       "revenueTrends": {
         "title": "Τάσεις Εσόδων",

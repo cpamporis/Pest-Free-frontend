@@ -84,6 +84,143 @@ export default function Statistics({ onClose }) {
   const currentMonthRevenue = getRevenueForMonth(getCurrentMonthKey());
   const previousMonthRevenue = getRevenueForMonth(getPreviousMonthKey());
 
+  function parseMoney(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(String(value).replace(",", "."));
+  return Number.isFinite(number) ? number : null;
+}
+
+function getAppointmentRevenueParts(appointment) {
+  const gross =
+    parseMoney(appointment.servicePrice) ??
+    parseMoney(appointment.service_price) ??
+    0;
+
+  const storedNet =
+    parseMoney(appointment.serviceNetPrice) ??
+    parseMoney(appointment.service_net_price);
+
+  const storedVat =
+    parseMoney(appointment.serviceVatAmount) ??
+    parseMoney(appointment.service_vat_amount);
+
+  const vatPercent =
+    parseMoney(appointment.serviceVatPercent) ??
+    parseMoney(appointment.service_vat_percent) ??
+    0;
+
+  let net = storedNet;
+  let vat = storedVat;
+
+  if (net === null && vat !== null) {
+    net = gross - vat;
+  }
+
+  if (net === null && vatPercent > 0 && gross > 0) {
+    net = gross / (1 + vatPercent / 100);
+  }
+
+  if (net === null) {
+    net = gross;
+  }
+
+  if (vat === null) {
+    vat = gross - net;
+  }
+
+  return {
+    gross: Math.max(0, gross),
+    net: Math.max(0, net),
+    vat: Math.max(0, vat),
+  };
+}
+
+function isCompletedAppointment(appointment) {
+  return ["completed", "done", "finished"].includes(String(appointment.status || "").toLowerCase());
+}
+
+function getAppointmentDateString(appointment) {
+  return (
+    appointment.date ||
+    appointment.appointmentDate ||
+    appointment.appointment_date ||
+    appointment.completedAt ||
+    appointment.completed_at ||
+    appointment.createdAt ||
+    appointment.created_at ||
+    null
+  );
+}
+
+function isCurrentMonthAppointment(appointment) {
+  const rawDate = getAppointmentDateString(appointment);
+  if (!rawDate) return false;
+
+  const date = new Date(rawDate);
+  if (isNaN(date.getTime())) return false;
+
+  const now = new Date();
+
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth()
+  );
+}
+
+const completedAppointmentRecords = appointments.filter(isCompletedAppointment);
+
+const revenueTotals = completedAppointmentRecords.reduce(
+  (acc, appointment) => {
+    const parts = getAppointmentRevenueParts(appointment);
+    acc.gross += parts.gross;
+    acc.net += parts.net;
+    acc.vat += parts.vat;
+    return acc;
+  },
+  { gross: 0, net: 0, vat: 0 }
+);
+
+const currentMonthVatFromAppointments = completedAppointmentRecords
+  .filter(isCurrentMonthAppointment)
+  .reduce((sum, appointment) => sum + getAppointmentRevenueParts(appointment).vat, 0);
+
+const currentMonthRevenueRow =
+  monthlyRevenue.find(item => item.month === getCurrentMonthKey()) ||
+  monthlyRevenue[0] ||
+  {};
+
+// Gross revenue / total revenue
+const totalRevenueDisplay =
+  parseMoney(revenueStats?.total_revenue) ??
+  revenueTotals.gross ??
+  0;
+
+// VAT total from backend first, appointment fallback second
+const vatRevenueDisplay =
+  parseMoney(revenueStats?.vat_total) ??
+  parseMoney(revenueStats?.total_vat) ??
+  parseMoney(revenueStats?.vat) ??
+  revenueTotals.vat ??
+  0;
+
+// Net revenue from backend first, calculated fallback second
+const netRevenueDisplay =
+  parseMoney(revenueStats?.net_revenue) ??
+  parseMoney(revenueStats?.total_net_revenue) ??
+  Math.max(0, totalRevenueDisplay - vatRevenueDisplay);
+
+// Current month VAT from backend monthly endpoint first
+const currentMonthVatDisplay =
+  parseMoney(currentMonthRevenueRow?.vat_total) ??
+  parseMoney(currentMonthRevenueRow?.total_vat) ??
+  parseMoney(currentMonthRevenueRow?.vat) ??
+  currentMonthVatFromAppointments ??
+  0;
+
+const completedAppointmentsDisplay =
+  Number(revenueStats?.completed_appointments || 0) ||
+  completedAppointmentRecords.length;
+
   useEffect(() => {
     loadStatistics();
   }, []);
@@ -752,10 +889,10 @@ export default function Statistics({ onClose }) {
             />
             
             <KPICard 
-              title={i18n.t("admin.statistics.kpi.visitFrequency")}
-              value={`${kpiData.visitFrequency || 30} ${i18n.t("common.days_other")}`}
-              icon="update"
-              subtitle={i18n.t("admin.statistics.kpi.frequencyDesc")}
+              title={i18n.t("admin.statistics.kpi.monthlyVat") || "VAT This Month"}
+              value={`€${currentMonthVatDisplay.toFixed(2)}`}
+              icon="receipt-long"
+              subtitle={i18n.t("admin.statistics.kpi.monthlyVatDesc") || "VAT sum for the current month"}
               color="#1f9c8b"
             />
           </View>
@@ -781,32 +918,33 @@ export default function Statistics({ onClose }) {
         </View>
 
         {/* REVENUE SUMMARY SECTION */}
-        {revenueStats && (
-          <Section title={i18n.t("admin.statistics.revenue.summary")}>
-            <View style={styles.revenueGrid}>
-              <RevenueCard 
-                title={i18n.t("admin.statistics.revenue.totalRevenue")} 
-                value={`€${parseFloat(revenueStats.total_revenue || 0).toFixed(2)}`}
-                icon="euro"
-              />
-              <RevenueCard 
-                title={i18n.t("admin.statistics.revenue.thisYear")} 
-                value={`€${parseFloat(yearRevenue).toFixed(2)}`}
-                icon="calendar-today"
-              />
-              <RevenueCard 
-                title={i18n.t("admin.statistics.revenue.avgPrice")} 
-                value={`€${parseFloat(revenueStats.avg_price || 0).toFixed(2)}`}
-                icon="trending-up"
-              />
-              <RevenueCard 
-                title={i18n.t("admin.statistics.revenue.completed")} 
-                value={revenueStats.completed_appointments || 0}
-                icon="check-circle"
-              />
-            </View>
-          </Section>
-        )}
+        <Section title={i18n.t("admin.statistics.revenue.summary")}>
+          <View style={styles.revenueGrid}>
+            <RevenueCard 
+              title={i18n.t("admin.statistics.revenue.totalRevenue") || "Total Revenue"} 
+              value={`€${totalRevenueDisplay.toFixed(2)}`}
+              icon="euro"
+            />
+
+            <RevenueCard 
+              title={i18n.t("admin.statistics.revenue.netRevenue") || "Net Revenue"} 
+              value={`€${netRevenueDisplay.toFixed(2)}`}
+              icon="receipt"
+            />
+
+            <RevenueCard 
+              title={i18n.t("admin.statistics.revenue.vat") || "VAT"} 
+              value={`€${vatRevenueDisplay.toFixed(2)}`}
+              icon="percent"
+            />
+
+            <RevenueCard 
+              title={i18n.t("admin.statistics.revenue.completed") || "Appointments completed"} 
+              value={completedAppointmentsDisplay}
+              icon="check-circle"
+            />
+          </View>
+        </Section>
 
         {/* REVENUE TRENDS CHART */}
         <Section title={i18n.t("admin.statistics.revenueTrends.title")}>

@@ -49,6 +49,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const [complianceValidUntil, setComplianceValidUntil] = useState("");
   const [showCompliancePicker, setShowCompliancePicker] = useState(false);
   const [servicePrice, setServicePrice] = useState("");
+  const [serviceVatPercent, setServiceVatPercent] = useState("24");
   const [appointmentCategory, setAppointmentCategory] = useState("first_time");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const appointmentCategories = [
@@ -69,6 +70,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const [editInsecticideDetails, setEditInsecticideDetails] = useState("");
   const [editDisinfectionDetails, setEditDisinfectionDetails] = useState("");
   const [editServicePrice, setEditServicePrice] = useState("");
+  const [editServiceVatPercent, setEditServiceVatPercent] = useState("");
   const [editAppointmentCategory, setEditAppointmentCategory] = useState("first_time");
   const [editComplianceValidUntil, setEditComplianceValidUntil] = useState("");
   const [showEditCategoryDropdown, setShowEditCategoryDropdown] = useState(false);
@@ -267,6 +269,31 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     }
   }
 
+  function parseDecimalInput(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const normalized = String(value).replace(",", ".");
+    const number = Number(normalized);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function roundMoney(value) {
+    return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  }
+
+  function buildVatPricePayload(netValue, vatValue) {
+    const netPrice = roundMoney(parseDecimalInput(netValue) || 0);
+    const vatPercent = roundMoney(parseDecimalInput(vatValue) || 0);
+    const vatAmount = roundMoney(netPrice * (vatPercent / 100));
+    const grossPrice = roundMoney(netPrice + vatAmount);
+
+    return {
+      serviceNetPrice: netPrice,
+      serviceVatPercent: vatPercent,
+      serviceVatAmount: vatAmount,
+      servicePrice: grossPrice,
+    };
+  }
+
   async function addCustomerToSchedule(customerId) {
 
     customerId = String(customerId);
@@ -308,6 +335,26 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
         i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0");
     }
+
+    const normalizedVatPercent = serviceVatPercent.replace(",", ".").trim();
+
+    if (!normalizedVatPercent || normalizedVatPercent === "." || normalizedVatPercent.endsWith(".")) {
+      return Alert.alert(
+        i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+        i18n.t("admin.schedule.serviceVat.invalidFormat") || "Enter a valid VAT percentage (e.g. 24 or 13,5)"
+      );
+    }
+
+    const vatPercent = parseFloat(normalizedVatPercent);
+
+    if (isNaN(vatPercent) || vatPercent < 0) {
+      return Alert.alert(
+        i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+        i18n.t("admin.schedule.serviceVat.invalid") || "VAT must be 0 or greater"
+      );
+    }
+
+    const pricePayload = buildVatPricePayload(normalizedPrice, normalizedVatPercent);
     
     if (!serviceType) return Alert.alert(i18n.t("common.error"), i18n.t("admin.schedule.addCustomer.noServiceType") || "Please select a service type");
 
@@ -373,7 +420,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         appointmentTime: time.trim(),
         serviceType,
         appointmentCategory,
-        servicePrice: Number(price.toFixed(2)),
+        ...pricePayload,
         status: "scheduled",
         ...(complianceValidUntil && {
           compliance_valid_until: complianceValidUntil
@@ -418,6 +465,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
       setDisinfectionDetails("");
       setSpecialServiceSubtype(null);
       setOtherPestName("");
+      setServicePrice("");
+      setServiceVatPercent("24");
       
     } catch (err) {
       console.error("Error creating appointment:", err);
@@ -610,7 +659,32 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     setEditOtherPestName(appointment.otherPestName || appointment.other_pest_name || '');
     setEditInsecticideDetails(appointment.insecticideDetails || appointment.insecticide_details || '');
     setEditDisinfectionDetails(appointment.disinfection_details || '');
-    setEditServicePrice(appointment.servicePrice?.toString() || appointment.service_price?.toString() || '');
+    const existingNetPrice =
+      appointment.serviceNetPrice ??
+      appointment.service_net_price ??
+      null;
+
+    const existingGrossPrice =
+      appointment.servicePrice ??
+      appointment.service_price ??
+      "";
+
+    const existingVatPercent =
+      appointment.serviceVatPercent ??
+      appointment.service_vat_percent ??
+      "";
+
+    setEditServicePrice(
+      existingNetPrice !== null && existingNetPrice !== undefined && existingNetPrice !== ""
+        ? existingNetPrice.toString()
+        : existingGrossPrice?.toString() || ""
+    );
+
+    setEditServiceVatPercent(
+      existingVatPercent !== null && existingVatPercent !== undefined
+        ? existingVatPercent.toString()
+        : ""
+    );
     setEditAppointmentCategory(appointment.appointmentCategory || appointment.appointment_category || 'first_time');
     setEditComplianceValidUntil(appointment.complianceValidUntil || appointment.compliance_valid_until || '');
     
@@ -704,6 +778,30 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         setProcessing(false);
         return;
       }
+
+      const normalizedVatPercent = editServiceVatPercent.replace(",", ".").trim();
+
+      if (!normalizedVatPercent || normalizedVatPercent === "." || normalizedVatPercent.endsWith(".")) {
+        Alert.alert(
+          i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+          i18n.t("admin.schedule.serviceVat.invalidFormat") || "Enter a valid VAT percentage (e.g. 24 or 13,5)"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const vatPercent = parseFloat(normalizedVatPercent);
+
+      if (isNaN(vatPercent) || vatPercent < 0) {
+        Alert.alert(
+          i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+          i18n.t("admin.schedule.serviceVat.invalid") || "VAT must be 0 or greater"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const editPricePayload = buildVatPricePayload(normalizedPrice, normalizedVatPercent);
       
       if (!editTime.trim()) {
         Alert.alert(i18n.t("common.error"), i18n.t("admin.schedule.editModal.noTime") || "Please select appointment time");
@@ -737,7 +835,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
       
       // Build the update payload
       const payload = {
-        servicePrice: Number(price.toFixed(2)),
+        ...editPricePayload,
         appointmentCategory: editAppointmentCategory,
         serviceType: editServiceType,
         specialServiceSubtype: editSpecialServiceSubtype,
@@ -801,6 +899,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     setEditInsecticideDetails("");
     setEditDisinfectionDetails("");
     setEditServicePrice("");
+    setEditServiceVatPercent("");
     setEditAppointmentCategory("first_time");
     setEditComplianceValidUntil("");
     setEditTime("");
@@ -1335,6 +1434,32 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           />
         </View>
 
+        {/* VAT */}
+        <View style={styles.sectionHeader}>
+          <View style={styles.sectionTitleContainer}>
+            <MaterialIcons name="percent" size={20} color="#2c3e50" />
+            <Text style={styles.sectionTitle}>
+              {i18n.t("admin.schedule.serviceVat.title") || "VAT %"}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.detailsContainer}>
+          <TextInput
+            style={styles.detailsInput}
+            placeholder={i18n.t("admin.schedule.serviceVat.placeholder") || "e.g. 24"}
+            placeholderTextColor="#999"
+            keyboardType="decimal-pad"
+            value={serviceVatPercent}
+            onChangeText={setServiceVatPercent}
+          />
+
+          <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#2c3e50" }}>
+            {(i18n.t("admin.schedule.servicePrice.totalWithVat") || "Total with VAT")}: €
+            {buildVatPricePayload(servicePrice, serviceVatPercent).servicePrice.toFixed(2)}
+          </Text>
+        </View>
+
         {/* TODAY'S APPOINTMENTS */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
@@ -1828,6 +1953,30 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                       placeholderTextColor="#999"
                     />
                   </View>
+                </View>
+
+                {/* VAT */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>
+                    {i18n.t("admin.schedule.serviceVat.title") || "VAT %"} <Text style={styles.requiredStar}>*</Text>
+                  </Text>
+
+                  <View style={styles.inputWithIcon}>
+                    <MaterialIcons name="percent" size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.formInput}
+                      keyboardType="decimal-pad"
+                      placeholder="e.g. 24"
+                      value={editServiceVatPercent}
+                      onChangeText={setEditServiceVatPercent}
+                      placeholderTextColor="#999"
+                    />
+                  </View>
+
+                  <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#2c3e50" }}>
+                    {(i18n.t("admin.schedule.servicePrice.totalWithVat") || "Total with VAT")}: €
+                    {buildVatPricePayload(editServicePrice, editServiceVatPercent).servicePrice.toFixed(2)}
+                  </Text>
                 </View>
 
                 {/* APPOINTMENT CATEGORY */}

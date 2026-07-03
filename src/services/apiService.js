@@ -760,7 +760,13 @@ const apiService = {
       otherPestName: payload.otherPestName || null,
       appointmentCategory: payload.appointmentCategory || null,
       insecticideDetails: payload.insecticideDetails || null,
-      disinfection_details: payload.disinfection_details || null
+      disinfection_details: payload.disinfection_details || null,
+      serviceNetPrice: payload.serviceNetPrice ?? null,
+      serviceVatPercent: payload.serviceVatPercent ?? 0,
+      serviceVatAmount: payload.serviceVatAmount ?? 0,
+      service_net_price: payload.serviceNetPrice ?? null,
+      service_vat_percent: payload.serviceVatPercent ?? 0,
+      service_vat_amount: payload.serviceVatAmount ?? 0
     };
 
     if (payload.compliance_valid_until) {

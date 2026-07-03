@@ -99,6 +99,8 @@ function AddCustomerModal({ onClose, onSave }) {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [telephone, setTelephone] = useState("");
+  const [tin, setTin] = useState("");
+  const [ama, setAma] = useState("");
   
 
   // Map upload states
@@ -151,6 +153,8 @@ function AddCustomerModal({ onClose, onSave }) {
         address: address.trim(),
         email: email.trim(),
         telephone: telephone.trim(),
+         tin: tin.trim(),
+         ama: ama.trim(),
         maps: []
       };
 
@@ -322,6 +326,32 @@ function AddCustomerModal({ onClose, onSave }) {
                   keyboardType="phone-pad"
                   value={telephone}
                   onChangeText={setTelephone}
+                  editable={!loading}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>{i18n.t("admin.customers.addModal.tin")}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={i18n.t("admin.customers.addModal.tinPlaceholder")}
+                  placeholderTextColor="#999"
+                  keyboardType="number-pad"
+                  value={tin}
+                  onChangeText={setTin}
+                  editable={!loading}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>{i18n.t("admin.customers.addModal.ama")}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={i18n.t("admin.customers.addModal.amaPlaceholder")}
+                  placeholderTextColor="#999"
+                  keyboardType="number-pad"
+                  value={ama}
+                  onChangeText={setAma}
                   editable={!loading}
                 />
               </View>
@@ -502,6 +532,8 @@ function EditCustomerModal({ customer, onClose, onSave }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [telephone, setTelephone] = useState("");
+  const [tin, setTin] = useState("");
+  const [ama, setAma] = useState("");
 
   
   // Map upload states
@@ -533,6 +565,8 @@ function EditCustomerModal({ customer, onClose, onSave }) {
         setAddress(fresh.address || "");
         setEmail(fresh.email || "");
         setTelephone(fresh.telephone || "");
+        setTin(fresh.tin || "");
+        setAma(fresh.ama || "");
         setCustomerMaps(fresh.maps || []);
       } catch (e) {
         console.error("❌ Failed to load customer:", e);
@@ -674,7 +708,9 @@ function EditCustomerModal({ customer, onClose, onSave }) {
         customerName: customerName.trim(),
         address: address.trim(),
         email: email.trim(),
-        telephone: telephone.trim()
+        telephone: telephone.trim(),
+        tin: tin.trim(),
+        ama: ama.trim()
       };
 
       await onSave(updateData);
@@ -758,6 +794,32 @@ function EditCustomerModal({ customer, onClose, onSave }) {
                     keyboardType="phone-pad"
                     value={telephone}
                     onChangeText={setTelephone}
+                    editable={!loading}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>{i18n.t("admin.customers.addModal.tin")}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={i18n.t("admin.customers.addModal.tinPlaceholder")}
+                    placeholderTextColor="#999"
+                    keyboardType="number-pad"
+                    value={tin}
+                    onChangeText={setTin}
+                    editable={!loading}
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputLabel}>{i18n.t("admin.customers.addModal.ama")}</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder={i18n.t("admin.customers.addModal.amaPlaceholder")}
+                    placeholderTextColor="#999"
+                    keyboardType="number-pad"
+                    value={ama}
+                    onChangeText={setAma}
                     editable={!loading}
                   />
                 </View>

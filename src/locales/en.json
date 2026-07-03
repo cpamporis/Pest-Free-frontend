@@ -348,11 +348,6 @@
         "emergency": "Emergency Call-Out",
         "contract_service": "Contract / Recurring Service"
       },
-      "servicePrice": {
-        "title": "Service Price",
-        "placeholder": "Enter service price in Euro (e.g. 80)",
-        "invalid": "Enter a value for price with up to two decimals"
-      },
       "appointments": {
         "title": "Appointments for {{date}}",
         "noAppointments": "No Appointments",
@@ -366,6 +361,17 @@
         "removeSuccess": "Appointment deleted successfully",
         "cancelConfirm": "Appointment cancelled successfully",
         "cancelTitle": "Appointment Cancellation"
+      },
+      "serviceVat": {
+        "title": "VAT",
+        "placeholder": "e.g. 24",
+        "invalid": "Please enter a valid VAT percentage."
+      },
+      "servicePrice": {
+        "title": "Net Price",
+        "placeholder": "Enter net service price",
+        "invalid": "Please enter a valid net service price greater than 0.",
+        "totalWithVat": "Total with VAT"
       },
       "addCustomer": {
         "title": "Add Customer Appointment",
@@ -704,7 +710,11 @@
         "customerNameRequired": "Please add customer's name",
         "createSuccess": "Client created successfully",
         "createWithLoginSuccess": "Customer account created successfully",
-        "createWithoutLoginSuccess": "Customer's account was not created"
+        "createWithoutLoginSuccess": "Customer's account was not created",
+        "tin": "TIN",
+        "tinPlaceholder": "e.g. 123456789",
+        "ama": "AMA",
+        "amaPlaceholder": "e.g. AMA number"
       },
       "editModal": {
         "title": "Edit Customer",
@@ -841,7 +851,9 @@
         "ticketDesc": "per service",
         "visitFrequency": "Visit Frequency",
         "frequencyDesc": "between services",
-        "excellent": ""
+        "excellent": "",
+        "monthlyVat": "VAT This Month",
+        "monthlyVatDesc": "VAT sum for the current month"
       },
       "insights": {
         "title": "Quick Insights",
@@ -854,7 +866,9 @@
         "totalRevenue": "Total Revenue",
         "thisYear": "This Year",
         "avgPrice": "Avg Price",
-        "completed": "Completed"
+        "completed": "Completed",
+        "netRevenue": "Net Revenue",
+        "vat": "VAT"
       },
       "revenueTrends": {
         "title": "Revenue Trends",

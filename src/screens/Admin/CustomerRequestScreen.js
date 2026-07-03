@@ -33,6 +33,7 @@ export default function CustomerRequestScreen({ onClose }) {
     date: "",
     time: ""
   });
+  const [appointmentVatPercent, setAppointmentVatPercent] = useState("24");
   const [technicians, setTechnicians] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -67,6 +68,31 @@ export default function CustomerRequestScreen({ onClose }) {
     { id: "emergency", label: i18n.t("admin.schedule.appointmentCategory.emergency") },
     { id: "contract_service", label: i18n.t("admin.schedule.appointmentCategory.contract_service") },
   ];
+
+  function parseDecimalInput(value) {
+    if (value === null || value === undefined || value === "") return null;
+    const normalized = String(value).replace(",", ".");
+    const number = Number(normalized);
+    return Number.isFinite(number) ? number : null;
+  }
+
+  function roundMoney(value) {
+    return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
+  }
+
+  function buildVatPricePayload(netValue, vatValue) {
+    const netPrice = roundMoney(parseDecimalInput(netValue) || 0);
+    const vatPercent = roundMoney(parseDecimalInput(vatValue) || 0);
+    const vatAmount = roundMoney(netPrice * (vatPercent / 100));
+    const grossPrice = roundMoney(netPrice + vatAmount);
+
+    return {
+      serviceNetPrice: netPrice,
+      serviceVatPercent: vatPercent,
+      serviceVatAmount: vatAmount,
+      servicePrice: grossPrice,
+    };
+  }
 
     const formatTime = (timeStr) => {
     if (!timeStr) return "";
@@ -280,7 +306,8 @@ export default function CustomerRequestScreen({ onClose }) {
     // This gives admin a starting point but allows them to modify it
     setInsecticideDetails(request.description || '');
     setDisinfectionDetails(request.description || '');
-
+    setAppointmentPrice("");
+    setAppointmentVatPercent("24");
     setShowAppointmentModal(true);
   };
 
@@ -460,10 +487,50 @@ export default function CustomerRequestScreen({ onClose }) {
       return;
     }
 
-    if (!appointmentPrice || appointmentPrice === "") {
-      Alert.alert(i18n.t("common.error"), i18n.t("admin.customerRequests.appointmentModal.priceRequired") || "Service price is required");
+    const normalizedPrice = appointmentPrice.replace(",", ".").trim();
+
+    if (!normalizedPrice || normalizedPrice === "." || normalizedPrice.endsWith(".")) {
+      Alert.alert(
+        i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+        i18n.t("admin.schedule.servicePrice.invalidFormat") || "Enter a valid price (e.g. 40,05)"
+      );
       return;
     }
+
+    const parsedPrice = parseFloat(normalizedPrice);
+
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      Alert.alert(
+        i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
+        i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0"
+      );
+      return;
+    }
+
+    const normalizedVatPercent = appointmentVatPercent.replace(",", ".").trim();
+
+    if (!normalizedVatPercent || normalizedVatPercent === "." || normalizedVatPercent.endsWith(".")) {
+      Alert.alert(
+        i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+        i18n.t("admin.schedule.serviceVat.invalidFormat") || "Enter a valid VAT percentage (e.g. 24 or 13,5)"
+      );
+      return;
+    }
+
+    const parsedVatPercent = parseFloat(normalizedVatPercent);
+
+    if (isNaN(parsedVatPercent) || parsedVatPercent < 0) {
+      Alert.alert(
+        i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+        i18n.t("admin.schedule.serviceVat.invalid") || "VAT must be 0 or greater"
+      );
+      return;
+    }
+
+    const appointmentPricePayload = buildVatPricePayload(
+      normalizedPrice,
+      normalizedVatPercent
+    );
 
     if (!appointmentCategory) {
       Alert.alert(i18n.t("common.error"), i18n.t("admin.customerRequests.appointmentModal.categoryRequired") || "Appointment category is required");
@@ -495,30 +562,6 @@ export default function CustomerRequestScreen({ onClose }) {
     try {
       setProcessing(true);
 
-      const normalizedPrice = appointmentPrice.replace(",", ".").trim();
-
-      if (!normalizedPrice || normalizedPrice === "." || normalizedPrice.endsWith(".")) {
-        Alert.alert(
-          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
-          i18n.t("admin.schedule.servicePrice.invalidFormat") || "Enter a valid price (e.g. 40,05)"
-        );
-        setProcessing(false);
-        return;
-      }
-
-      const parsed = parseFloat(normalizedPrice);
-
-      if (isNaN(parsed) || parsed <= 0) {
-        Alert.alert(
-          i18n.t("admin.schedule.servicePrice.title") || "Invalid Price",
-          i18n.t("admin.schedule.servicePrice.invalid") || "Price must be greater than 0"
-        );
-        setProcessing(false);
-        return;
-      }
-
-      const price = Number(parsed.toFixed(2));
-
       const payload = {
         technicianId: appointmentData.technicianId,
         customerId: selectedRequest.customer_id,
@@ -526,7 +569,7 @@ export default function CustomerRequestScreen({ onClose }) {
         appointmentTime: appointmentData.time,
         serviceType: finalServiceType,
         status: "scheduled",
-        servicePrice: price,
+        ...appointmentPricePayload,
         compliance_valid_until: complianceValidUntil || null,
         appointmentCategory,
       };
@@ -584,10 +627,17 @@ export default function CustomerRequestScreen({ onClose }) {
             ? i18n.t("admin.customerRequests.appointmentModal.rescheduleSuccess") || "Reschedule approved successfully!"
             : i18n.t("admin.customerRequests.appointmentModal.createSuccess") || "Appointment created successfully!",
           [
-            { text: "OK", onPress: () => {
-              setShowAppointmentModal(false);
-              loadData(); // Refresh the list
-            }}
+            {
+              text: "OK",
+              onPress: () => {
+                setShowAppointmentModal(false);
+
+                setAppointmentPrice("");
+                setAppointmentVatPercent("24");
+
+                loadData(); // Refresh the list
+              }
+            }
           ]
         );
       } else {
@@ -699,16 +749,41 @@ export default function CustomerRequestScreen({ onClose }) {
         return;
       }
 
-      const price = Number(parsed.toFixed(2));
+      const normalizedVatPercent = appointmentVatPercent.replace(",", ".").trim();
+
+      if (!normalizedVatPercent || normalizedVatPercent === "." || normalizedVatPercent.endsWith(".")) {
+        Alert.alert(
+          i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+          i18n.t("admin.schedule.serviceVat.invalidFormat") || "Enter a valid VAT percentage (e.g. 24 or 13,5)"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const parsedVatPercent = parseFloat(normalizedVatPercent);
+
+      if (isNaN(parsedVatPercent) || parsedVatPercent < 0) {
+        Alert.alert(
+          i18n.t("admin.schedule.serviceVat.title") || "Invalid VAT",
+          i18n.t("admin.schedule.serviceVat.invalid") || "VAT must be 0 or greater"
+        );
+        setProcessing(false);
+        return;
+      }
+
+      const appointmentPricePayload = buildVatPricePayload(
+        normalizedPrice,
+        normalizedVatPercent
+      );
 
       // ✅ Create the payload with ALL fields including technicianId
       const payload = {
         action: "approve",
         requestedDate: appointmentData.date,
         requestedTime: appointmentData.time,
-        servicePrice: price,
+        ...appointmentPricePayload,
         complianceValidUntil: complianceValidUntil || null,
-        technicianId: appointmentData.technicianId, // Include technicianId
+        technicianId: appointmentData.technicianId,
         appointmentCategory: appointmentCategory,
         adminNotes: i18n.t("admin.customerRequests.appointmentModal.rescheduleApproved") || "Reschedule approved"
       };
@@ -732,6 +807,8 @@ export default function CustomerRequestScreen({ onClose }) {
             text: "OK",
             onPress: () => {
               setShowAppointmentModal(false);
+              setAppointmentPrice("");
+              setAppointmentVatPercent("24");
               loadData(); // Refresh the list
             }
           }
@@ -1353,7 +1430,11 @@ export default function CustomerRequestScreen({ onClose }) {
                 </Text>
               </View>
               <TouchableOpacity 
-                onPress={() => setShowAppointmentModal(false)}
+                onPress={() => {
+                  setShowAppointmentModal(false);
+                  setAppointmentPrice("");
+                  setAppointmentVatPercent("24");
+                }}
                 style={styles.appointmentCloseButton}
               >
                 <MaterialIcons name="close" size={24} color="#666" />
@@ -1401,6 +1482,30 @@ export default function CustomerRequestScreen({ onClose }) {
                       placeholderTextColor="#999"
                     />
                   </View>
+                </View>
+
+                {/* VAT */}
+                <View style={styles.formGroup}>
+                  <Text style={styles.formLabel}>
+                    {i18n.t("admin.schedule.serviceVat.title") || "VAT %"} <Text style={styles.requiredStar}>*</Text>
+                  </Text>
+
+                  <View style={styles.inputWithIcon}>
+                    <MaterialIcons name="percent" size={20} color="#666" style={styles.inputIcon} />
+                    <TextInput
+                      style={styles.formInput}
+                      keyboardType="decimal-pad"
+                      placeholder="e.g. 24"
+                      value={appointmentVatPercent}
+                      onChangeText={setAppointmentVatPercent}
+                      placeholderTextColor="#999"
+                    />
+                  </View>
+
+                  <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#2c3e50" }}>
+                    {(i18n.t("admin.schedule.servicePrice.totalWithVat") || "Total with VAT")}: €
+                    {buildVatPricePayload(appointmentPrice, appointmentVatPercent).servicePrice.toFixed(2)}
+                  </Text>
                 </View>
 
                 {/* APPOINTMENT CATEGORY */}
@@ -1892,7 +1997,11 @@ export default function CustomerRequestScreen({ onClose }) {
             <View style={styles.appointmentModalFooter}>
               <TouchableOpacity
                 style={[styles.modalActionButton, styles.cancelActionButton]}
-                onPress={() => setShowAppointmentModal(false)}
+                onPress={() => {
+                  setShowAppointmentModal(false);
+                  setAppointmentPrice("");
+                  setAppointmentVatPercent("24");
+                }}
                 disabled={processing}
                 activeOpacity={0.7}
               >
