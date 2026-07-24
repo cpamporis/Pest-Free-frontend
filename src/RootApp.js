@@ -6,6 +6,7 @@ import LoginScreen from "./screens/LoginScreen";
 import AdminHomeScreen from "./screens/Admin/AdminHomeScreen";
 import TechnicianHomeScreen from "./screens/Technician/TechnicianHomeScreen";
 import MapScreen from "./screens/Technician/MyocideScreen";
+import CertificationServiceScreen from "./screens/Technician/CertificationServiceScreen";
 import NavigationScreen from "./screens/Technician/NavigationScreen";
 import DisinfectionScreen from "./screens/Technician/DisinfectionScreen";
 import InsecticideScreen from "./screens/Technician/InsecticideScreen";
@@ -249,7 +250,11 @@ export default function RootApp() {
 
   // 6️⃣ SERVICE SCREENS
   if (loggedTechnician && currentCustomer && !showNavigation && !showReport) {
-    const serviceType = currentSession?.serviceType || "myocide";  
+    const serviceType = currentSession?.serviceType ||
+      currentSession?.service_type ||
+      currentSession?.rawAppointment?.serviceType ||
+      currentSession?.rawAppointment?.service_type ||
+      "myocide"; 
     
     // Common props for all service screens
     const commonProps = {
@@ -269,14 +274,40 @@ export default function RootApp() {
     // Render the appropriate screen based on service type
     switch (serviceType) {
       case "disinfection":
-        return <DisinfectionScreen {...commonProps} />;
+        return (
+          <DisinfectionScreen
+            {...commonProps}
+          />
+        );
+
       case "insecticide":
-        return <InsecticideScreen {...commonProps} />;
+        return (
+          <InsecticideScreen
+            {...commonProps}
+          />
+        );
+
       case "special":
-        return <SpecialServicesScreen {...commonProps} />;
+        return (
+          <SpecialServicesScreen
+            {...commonProps}
+          />
+        );
+
+      case "certificate":
+        return (
+          <CertificationServiceScreen
+            {...commonProps}
+          />
+        );
+
       case "myocide":
       default:
-        return <MapScreen {...commonProps} />;
+        return (
+          <MapScreen
+            {...commonProps}
+          />
+        );
     }
   }
 

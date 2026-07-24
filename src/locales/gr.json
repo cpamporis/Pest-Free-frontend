@@ -281,7 +281,7 @@
         "title": "Ημερομηνία Συμμόρφωσης",
         "validUntil": "Ισχύει Έως",
         "selectDate": "Επιλέξτε ημερομηνία πιστοποίησης",
-        "requiredForMyocide": "Απαιτείται για Μυοκτονία",
+        "requiredForMyocide": "Απαιτείται για την υπηρεσία",
         "missing": "Ημερομηνία λήξης πιστοποιητικού"
       },
       "dateTime": {
@@ -297,6 +297,10 @@
         "myocide": {
           "label": "Μυοκτονία",
           "description": "Παρακολούθηση τρωκτικών"
+        },
+        "certificate": {
+          "label": "Υπηρεσία Πιστοποίησης",
+          "description": "Έλεγχος σταθμών και στοιχεία πιστοποίησης"
         },
         "disinfection": {
           "label": "Απολύμανση",
@@ -385,7 +389,7 @@
         "servicePrice": "Τιμή Υπηρεσίας (€)",
         "appointmentCategory": "Κατηγορία Ραντεβού",
         "complianceValidUntil": "Ισχύς Πιστοποιητικού Έως",
-        "complianceRequired": "Απαιτείται για την υπηρεσία Μυοκτονίας",
+        "complianceRequired": "Απαιτείται για την υπηρεσία",
         "complianceOptional": "Προαιρετικό: Απαιτείται μόνο αν αυτή η υπηρεσία επηρεάζει τη συμμόρφωση",
         "time": "Ώρα",
         "technician": "Τεχνικός",
@@ -588,7 +592,7 @@
         "servicePrice": "Τιμή Υπηρεσίας (€)",
         "appointmentCategory": "Κατηγορία Ραντεβού",
         "complianceValidUntil": "Ισχύς Πιστοποιητικού Έως",
-        "complianceRequired": "Απαιτείται για την υπηρεσία Μυοκτονίας",
+        "complianceRequired": "Απαιτείται για την υπηρεσία",
         "complianceOptional": "Προαιρετικό: Απαιτείται μόνο αν αυτή η υπηρεσία επηρεάζει τη συμμόρφωση",
         "serviceType": "Τύπος Υπηρεσίας",
         "currentService": "Τρέχον: {{type}}",
@@ -1004,6 +1008,7 @@
     "disinfection": "Απολύμανση",
     "insecticide": "Απεντόμωση",
     "special": "Ειδική Επέμβαση",
+    "certificate": "Υπηρεσία Πιστοποίησης",
     "unknown": "Άγνωστη Υπηρεσία"
   },
   "status": {
@@ -1061,6 +1066,8 @@
       "hoursAgo": "{{count}}ω πριν",
       "daysAgo": "{{count}}η πριν"
     },
+    "tin":"ΑΦΜ",
+    "ama":"ΑΜΑ",
     "welcome": {
       "greeting": "Καλώς ήλθατε,",
       "customer": "Πελάτης"
@@ -1632,7 +1639,8 @@
           "myocide": "Μυοκτονία",
           "disinfection": "Απολύμανση",
           "insecticide": "Απεντόμωση",
-          "special": "Ειδική Επέμβαση"
+          "special": "Ειδική Επέμβαση",
+          "certificate": "Υπηρεσία Πιστοποίησης"
         }
       },
       "actions": {
@@ -1863,6 +1871,15 @@
         "editStationMessage": "Είστε σίγουροι ότι θέλετε να επεξεργαστείτε τον {{type}} {{id}};",
         "imSure": "Είμαι σίγουρος"
       }
+    },
+    "certificate": {
+      "title": "Υπηρεσία Πιστοποίησης",
+      "certificationSection": "Στοιχεία Πιστοποίησης",
+      "noMapInspection": "Δεν πραγματοποιήθηκε έλεγχος χάρτη",
+      "missingCustomerData": "Λείπουν στοιχεία πελάτη",
+      "missingCustomerDataMessage": "Το ΑΦΜ και το ΑΜΑ πρέπει να συμπληρωθούν στο προφίλ του πελάτη πριν ολοκληρωθεί η πιστοποίηση.",
+      "noData": "Δεν υπάρχουν στοιχεία πιστοποίησης",
+      "noDataMessage": "Προσθέστε αποτέλεσμα ελέγχου, σημείο εφαρμογής, σκεύασμα, παρατήρηση ή φωτογραφία."
     },
     "specialServices": {
       "loading": "Φόρτωση λεπτομερειών υπηρεσίας...",

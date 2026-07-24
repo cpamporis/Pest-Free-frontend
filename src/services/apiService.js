@@ -552,12 +552,38 @@ const apiService = {
 
     // Format customers consistently
     const formattedCustomers = customersArray.map(c => ({
-      customerId: String(c.customerId ?? c.id ?? c.customer_id ?? ''),
-      customerName: c.customerName ?? c.name ?? c.customer_name ?? 'Unknown Customer',
+      customerId: String(
+        c.customerId ??
+        c.id ??
+        c.customer_id ??
+        ''
+      ),
+
+      customerName:
+        c.customerName ??
+        c.name ??
+        c.customer_name ??
+        'Unknown Customer',
+
       email: c.email ?? '',
       address: c.address ?? '',
       telephone: c.telephone ?? '',
-      complianceValidUntil: c.complianceValidUntil ?? c.compliance_valid_until ?? null,
+
+      tin:
+        c.tin ??
+        c.afm ??
+        c.taxIdentificationNumber ??
+        '',
+
+      ama:
+        c.ama ??
+        '',
+
+      complianceValidUntil:
+        c.complianceValidUntil ??
+        c.compliance_valid_until ??
+        null,
+
       maps: Array.isArray(c.maps) ? c.maps : []
     }));
     
@@ -813,6 +839,75 @@ const apiService = {
     }
     
     return appointmentsArray.map(normalizeAppointment);
+  },
+
+  async getAppointmentsWithPricing(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const endpoint = query
+      ? `/appointments?${query}`
+      : "/appointments";
+
+    const res = await request("GET", endpoint);
+
+    let appointmentsArray;
+
+    if (Array.isArray(res)) {
+      appointmentsArray = res;
+    } else if (res && Array.isArray(res.appointments)) {
+      appointmentsArray = res.appointments;
+    } else if (res?.success && Array.isArray(res.data)) {
+      appointmentsArray = res.data;
+    } else {
+      appointmentsArray = [];
+    }
+
+    return appointmentsArray.map((appointment) => {
+      const normalized = normalizeAppointment(appointment);
+
+      return {
+        ...normalized,
+
+        servicePrice:
+          appointment.servicePrice ??
+          appointment.service_price ??
+          normalized.servicePrice ??
+          normalized.service_price ??
+          null,
+
+        serviceNetPrice:
+          appointment.serviceNetPrice ??
+          appointment.service_net_price ??
+          appointment.netPrice ??
+          appointment.net_price ??
+          normalized.serviceNetPrice ??
+          normalized.service_net_price ??
+          normalized.netPrice ??
+          normalized.net_price ??
+          null,
+
+        serviceVatPercent:
+          appointment.serviceVatPercent ??
+          appointment.service_vat_percent ??
+          appointment.vatPercent ??
+          appointment.vat_percent ??
+          normalized.serviceVatPercent ??
+          normalized.service_vat_percent ??
+          normalized.vatPercent ??
+          normalized.vat_percent ??
+          null,
+
+        serviceVatAmount:
+          appointment.serviceVatAmount ??
+          appointment.service_vat_amount ??
+          appointment.vatAmount ??
+          appointment.vat_amount ??
+          normalized.serviceVatAmount ??
+          normalized.service_vat_amount ??
+          normalized.vatAmount ??
+          normalized.vat_amount ??
+          null,
+      };
+    });
   },
 
   async updateAppointment(appointmentData) {

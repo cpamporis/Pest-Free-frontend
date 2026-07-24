@@ -37,6 +37,58 @@ LocaleConfig.locales['en'] = {
 };
 LocaleConfig.defaultLocale = 'en';
 
+const resolveAppointmentServiceType = (appointment) => {
+  const serviceType = String(
+    appointment?.serviceType || appointment?.service_type || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const specialSubtype = String(
+    appointment?.specialServiceSubtype ||
+    appointment?.special_service_subtype ||
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+  if (
+    serviceType === "certificate" ||
+    serviceType === "certification" ||
+    specialSubtype === "certificate" ||
+    specialSubtype === "certification"
+  ) {
+    return "certificate";
+  }
+
+  return serviceType;
+};
+
+const getCertificateServiceLabel = () => {
+  const translationKey =
+    "technician.home.appointments.serviceType.certificate";
+
+  const translatedLabel = i18n.t(translationKey, {
+    defaultValue: "",
+  });
+
+  if (translatedLabel && translatedLabel !== translationKey) {
+    return translatedLabel;
+  }
+
+  const currentLanguage = String(
+    i18n.resolvedLanguage ||
+    i18n.language ||
+    i18n.locale ||
+    "en"
+  ).toLowerCase();
+
+  return currentLanguage.startsWith("el") ||
+    currentLanguage.startsWith("gr")
+    ? "Πιστοποίηση"
+    : "Certificate";
+};
+
 export default function TechnicianHomeScreen({
   technician,
   onLogout,
@@ -802,7 +854,8 @@ export default function TechnicianHomeScreen({
                 );
 
                 const isCancelled = appointment.status === "cancelled";
-                const isCompleted = appointment.status === "completed" 
+                const isCompleted = appointment.status === "completed";
+                const serviceType = resolveAppointmentServiceType(appointment);
 
 
                 return (
@@ -894,19 +947,32 @@ export default function TechnicianHomeScreen({
                       <View style={styles.serviceTypeContainer}>
                         {loadingAppointmentId !== appointment.id && (
                           <View style={styles.serviceTypeBadge}>
-                            <MaterialIcons 
-                              name={appointment.serviceType === 'myocide' ? 'pest-control-rodent' : 
-                                    appointment.serviceType === 'disinfection' ? 'clean-hands' :
-                                    appointment.serviceType === 'insecticide' ? 'pest-control' :
-                                    'star'} 
-                              size={12} 
-                              color="#666" 
+                            <MaterialIcons
+                              name={
+                                serviceType === "myocide"
+                                  ? "pest-control-rodent"
+                                  : serviceType === "disinfection"
+                                  ? "clean-hands"
+                                  : serviceType === "insecticide"
+                                  ? "pest-control"
+                                  : serviceType === "certificate"
+                                  ? "verified"
+                                  : "star"
+                              }
+                              size={12}
+                              color="#666"
                             />
+
                             <Text style={styles.serviceTypeText}>
-                              {appointment.serviceType === 'myocide' ? i18n.t("technician.home.appointments.serviceType.myocide") :
-                               appointment.serviceType === 'disinfection' ? i18n.t("technician.home.appointments.serviceType.disinfection") :
-                               appointment.serviceType === 'insecticide' ? i18n.t("technician.home.appointments.serviceType.insecticide") :
-                               i18n.t("technician.home.appointments.serviceType.special")}
+                              {serviceType === "myocide"
+                                ? i18n.t("technician.home.appointments.serviceType.myocide")
+                                : serviceType === "disinfection"
+                                ? i18n.t("technician.home.appointments.serviceType.disinfection")
+                                : serviceType === "insecticide"
+                                ? i18n.t("technician.home.appointments.serviceType.insecticide")
+                                : serviceType === "certificate"
+                                ? getCertificateServiceLabel()
+                                : i18n.t("technician.home.appointments.serviceType.special")}
                             </Text>
                           </View>
                         )}

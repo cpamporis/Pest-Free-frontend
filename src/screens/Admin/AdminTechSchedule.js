@@ -106,6 +106,13 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     { id: "disinfection", label: i18n.t("admin.schedule.serviceType.disinfection.label"), description: i18n.t("admin.schedule.serviceType.disinfection.description"), icon: "clean-hands", color: "#1f9c8b" },
     { id: "insecticide", label: i18n.t("admin.schedule.serviceType.insecticide.label"), description: i18n.t("admin.schedule.serviceType.insecticide.description"), icon: "pest-control", color: "#1f9c8b" },
     { id: "special", label: i18n.t("admin.schedule.serviceType.special.label"), description: i18n.t("admin.schedule.serviceType.special.description"), icon: "star", color: "#1f9c8b" },
+    {
+      id: "certificate",
+      label: i18n.t("admin.schedule.serviceType.certificate.label"),
+      description: i18n.t("admin.schedule.serviceType.certificate.description"),
+      icon: "verified",
+      color: "#1f9c8b"
+    },
   ];
 
   // Generate time options
@@ -247,7 +254,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   async function loadAppointments() {
     const dateStr = selectedDate.toISOString().split("T")[0];
     try {
-      const data = await apiService.getAppointments({
+      const data = await apiService.getAppointmentsWithPricing({
         dateFrom: dateStr,
         dateTo: dateStr,
         technicianId: selectedTech
@@ -358,7 +365,10 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     
     if (!serviceType) return Alert.alert(i18n.t("common.error"), i18n.t("admin.schedule.addCustomer.noServiceType") || "Please select a service type");
 
-    if (serviceType === "myocide" && !complianceValidUntil) {
+    if (
+      (serviceType === "myocide" || serviceType === "certificate") &&
+      !complianceValidUntil
+    ) {
       Alert.alert(
         i18n.t("admin.schedule.compliance.missing") || "Missing compliance date",
         i18n.t("admin.schedule.compliance.requiredForMyocide") || "Compliance valid-until date is required for Myocide services."
@@ -448,6 +458,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
       } else if (serviceType === "myocide") {
         // ✅ Also for myocide, set otherPestName
         payload.otherPestName = i18n.t("admin.schedule.serviceType.myocide.label") || "Myocide Service";
+      } else if (serviceType === "certificate") {
+        payload.otherPestName = i18n.t("admin.schedule.serviceType.certificate.label") || "Certification Service";
       }
   
       const res = await apiService.createAppointment(payload);
@@ -659,29 +671,77 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
     setEditOtherPestName(appointment.otherPestName || appointment.other_pest_name || '');
     setEditInsecticideDetails(appointment.insecticideDetails || appointment.insecticide_details || '');
     setEditDisinfectionDetails(appointment.disinfection_details || '');
-    const existingNetPrice =
+    const storedNetPrice =
       appointment.serviceNetPrice ??
       appointment.service_net_price ??
+      appointment.netPrice ??
+      appointment.net_price ??
       null;
 
-    const existingGrossPrice =
+    const storedGrossPrice =
       appointment.servicePrice ??
       appointment.service_price ??
-      "";
+      null;
 
-    const existingVatPercent =
+    const storedVatPercent =
       appointment.serviceVatPercent ??
       appointment.service_vat_percent ??
-      "";
+      appointment.vatPercent ??
+      appointment.vat_percent ??
+      null;
+
+    const storedVatAmount =
+      appointment.serviceVatAmount ??
+      appointment.service_vat_amount ??
+      appointment.vatAmount ??
+      appointment.vat_amount ??
+      null;
+
+    let existingNetPrice = parseDecimalInput(storedNetPrice);
+    let existingVatPercent = parseDecimalInput(storedVatPercent);
+    const existingGrossPrice = parseDecimalInput(storedGrossPrice);
+    const existingVatAmount = parseDecimalInput(storedVatAmount);
+
+    // Some appointment responses expose only gross price plus VAT information.
+    // Reconstruct the net price so the edit field always shows the originally set value.
+    if (existingNetPrice === null && existingGrossPrice !== null) {
+      if (existingVatAmount !== null) {
+        existingNetPrice = roundMoney(existingGrossPrice - existingVatAmount);
+      } else if (existingVatPercent !== null && existingVatPercent > -100) {
+        existingNetPrice = roundMoney(
+          existingGrossPrice / (1 + existingVatPercent / 100)
+        );
+      } else {
+        // Backward compatibility for appointments that only stored one price.
+        existingNetPrice = existingGrossPrice;
+      }
+    }
+
+    // Reconstruct the VAT percentage when only net/gross or VAT amount is returned.
+    if (
+      existingVatPercent === null &&
+      existingNetPrice !== null &&
+      existingNetPrice > 0
+    ) {
+      if (existingVatAmount !== null) {
+        existingVatPercent = roundMoney(
+          (existingVatAmount / existingNetPrice) * 100
+        );
+      } else if (existingGrossPrice !== null) {
+        existingVatPercent = roundMoney(
+          ((existingGrossPrice - existingNetPrice) / existingNetPrice) * 100
+        );
+      }
+    }
 
     setEditServicePrice(
-      existingNetPrice !== null && existingNetPrice !== undefined && existingNetPrice !== ""
+      existingNetPrice !== null
         ? existingNetPrice.toString()
-        : existingGrossPrice?.toString() || ""
+        : ""
     );
 
     setEditServiceVatPercent(
-      existingVatPercent !== null && existingVatPercent !== undefined
+      existingVatPercent !== null
         ? existingVatPercent.toString()
         : ""
     );
@@ -815,7 +875,10 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         return;
       }
       
-      if (editServiceType === "myocide" && !editComplianceValidUntil) {
+      if (
+        (editServiceType === "myocide" || editServiceType === "certificate") &&
+        !editComplianceValidUntil
+      ) {
         Alert.alert(i18n.t("admin.schedule.compliance.missing") || "Missing compliance date", i18n.t("admin.schedule.compliance.requiredForMyocide") || "Compliance valid-until date is required for Myocide services.");
         setProcessing(false);
         return;
@@ -859,6 +922,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           : specialServiceSubtypes.find(s => s.id === editSpecialServiceSubtype)?.label || editSpecialServiceSubtype;
       } else if (editServiceType === "myocide") {
         payload.otherPestName = i18n.t("admin.schedule.serviceType.myocide.label") || "Myocide Service";
+      } else if (editServiceType === "certificate") {
+        payload.otherPestName = i18n.t("admin.schedule.serviceType.certificate.label") || "Certification Service";
       }
       
       const result = await apiService.updateAppointment(appointmentIdToUpdate, payload);
@@ -867,7 +932,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         await loadAppointments();
         
         // Verify the change was applied
-        const updatedAppointments = await apiService.getAppointments({
+        const updatedAppointments = await apiService.getAppointmentsWithPricing({
           dateFrom: selectedDate.toISOString().split("T")[0],
           dateTo: selectedDate.toISOString().split("T")[0],
           technicianId: selectedTech
@@ -1511,7 +1576,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                     </View>
                     <View style={{ flexDirection: "row", gap: 8 }}>
                       {/* Edit Button - Only show for non-completed, non-cancelled appointments */}
-                      {!isCompletedOrCancelled && (item.serviceType === 'insecticide' || item.serviceType === 'disinfection' || item.serviceType === 'special' || item.serviceType === 'myocide') && (
+                      {!isCompletedOrCancelled && (item.serviceType === 'insecticide' || item.serviceType === 'disinfection' || item.serviceType === 'special' || item.serviceType === 'myocide' || item.serviceType === 'certificate') && (
                         <TouchableOpacity
                           style={styles.editButton}
                           onPress={() => handleEditAppointment(item)}
@@ -2037,23 +2102,30 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                   )}
                 </View>
 
-                {/* COMPLIANCE - Required for Myocide, Optional for others */}
+                {/* COMPLIANCE - Required for Myocide and Certificate, optional for others */}
                 <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>
-                    {i18n.t("admin.schedule.editModal.complianceValidUntil")} {editServiceType === 'myocide' && <Text style={styles.requiredStar}>*</Text>}
+                    {i18n.t("admin.schedule.editModal.complianceValidUntil")}{" "}
+                    {(editServiceType === "myocide" || editServiceType === "certificate") && (
+                      <Text style={styles.requiredStar}>*</Text>
+                    )}
                   </Text>
                   <View style={styles.inputWithIcon}>
                     <MaterialIcons name="verified" size={20} color="#666" style={styles.inputIcon} />
                     <TextInput
                       style={styles.formInput}
-                      placeholder={editServiceType === 'myocide' ? i18n.t("admin.schedule.editModal.complianceRequired") : i18n.t("admin.schedule.editModal.complianceOptional")}
+                      placeholder={
+                        editServiceType === "myocide" || editServiceType === "certificate"
+                          ? i18n.t("admin.schedule.editModal.complianceRequired")
+                          : i18n.t("admin.schedule.editModal.complianceOptional")
+                      }
                       value={editComplianceValidUntil}
                       onChangeText={setEditComplianceValidUntil}
                       placeholderTextColor="#999"
                     />
                   </View>
                   <Text style={styles.helpText}>
-                    {editServiceType === 'myocide' 
+                    {editServiceType === "myocide" || editServiceType === "certificate"
                       ? i18n.t("admin.schedule.compliance.requiredForMyocide")
                       : i18n.t("admin.schedule.editModal.complianceOptional")}
                   </Text>

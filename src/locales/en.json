@@ -314,6 +314,10 @@
         "special": {
           "label": "Special Service",
           "description": "Custom pest control services"
+        },
+        "certificate": {
+          "label": "Certification Service",
+          "description": "Station inspection and certification documentation"
         }
       },
       "specialSubtypes": {
@@ -390,7 +394,7 @@
         "servicePrice": "Service Price (€)",
         "appointmentCategory": "Appointment Category",
         "complianceValidUntil": "Compliance Valid Until",
-        "complianceRequired": "Required for Myocide service compliance certificate",
+        "complianceRequired": "Required for this type of service",
         "complianceOptional": "Optional: Only needed if this service affects compliance",
         "time": "Time",
         "technician": "Technician",
@@ -595,7 +599,7 @@
         "servicePrice": "Service Price (€)",
         "appointmentCategory": "Appointment Category",
         "complianceValidUntil": "Compliance Valid Until",
-        "complianceRequired": "Required for Myocide service compliance certificate",
+        "complianceRequired": "Required for this type of service",
         "complianceOptional": "Optional: Only needed if this service affects compliance",
         "serviceType": "Service Type",
         "currentService": "Current: {{type}}",
@@ -1017,6 +1021,7 @@
     "disinfection": "Disinfection",
     "insecticide": "Insecticide",
     "special": "Special Service",
+    "certificate": "Certification Service",
     "unknown": "Unknown Service"
   },
 
@@ -1268,6 +1273,8 @@
       "text": "Pestify Customer Portal",
       "copyright": "© {{year}} Pestify. All rights reserved."
     },
+    "tin":"TIN",
+    "ama":"PIN",
     "modals": {
       "notificationDetails": {
         "title": "Notification Details",
@@ -1649,7 +1656,8 @@
           "myocide": "Myocide",
           "disinfection": "Disinfection",
           "insecticide": "Insecticide",
-          "special": "Special"
+          "special": "Special",
+          "certificate": "Certification Service"
         }
       },
       "actions": {
@@ -1880,6 +1888,15 @@
         "editStationMessage": "Are you sure you want to edit {{type}} {{id}}?",
         "imSure": "I'm sure"
       }
+    },
+    "certificate": {
+      "title": "Certification Service",
+      "certificationSection": "Certification Details",
+      "noMapInspection": "No map inspection was performed",
+      "missingCustomerData": "Missing customer information",
+      "missingCustomerDataMessage": "TIN and AMA must be added to the customer profile before completing certification.",
+      "noData": "No certification data",
+      "noDataMessage": "Add an inspection result, treated area, chemical, note, or photograph."
     },
     "specialServices": {
       "loading": "Loading service details...",
