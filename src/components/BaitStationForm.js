@@ -28,7 +28,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
   const [baitTypes, setBaitTypes] = useState([]);
   const [showBaitTypeDropdown, setShowBaitTypeDropdown] = useState(false);
   const [showConsumptionDropdown, setShowConsumptionDropdown] = useState(false);
-  const DOSAGE_OPTIONS = [10, 20, 30, 40, 50, 60];
+  const DOSAGE_OPTIONS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
   const [dosageG, setDosageG] = useState(
     existingStationData?.dosage_g ?? null
   );

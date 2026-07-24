@@ -22,6 +22,40 @@ import apiService, { API_BASE_URL } from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import i18n from "../../services/i18n";
 
+function normalizeCustomerSearch(value) {
+  const text = String(value ?? "").trim().toLocaleLowerCase();
+  return typeof text.normalize === "function"
+    ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    : text;
+}
+
+function filterCustomersBySearch(customers, searchText) {
+  const query = normalizeCustomerSearch(searchText);
+  if (!query) return customers;
+
+  return customers.filter((customer) =>
+    [
+      customer.customerName,
+      customer.customerId,
+      customer.address,
+      customer.email,
+      customer.telephone,
+      customer.tin,
+      customer.ama,
+    ].some((value) => normalizeCustomerSearch(value).includes(query))
+  );
+}
+
+function getCustomerSearchCopy() {
+  const locale = String(i18n.locale || i18n.language || "").toLocaleLowerCase();
+  const isGreek = locale.startsWith("el") || locale.startsWith("gr");
+
+  return {
+    placeholder: isGreek ? "Αναζήτηση πελάτη..." : "Search customer...",
+    noResults: isGreek ? "Δεν βρέθηκαν πελάτες." : "No customers found.",
+  };
+}
+
 export default function AdminTechSchedule({ onClose, initialCustomerId, onAppointmentChanged }) {
   const [appointments, setAppointments] = useState([]);
   const [technicians, setTechnicians] = useState([]);
@@ -84,6 +118,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const MINUTES = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedCustomerForAdd, setSelectedCustomerForAdd] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState("");
 
   // Define special service subtypes
   const specialServiceSubtypes = [
@@ -177,7 +212,10 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
             customerId: c.customerId || c.id, // Use customerId from API response
             customerName: c.customerName || c.name,
             address: c.address,
-            email: c.email
+            email: c.email,
+            telephone: c.telephone,
+            tin: c.tin,
+            ama: c.ama
           }))
         : [];
       
@@ -1069,6 +1107,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
 
   // Get selected technician name
   const selectedTechnicianName = technicians.find(t => t.id === selectedTech)?.name || i18n.t("admin.schedule.technician.select") || "Select Technician";
+  const filteredCustomersForAdd = filterCustomersBySearch(customers, customerSearch);
+  const customerSearchCopy = getCustomerSearchCopy();
 
   if (loading) {
     return (
@@ -1662,7 +1702,12 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         {/* Customer Dropdown Button */}
         <TouchableOpacity
           style={styles.customerDropdownButton}
-          onPress={() => setShowCustomerDropdown(!showCustomerDropdown)}
+          onPress={() => {
+            if (showCustomerDropdown) {
+              setCustomerSearch("");
+            }
+            setShowCustomerDropdown(!showCustomerDropdown);
+          }}
           activeOpacity={0.7}
         >
           <View style={styles.dropdownContent}>
@@ -1683,17 +1728,44 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         {/* Customer Dropdown Options */}
         {showCustomerDropdown && (
           <View style={styles.customerDropdownOptions}>
+            <View style={styles.customerSearchContainer}>
+              <MaterialIcons name="search" size={20} color="#666" />
+              <TextInput
+                style={styles.customerSearchInput}
+                placeholder={customerSearchCopy.placeholder}
+                placeholderTextColor="#999"
+                value={customerSearch}
+                onChangeText={setCustomerSearch}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {!!customerSearch && (
+                <TouchableOpacity
+                  style={styles.customerSearchClearButton}
+                  onPress={() => setCustomerSearch("")}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="close" size={18} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
+
             <ScrollView 
               style={styles.customerOptionList}
               showsVerticalScrollIndicator={true}
               nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
             >
-              {customers.length === 0 ? (
+              {filteredCustomersForAdd.length === 0 ? (
                 <View style={styles.customerOptionEmpty}>
-                  <Text style={styles.customerOptionEmptyText}>{i18n.t("admin.schedule.addCustomer.noCustomers")}</Text>
+                  <Text style={styles.customerOptionEmptyText}>
+                    {customerSearch.trim()
+                      ? customerSearchCopy.noResults
+                      : i18n.t("admin.schedule.addCustomer.noCustomers")}
+                  </Text>
                 </View>
               ) : (
-                customers.map((item) => (
+                filteredCustomersForAdd.map((item) => (
                   <TouchableOpacity
                     key={item.customerId}
                     style={[
@@ -1702,6 +1774,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                     ]}
                     onPress={() => {
                       setSelectedCustomerForAdd(item.customerId);
+                      setCustomerSearch("");
                       setShowCustomerDropdown(false);
                     }}
                   >
@@ -3788,6 +3861,28 @@ customerDropdownOptions: {
   shadowOpacity: 0.1,
   shadowRadius: 8,
   elevation: 5,
+},
+customerSearchContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  margin: 12,
+  marginBottom: 4,
+  paddingHorizontal: 12,
+  borderWidth: 1,
+  borderColor: '#e9ecef',
+  borderRadius: 10,
+  backgroundColor: '#f8f9fa',
+},
+customerSearchInput: {
+  flex: 1,
+  paddingVertical: 11,
+  paddingHorizontal: 10,
+  fontSize: 15,
+  color: '#2c3e50',
+  fontFamily: 'System',
+},
+customerSearchClearButton: {
+  padding: 4,
 },
 customerOption: {
   flexDirection: 'row',

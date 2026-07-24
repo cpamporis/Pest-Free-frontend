@@ -23,9 +23,47 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomerProfile from "./CustomerProfile";
 import i18n from "../../services/i18n";
 
+function normalizeCustomerSearch(value) {
+  const text = String(value ?? "").trim().toLocaleLowerCase();
+  return typeof text.normalize === "function"
+    ? text.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    : text;
+}
+
+function filterCustomersBySearch(customers, searchText) {
+  const query = normalizeCustomerSearch(searchText);
+  if (!query) return customers;
+
+  return customers.filter((customer) =>
+    [
+      customer.customerName,
+      customer.customerId,
+      customer.address,
+      customer.email,
+      customer.telephone,
+      customer.tin,
+      customer.ama,
+    ].some((value) => normalizeCustomerSearch(value).includes(query))
+  );
+}
+
+function getCustomerSearchCopy() {
+  const locale = String(i18n.locale || i18n.language || "").toLocaleLowerCase();
+  const isGreek = locale.startsWith("el") || locale.startsWith("gr");
+
+  return {
+    placeholder: isGreek ? "Αναζήτηση πελάτη..." : "Search customer...",
+    noResults: isGreek ? "Δεν βρέθηκαν πελάτες." : "No customers found.",
+  };
+}
+
 /* ===================== EXISTING MODALS ===================== */
 
-function CustomerSelectModal({ title, subtitle, customers, onClose, onSelect }) {
+function CustomerSelectModal({ title, subtitle, customers, onClose, onSelect, searchable = false }) {
+  const [searchText, setSearchText] = useState("");
+  const filteredCustomers = filterCustomersBySearch(customers, searchText);
+  const customerSearchCopy = getCustomerSearchCopy();
+
   return (
     <Modal animationType="slide" transparent visible>
       <SafeAreaView style={styles.modalSafeArea}>
@@ -42,36 +80,73 @@ function CustomerSelectModal({ title, subtitle, customers, onClose, onSelect }) 
                 {!!subtitle && <Text style={styles.modalSub}>{subtitle}</Text>}
               </View>
 
-              <ScrollView style={styles.selectList} showsVerticalScrollIndicator={false}>
-                {customers.map((c) => (
-                  <TouchableOpacity
-                    key={c.customerId}
-                    style={styles.selectItem}
-                    onPress={() => onSelect(c)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.selectItemIcon}>
-                      <FontAwesome5 name="building" size={16} color="#1f9c8b" />
-                    </View>
-                    <View style={styles.selectItemContent}>
-                      <Text style={styles.selectItemTitle}>
-                        {c.customerName}
-                      </Text>
-                      <View style={styles.selectItemMeta}>
-                        <Text style={styles.selectItemId}>
-                          {i18n.t("admin.customers.selectModal.id", { id: c.customerId })}
-                        </Text>
-                        {!!c.address && (
-                          <View key="address-meta" style={{ flexDirection: "row", alignItems: "center" }}>
-                            <Text style={styles.selectItemDot}>•</Text>
-                            <Text style={styles.selectItemSub}>{c.address}</Text>
-                          </View>
-                        )}
+              {searchable && (
+                <View style={styles.customerSearchContainer}>
+                  <MaterialIcons name="search" size={20} color="#666" />
+                  <TextInput
+                    style={styles.customerSearchInput}
+                    placeholder={customerSearchCopy.placeholder}
+                    placeholderTextColor="#999"
+                    value={searchText}
+                    onChangeText={setSearchText}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  {!!searchText && (
+                    <TouchableOpacity
+                      style={styles.customerSearchClearButton}
+                      onPress={() => setSearchText("")}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="close" size={18} color="#666" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
+              <ScrollView
+                style={styles.selectList}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+              >
+                {filteredCustomers.length === 0 ? (
+                  <View style={styles.customerSearchEmpty}>
+                    <MaterialIcons name="search" size={30} color="#ccc" />
+                    <Text style={styles.customerSearchEmptyText}>
+                      {customerSearchCopy.noResults}
+                    </Text>
+                  </View>
+                ) : (
+                  filteredCustomers.map((c) => (
+                    <TouchableOpacity
+                      key={c.customerId}
+                      style={styles.selectItem}
+                      onPress={() => onSelect(c)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={styles.selectItemIcon}>
+                        <FontAwesome5 name="building" size={16} color="#1f9c8b" />
                       </View>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={20} color="#ccc" />
-                  </TouchableOpacity>
-                ))}
+                      <View style={styles.selectItemContent}>
+                        <Text style={styles.selectItemTitle}>
+                          {c.customerName}
+                        </Text>
+                        <View style={styles.selectItemMeta}>
+                          <Text style={styles.selectItemId}>
+                            {i18n.t("admin.customers.selectModal.id", { id: c.customerId })}
+                          </Text>
+                          {!!c.address && (
+                            <View key="address-meta" style={{ flexDirection: "row", alignItems: "center" }}>
+                              <Text style={styles.selectItemDot}>•</Text>
+                              <Text style={styles.selectItemSub}>{c.address}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <MaterialIcons name="chevron-right" size={20} color="#ccc" />
+                    </TouchableOpacity>
+                  ))
+                )}
               </ScrollView>
 
               <TouchableOpacity 
@@ -1043,6 +1118,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
   const [showDeletedCustomers, setShowDeletedCustomers] = useState(false);
   const [showCustomerList, setShowCustomerList] = useState(true);
   const [usage, setUsage] = useState(null);
+  const [customerSearch, setCustomerSearch] = useState("");
 
   useEffect(() => {
     loadCustomers();
@@ -1081,6 +1157,17 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
     } catch (err) {
       console.error("❌ Usage load error:", err);
     }
+  };
+
+  const getSubscriptionPlanName = (plan) => {
+    const planKey = String(plan || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
+
+    return i18n.t(`admin.home.subscription.plans.${planKey}`, {
+      defaultValue: String(plan || "").toUpperCase()
+    });
   };
 
   async function loadCustomers() {
@@ -1252,6 +1339,8 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
     (sum, c) => sum + (c.stationsCount || 0),
     0
   );
+  const filteredCustomers = filterCustomersBySearch(customers, customerSearch);
+  const customerSearchCopy = getCustomerSearchCopy();
 
   if (loading) {
     return (
@@ -1305,7 +1394,9 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
             
             <View style={styles.subscriptionHeader}>
               <Text style={styles.subscriptionPlan}>
-                {usage.subscriptionPlan.toUpperCase()} PLAN
+                {i18n.t("admin.home.subscription.plan", {
+                  plan: getSubscriptionPlanName(usage.subscriptionPlan)
+                })}
               </Text>
 
               <View style={styles.subscriptionBadge}>
@@ -1327,7 +1418,10 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
             </View>
 
             <Text style={styles.subscriptionText}>
-              Customers used: {usage.customers.used} / {usage.customers.max}
+              {i18n.t("admin.home.subscription.customers", {
+                used: usage.customers.used,
+                max: usage.customers.max
+              })}
             </Text>
 
           </View>
@@ -1483,7 +1577,12 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         <View style={styles.sectionHeader}>
           <TouchableOpacity 
             style={styles.sectionTitleContainer}
-            onPress={() => setShowCustomerList(!showCustomerList)}
+            onPress={() => {
+              if (showCustomerList) {
+                setCustomerSearch("");
+              }
+              setShowCustomerList(!showCustomerList);
+            }}
             activeOpacity={0.7}
           >
             <MaterialIcons name="list-alt" size={20} color="#2c3e50" />
@@ -1521,59 +1620,92 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
             </TouchableOpacity>
           </View>
         ) : showCustomerList ? (
-          <View style={styles.listContainer}>
-            {customers.map((c) => (
-              <TouchableOpacity
-                key={c.customerId}
-                style={styles.customerCard}
-                activeOpacity={0.7}
-                onPress={() => {
-                  setSelectedCustomer(c);
-                  setShowCustomerProfile(true);
-                }}
-              >
-                <View style={styles.customerHeader}>
-                  <View style={styles.customerAvatar}>
-                    <FontAwesome5 name="building" size={22} color="#fff" />
-                  </View>
-                  <View style={styles.customerInfo}>
-                    <Text style={styles.customerName}>{c.customerName}</Text>
-                    <View style={styles.customerMeta}>
-                      <View style={styles.customerMetaItem}>
-                        <MaterialIcons name="fingerprint" size={12} color="#666" />
-                        <Text style={styles.customerMetaText}>
-                          {i18n.t("admin.customers.customerCard.id", { id: c.customerId })}
-                        </Text>
+          <>
+            <View style={[styles.customerSearchContainer, styles.directorySearchContainer]}>
+              <MaterialIcons name="search" size={20} color="#666" />
+              <TextInput
+                style={styles.customerSearchInput}
+                placeholder={customerSearchCopy.placeholder}
+                placeholderTextColor="#999"
+                value={customerSearch}
+                onChangeText={setCustomerSearch}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {!!customerSearch && (
+                <TouchableOpacity
+                  style={styles.customerSearchClearButton}
+                  onPress={() => setCustomerSearch("")}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="close" size={18} color="#666" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {filteredCustomers.length === 0 ? (
+              <View style={[styles.customerSearchEmpty, styles.directorySearchEmpty]}>
+                <MaterialIcons name="search" size={36} color="#ccc" />
+                <Text style={styles.customerSearchEmptyText}>
+                  {customerSearchCopy.noResults}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.listContainer}>
+                {filteredCustomers.map((c) => (
+                  <TouchableOpacity
+                    key={c.customerId}
+                    style={styles.customerCard}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setSelectedCustomer(c);
+                      setShowCustomerProfile(true);
+                    }}
+                  >
+                    <View style={styles.customerHeader}>
+                      <View style={styles.customerAvatar}>
+                        <FontAwesome5 name="building" size={22} color="#fff" />
                       </View>
-                      {c.address && (
-                        <View style={styles.customerMetaItem}>
-                          <MaterialIcons name="location-on" size={12} color="#666" />
-                          <Text style={styles.customerMetaText}>{c.address}</Text>
+                      <View style={styles.customerInfo}>
+                        <Text style={styles.customerName}>{c.customerName}</Text>
+                        <View style={styles.customerMeta}>
+                          <View style={styles.customerMetaItem}>
+                            <MaterialIcons name="fingerprint" size={12} color="#666" />
+                            <Text style={styles.customerMetaText}>
+                              {i18n.t("admin.customers.customerCard.id", { id: c.customerId })}
+                            </Text>
+                          </View>
+                          {c.address && (
+                            <View style={styles.customerMetaItem}>
+                              <MaterialIcons name="location-on" size={12} color="#666" />
+                              <Text style={styles.customerMetaText}>{c.address}</Text>
+                            </View>
+                          )}
                         </View>
-                      )}
+                      </View>
+                      <View style={styles.customerStats}>
+                        <View style={styles.customerStat}>
+                          <MaterialIcons name="map" size={14} color="#1f9c8b" />
+                          <Text style={styles.customerStatText}>{c.mapsCount}</Text>
+                        </View>
+                        <View style={styles.customerStat}>
+                          <MaterialIcons name="location-pin" size={14} color="#1f9c8b" />
+                          <Text style={styles.customerStatText}>{c.stationsCount}</Text>
+                        </View>
+                      </View>
                     </View>
-                  </View>
-                  <View style={styles.customerStats}>
-                    <View style={styles.customerStat}>
-                      <MaterialIcons name="map" size={14} color="#1f9c8b" />
-                      <Text style={styles.customerStatText}>{c.mapsCount}</Text>
-                    </View>
-                    <View style={styles.customerStat}>
-                      <MaterialIcons name="location-pin" size={14} color="#1f9c8b" />
-                      <Text style={styles.customerStatText}>{c.stationsCount}</Text>
-                    </View>
-                  </View>
-                </View>
-                
-                {c.email && (
-                  <View style={styles.customerFooter}>
-                    <MaterialIcons name="email" size={14} color="#666" />
-                    <Text style={styles.customerEmail}>{c.email}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+                    
+                    {c.email && (
+                      <View style={styles.customerFooter}>
+                        <MaterialIcons name="email" size={14} color="#666" />
+                        <Text style={styles.customerEmail}>{c.email}</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </>
         ) : null}
 
         {/* ===== DELETED CUSTOMERS SECTION ===== */}
@@ -1690,6 +1822,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
           title={i18n.t("admin.customers.selectModal.select", { action: i18n.t("common.edit").toLowerCase() })}
           subtitle={i18n.t("admin.customers.selectModal.choose")}
           customers={customers}
+          searchable
           onClose={() => setShowSelectForEdit(false)}
           onSelect={(c) => {
             setSelectedCustomer(c);
@@ -2501,6 +2634,50 @@ actionCardDescription: {
   selectList: {
     width: "100%",
     maxHeight: 400,
+  },
+  customerSearchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#e9ecef",
+    borderRadius: 10,
+    backgroundColor: "#f8f9fa",
+    marginBottom: 12,
+  },
+  directorySearchContainer: {
+    marginHorizontal: 24,
+  },
+  customerSearchInput: {
+    flex: 1,
+    paddingVertical: 11,
+    paddingHorizontal: 10,
+    fontSize: 15,
+    color: "#2c3e50",
+    fontFamily: "System",
+  },
+  customerSearchClearButton: {
+    padding: 4,
+  },
+  customerSearchEmpty: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 28,
+  },
+  directorySearchEmpty: {
+    marginHorizontal: 24,
+    marginBottom: 20,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  customerSearchEmptyText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#999",
+    textAlign: "center",
+    fontFamily: "System",
   },
   selectItem: {
     flexDirection: "row",
