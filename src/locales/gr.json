@@ -99,6 +99,22 @@
         "administrationModules": "Ενότητες Διαχείρισης",
         "systemActions": "Ενέργειες Συστήματος"
       },
+      "subscription": {
+        "plan": "{{plan}} ΠΡΟΓΡΑΜΜΑ",
+        "active": "Ενεργό",
+        "customers": "Πελάτες: {{used}} / {{max}}",
+        "technicians": "Τεχνικοί: {{used}} / {{max}}",
+        "plans": {
+          "free": "ΔΩΡΕΑΝ",
+          "basic": "ΒΑΣΙΚΟ",
+          "standard": "ΤΥΠΙΚΟ",
+          "pro": "PRO",
+          "professional": "ΕΠΑΓΓΕΛΜΑΤΙΚΟ",
+          "premium": "PREMIUM",
+          "enterprise": "ΕΤΑΙΡΙΚΟ",
+          "custom": "ΠΡΟΣΑΡΜΟΣΜΕΝΟ"
+        }
+      },
       "stats": {
         "totalCustomers": "Σύνολο Πελατών",
         "active": "Ενεργοί",
@@ -1557,7 +1573,8 @@
           "myocide": "Μυοκτονία",
           "insecticide": "Απεντόμωση",
           "disinfection": "Απολύμανση",
-          "special": "Ειδική Επέμβαση"
+          "special": "Ειδική Επέμβαση",
+          "certificate": "Υπηρεσία Πιστοποίησης"
         }
     }
   },

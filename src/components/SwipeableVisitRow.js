@@ -78,6 +78,9 @@ export default function SwipeableVisitRow({
     if (typeLower.includes('myocide')) {
       return i18n.t("components.swipeableVisitRow.serviceTypes.myocide");
     }
+    if (typeLower.includes('certificate')) {
+      return i18n.t("components.swipeableVisitRow.serviceTypes.certificate");
+    }
     if (typeLower.includes('insecticide')) {
       return i18n.t("components.swipeableVisitRow.serviceTypes.insecticide");
     }

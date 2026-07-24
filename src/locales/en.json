@@ -95,6 +95,22 @@
         "logout": "Logout",
         "badge": "ADMIN"
       },
+      "subscription": {
+        "plan": "{{plan}} PLAN",
+        "active": "Active",
+        "customers": "Customers: {{used}} / {{max}}",
+        "technicians": "Technicians: {{used}} / {{max}}",
+        "plans": {
+          "free": "FREE",
+          "basic": "BASIC",
+          "standard": "STANDARD",
+          "pro": "PRO",
+          "professional": "PROFESSIONAL",
+          "premium": "PREMIUM",
+          "enterprise": "ENTERPRISE",
+          "custom": "CUSTOM"
+        }
+      },
       "sections": {
         "quickOverview": "Quick Overview",
         "weeklyOverview": "Weekly Overview",
@@ -1573,7 +1589,8 @@
           "myocide": "Myocide",
           "insecticide": "Insecticide",
           "disinfection": "Disinfection",
-          "special": "Special Service"
+          "special": "Special Service",
+          "certificate":"Certification Service"
         }
       }
     },

@@ -939,7 +939,12 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
 
   // Helper to render myocide report
   const renderMyocideReport = () => {
-    if (!report || report.serviceType !== 'myocide') return null;
+    if (
+      !report ||
+      !["myocide", "certificate"].includes(report.serviceType)
+    ) {
+      return null;
+    }
     
     return (
       <>

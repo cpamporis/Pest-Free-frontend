@@ -41,8 +41,6 @@ export default function Statistics({ onClose }) {
   const [kpiData, setKpiData] = useState({
     revenueGrowth: 0,
     customerGrowth: 0,
-    efficiencyScore: 0,
-    retentionRate: 0,
     avgTicketSize: 0,
     visitFrequency: 0
   });
@@ -436,8 +434,6 @@ const completedAppointmentsDisplay =
         setKpiData({
           revenueGrowth: enhancedKPIRes.kpiData.revenueGrowth || 0,
           customerGrowth: enhancedKPIRes.kpiData.customerGrowth || 0,
-          efficiencyScore: enhancedKPIRes.kpiData.efficiencyScore || 0,
-          retentionRate: enhancedKPIRes.kpiData.retentionRate || 0,
           avgTicketSize: enhancedKPIRes.kpiData.avgTicketSize || 0,
           visitFrequency: enhancedKPIRes.kpiData.visitFrequency || 30
         });
@@ -605,7 +601,7 @@ const completedAppointmentsDisplay =
   }, {});
 
   const appointmentsByService = appointments.reduce((acc, a) => {
-    const key = a.serviceType || "unknown";
+    const key = a.serviceType || a.service_type || "unknown";
     acc[key] = (acc[key] || 0) + 1;
     return acc;
   }, {});
@@ -633,8 +629,6 @@ const completedAppointmentsDisplay =
     const defaultKpiData = {
       revenueGrowth: 0,
       customerGrowth: 0,
-      efficiencyScore: 0,
-      retentionRate: 0,
       avgTicketSize: 0,
       visitFrequency: 0
     };
@@ -673,42 +667,6 @@ const completedAppointmentsDisplay =
       revenueGrowth = lastMonthRev > 0 ? ((currentMonthRev - lastMonthRev) / lastMonthRev * 100) : currentMonthRev > 0 ? 100 : 0;
     }
     
-    // Technician Efficiency Score
-    let efficiencyScore = 100;
-    if (completedAppointments.length > 0) {
-      // Get actual durations from visits
-      const durations = completedAppointments.map(v => {
-        if (v.duration) return v.duration;
-        if (v.start_time && v.end_time) {
-          return Math.round((new Date(v.end_time) - new Date(v.start_time)) / 60000);
-        }
-        return 0;
-      }).filter(d => d > 0);
-      
-      if (durations.length > 0) {
-        const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
-        
-        // Better calculation based on realistic times
-        const expectedTime = 75; // minutes for average job
-        
-        // Efficiency: 100% if at or below expected, penalty for going over
-        efficiencyScore = Math.max(0, Math.min(100, 
-          100 - Math.max(0, ((avgDuration - expectedTime) / expectedTime) * 50)
-        ));
-      }
-    }
-    
-    // Customer Retention Rate
-    const recurringCustomers = visits.reduce((set, visit) => {
-      if (visit.customer_id && (visit.status === "completed" || visit.status === "done")) {
-        set.add(visit.customer_id);
-      }
-      return set;
-    }, new Set()).size;
-    
-    const retentionRate = customersData.length > 0 ? 
-      (recurringCustomers / customersData.length * 100) : 0;
-    
     // Average Ticket Size - safely parse
     const avgTicketSize = revenueStatsData?.avg_price ? parseFloat(revenueStatsData.avg_price) : 0;
     
@@ -734,8 +692,6 @@ const completedAppointmentsDisplay =
     setKpiData({
       revenueGrowth: parseFloat(revenueGrowth.toFixed(1)),
       customerGrowth: parseFloat(customerGrowth.toFixed(1)),
-      efficiencyScore: parseFloat(efficiencyScore.toFixed(0)),
-      retentionRate: parseFloat(retentionRate.toFixed(1)),
       avgTicketSize: parseFloat(avgTicketSize.toFixed(2)),
       visitFrequency: Math.round(visitFrequency)
     });
@@ -854,27 +810,6 @@ const completedAppointmentsDisplay =
               change={kpiData.customerGrowth || 0}
               icon="people"
               subtitle={i18n.t("admin.statistics.kpi.newCustomers")}
-            />
-          </View>
-          
-          {/* EFFICIENCY ROW */}
-          <View style={styles.kpiRow}>
-            <KPICard 
-              title={i18n.t("admin.statistics.kpi.efficiencyScore")}
-              value={`${(kpiData.efficiencyScore || 0).toFixed(0)}%`}
-              icon="speed"
-              showProgress={true}
-              progress={(kpiData.efficiencyScore || 0) / 100}
-              subtitle={i18n.t("admin.statistics.kpi.efficiencyDesc")}
-              color="#1f9c8b"
-            />
-            
-            <KPICard 
-              title={i18n.t("admin.statistics.kpi.retentionRate")}
-              value={`${(kpiData.retentionRate || 0).toFixed(1)}%`}
-              icon="loyalty"
-              subtitle={i18n.t("admin.statistics.kpi.retentionDesc")}
-              color="#1f9c8b"
             />
           </View>
           
@@ -1347,10 +1282,10 @@ const completedAppointmentsDisplay =
             <View style={styles.statusChartContainer}>
               {/* Pie chart visualization (simplified) */}
               <View style={styles.pieChart}>
-                {Object.entries(appointmentsByStatus).map(([status, count], index) => {
+                {Object.entries(appointmentsByStatus).map(([status, count]) => {
                   const total = Object.values(appointmentsByStatus).reduce((a, b) => a + b, 0);
                   const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
-                  const colors = ['#b9cd63', '#1f9c8b', '#95a5a6', ];
+                  const color = getAppointmentStatusColor(status);
                   
                   return (
                     <View 
@@ -1358,7 +1293,7 @@ const completedAppointmentsDisplay =
                       style={[
                         styles.pieSegment,
                         { 
-                          backgroundColor: colors[index % colors.length],
+                          backgroundColor: color,
                           width: `${percentage}%`
                         }
                       ]} 
@@ -1374,10 +1309,10 @@ const completedAppointmentsDisplay =
             </View>
             
             <View style={styles.statusList}>
-              {Object.entries(appointmentsByStatus).map(([status, count], index) => {
+              {Object.entries(appointmentsByStatus).map(([status, count]) => {
                 const total = Object.values(appointmentsByStatus).reduce((a, b) => a + b, 0);
                 const percentage = total > 0 ? (count / total * 100).toFixed(1) : 0;
-                const colors = ['#b9cd63', '#1f9c8b', '#95a5a6', ];
+                const color = getAppointmentStatusColor(status);
                 
                 return (
                   <StatusItem
@@ -1385,7 +1320,7 @@ const completedAppointmentsDisplay =
                     status={status}
                     count={count}
                     percentage={percentage}
-                    color={colors[index % colors.length]}
+                    color={color}
                   />
                 );
               })}
@@ -1559,7 +1494,7 @@ function ChartCard({ title, children }) {
   );
 }
 
-function KPICard({ title, value, change, icon, subtitle, showProgress = false, progress = 0, color = "#1f9c8b", isCurrency = false }) {
+function KPICard({ title, value, change, icon, subtitle, color = "#1f9c8b", isCurrency = false }) {
   const getTrendIcon = (value) => {
     if (value > 0) return 'trending-up';
     if (value < 0) return 'trending-down';
@@ -1595,25 +1530,6 @@ function KPICard({ title, value, change, icon, subtitle, showProgress = false, p
           />
           <Text style={[styles.changeText, { color: getColorForValue(change) }]}>
             {change > 0 ? '+' : ''}{change}%
-          </Text>
-        </View>
-      )}
-      
-      {showProgress && (
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill, 
-                { 
-                  width: `${(progress || 0) * 100}%`,
-                  backgroundColor: color
-                }
-              ]} 
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {(progress || 0) < 0.5 ? i18n.t("admin.statistics.kpi.needsImprovement") : (progress || 0) < 0.8 ? i18n.t("admin.statistics.kpi.good") : i18n.t("admin.statistics.kpi.excellent")}
           </Text>
         </View>
       )}
@@ -1725,6 +1641,37 @@ function formatMonth(monthString) {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
+const SERVICE_ICONS = {
+  myocide: "pest-control-rodent",
+  disinfection: "clean-hands",
+  insecticide: "bug-report",
+  special: "star",
+  certificate: "verified",
+};
+
+const SERVICE_TYPE_ALIASES = {
+  certification: "certificate",
+  certification_service: "certificate",
+  certificate_service: "certificate",
+  special_service: "special",
+};
+
+function normalizeServiceType(serviceType) {
+  const normalized = String(serviceType || "")
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  return SERVICE_TYPE_ALIASES[normalized] || normalized;
+}
+
+function getServiceIcon(serviceType) {
+  const normalizedType = normalizeServiceType(serviceType);
+
+  return SERVICE_ICONS[normalizedType] || "category";
+}
+
 function formatServiceType(serviceType) {
   if (!serviceType) return i18n.t("admin.statistics.unknown") || "Unknown";
   
@@ -1733,11 +1680,12 @@ function formatServiceType(serviceType) {
     'myocide': i18n.t("serviceTypes.myocide"),
     'disinfection': i18n.t("serviceTypes.disinfection"),
     'insecticide': i18n.t("serviceTypes.insecticide"),
+    'certificate': i18n.t("serviceTypes.certificate"),
     'special': i18n.t("serviceTypes.special"),
   };
   
   // Check if we have a custom mapping
-  const lowerType = serviceType.toLowerCase();
+  const lowerType = normalizeServiceType(serviceType);
   if (serviceMappings[lowerType]) {
     return serviceMappings[lowerType];
   }
@@ -1751,7 +1699,7 @@ function formatServiceType(serviceType) {
 
 function ServiceTypeCard({ name, revenue, appointments, percentage, index }) {
   const colors = ['#1f9c8b'];
-  const icons = ['pest-control-rodent', 'clean-hands', 'bug-report', 'star', 'build'];
+  const serviceIcon = getServiceIcon(name);
   
   // Format the service name
   const formattedName = formatServiceType(name);
@@ -1760,10 +1708,10 @@ function ServiceTypeCard({ name, revenue, appointments, percentage, index }) {
     <View style={styles.serviceTypeCard}>
       <View style={styles.serviceTypeHeader}>
         <View style={[styles.serviceTypeIcon, { backgroundColor: `${colors[index % colors.length]}15` }]}>
-          <MaterialIcons 
-            name={icons[index % icons.length] || 'category'} 
-            size={20} 
-            color={colors[index % colors.length]} 
+          <MaterialIcons
+            name={serviceIcon}
+            size={20}
+            color={colors[index % colors.length]}
           />
         </View>
         <View style={styles.serviceTypeInfo}>
@@ -1870,6 +1818,21 @@ function CustomerCard({ rank, name, revenue, visits, index }) {
   );
 }
 
+function getAppointmentStatusColor(status) {
+  const normalizedStatus = String(status || "").trim().toLowerCase();
+
+  if (["completed", "done", "finished"].includes(normalizedStatus)) {
+    return "#1f9c8b";
+  }
+
+  if (["cancelled", "canceled"].includes(normalizedStatus)) {
+    return "#95a5a6";
+  }
+
+  // Scheduled, pending, in-progress, etc.
+  return "#b9cd63";
+}
+
 function StatusItem({ status, count, percentage, color }) {
   const statusIcons = {
     'completed': 'check-circle',
@@ -1911,7 +1874,7 @@ function StatusItem({ status, count, percentage, color }) {
 }
 
 function ServiceDistributionItem({ type, count, percentage, color, index }) {
-  const icons = ['pest-control-rodent', 'clean-hands', 'bug-report', 'star', 'build'];
+  const serviceIcon = getServiceIcon(type);
   
   // Format the service type name
   const formattedType = formatServiceType(type);
@@ -1921,7 +1884,7 @@ function ServiceDistributionItem({ type, count, percentage, color, index }) {
       <View style={styles.distributionLeft}>
         <View style={[styles.distributionIcon, { backgroundColor: `${color}15` }]}>
           <MaterialIcons 
-            name={icons[index % icons.length] || 'category'} 
+            name={serviceIcon}
             size={16} 
             color={color} 
           />
@@ -2160,25 +2123,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginLeft: 4,
-  },
-  progressContainer: {
-    marginTop: 12,
-  },
-  progressBar: {
-    height: 6,
-    backgroundColor: '#e8e8e8',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  progressText: {
-    fontSize: 10,
-    color: '#7f8c8d',
-    marginTop: 4,
-    textAlign: 'center',
   },
   insightsContainer: {
     marginTop: 20,

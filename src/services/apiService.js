@@ -45,23 +45,6 @@ async function getTopPerformance() {
   }
 }
 
-async function getRetentionRate(customerId = null) {
-  try {
-    const endpoint = customerId 
-      ? `/statistics/kpis/retention-rate?customerId=${customerId}`
-      : `/statistics/kpis/retention-rate`;
-    
-    const result = await request("GET", endpoint);
-    return result;
-  } catch (error) {
-    console.error("❌ Failed to get retention rate:", error);
-    return {
-      success: false,
-      data: { retention_rate_percentage: 0 }
-    };
-  }
-}
-
 async function getVisitFrequency(customerId = null) {
   try {
     const endpoint = customerId 
@@ -183,12 +166,11 @@ const apiService = {
   request,
   getEnhancedKPIs,
   getTopPerformance,
-  getRetentionRate,
   getVisitFrequency,
   updateRescheduleStatus(appointmentId, payload) {
     return apiService.updateAppointmentRescheduleStatus(appointmentId, payload);
   },
-
+  
   async getTotalRequestsToday() {
     try {
       // Try the new endpoint for total count
