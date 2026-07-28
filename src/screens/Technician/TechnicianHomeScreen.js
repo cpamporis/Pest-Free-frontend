@@ -20,22 +20,49 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Modal, TextInput } from 'react-native';
 import i18n from "../../services/i18n";
 
-LocaleConfig.locales['en'] = {
-  monthNames: [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ],
-  monthNamesShort: [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ],
-  dayNames: [
-    'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
-  ],
-  dayNamesShort: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-  today: 'Today'
+const WEEKDAY_KEYS = [
+  "sun", "mon", "tue", "wed", "thu", "fri", "sat"
+];
+
+const MONTH_KEYS = [
+  "jan", "feb", "mar", "apr", "may", "jun",
+  "jul", "aug", "sep", "oct", "nov", "dec"
+];
+
+const configureCalendarLocale = () => {
+  const currentLanguage = String(
+    i18n.resolvedLanguage ||
+    i18n.language ||
+    i18n.locale ||
+    "en"
+  ).toLowerCase();
+
+  const calendarLocale =
+    currentLanguage.startsWith("el") ||
+    currentLanguage.startsWith("gr")
+      ? "gr"
+      : "en";
+
+  const monthNames = MONTH_KEYS.map((key) =>
+    i18n.t(`months.${key}`)
+  );
+
+  const dayNames = WEEKDAY_KEYS.map((key) =>
+    i18n.t(`weekdays.short.${key}`)
+  );
+
+  LocaleConfig.locales[calendarLocale] = {
+    monthNames,
+    monthNamesShort: monthNames,
+    dayNames,
+    dayNamesShort: dayNames,
+    today: i18n.t("technician.home.calendar.legend.today")
+  };
+
+  LocaleConfig.defaultLocale = calendarLocale;
+
+  return calendarLocale;
 };
-LocaleConfig.defaultLocale = 'en';
 
 const resolveAppointmentServiceType = (appointment) => {
   const serviceType = String(
@@ -108,6 +135,7 @@ export default function TechnicianHomeScreen({
   const [todayAppointments, setTodayAppointments] = useState([]);
   const technicianId = technician?.technicianId || technician?.id;
   const todayStr = new Date().toISOString().split("T")[0];
+  const calendarLocale = configureCalendarLocale();
   const onDayPress = (day) => {
     setSelectedDate(day.dateString);
   };
@@ -569,13 +597,28 @@ export default function TechnicianHomeScreen({
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+    if (!dateString) return "";
+
+    const [year, month, day] = String(dateString)
+      .slice(0, 10)
+      .split("-")
+      .map(Number);
+
+    const date = new Date(year, month - 1, day);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateString;
+    }
+
+    const weekday = i18n.t(
+      `weekdays.short.${WEEKDAY_KEYS[date.getDay()]}`
+    );
+
+    const monthName = i18n.t(
+      `months.${MONTH_KEYS[date.getMonth()]}`
+    );
+
+    return `${weekday}, ${day} ${monthName} ${year}`;
   };
 
   if (loading) {
@@ -767,6 +810,7 @@ export default function TechnicianHomeScreen({
           
           <View style={styles.calendarContainer}>
             <Calendar
+              key={calendarLocale}
               current={selectedDate}
               markedDates={markedDates}
               onDayPress={(day) => setSelectedDate(day.dateString)}
