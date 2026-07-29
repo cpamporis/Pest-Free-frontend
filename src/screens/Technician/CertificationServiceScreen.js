@@ -103,25 +103,18 @@ const getMarkerSize = (label) => {
 const markAppointmentCompleted = async (appointmentId, visitId, sessionRef) => {
   if (!appointmentId) return;
   
-  console.log("💾 Marking appointment completed with visitId:", {
-    appointmentId,
-    visitId
-  });
 
   try {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(appointmentId);
     
     if (isUUID && visitId) { // Make sure visitId exists
-      console.log("✅ Updating appointment with visit_id:", visitId);
-      
+  
       const updateResult = await apiService.updateAppointment({
         id: appointmentId,
         status: "completed",
         visitId: visitId // This will set the visit_id column
       });
-      
-      console.log("💾 Appointment update result:", updateResult);
-      
+
       // ✅ ADD THIS: Handle price errors like Disinfection screen does
       if (!updateResult?.success) {
         console.error("❌ Failed to update appointment:", updateResult?.error);
@@ -136,13 +129,10 @@ const markAppointmentCompleted = async (appointmentId, visitId, sessionRef) => {
           return; // Stop here if price error
         }
       }
-    } else {
-      console.log("ℹ️ Skipping appointment update - not a UUID:", appointmentId);
-    }
+    } 
 
     // Always update the session object
     if (sessionRef && typeof sessionRef === 'object') {
-      console.log("🔄 Updating session object status to 'completed'");
       sessionRef.status = "completed";
       sessionRef.visitId = visitId || sessionRef.visitId;
       
@@ -167,36 +157,6 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   const [sessionVisitId, setSessionVisitId] = useState(
     session?.visitId ?? null
   );
-
-  console.log("=== 🚨 CertificationServiceScreen DEBUG ===");
-  console.log("📱 Received props:", {
-    customerExists: !!customer,
-    customerName: customer?.customerName,
-    customerId: customer?.customerId,
-    sessionExists: !!session,
-    session: {
-      appointmentId: session?.appointmentId,
-      status: session?.status,
-      visitId: sessionVisitId,
-      fromAppointment: session?.fromAppointment,
-      serviceType: session?.serviceType
-    },
-    technicianExists: !!technician,
-    technicianName: technician?.name
-  });
-  
-  // Log the session object in detail
-  if (session) {
-    console.log("📋 Full session object:", JSON.stringify(session, null, 2));
-  }
-
-    // Add this near the top of your MapScreen function
-  console.log("🔍 SESSION DATA FOR REPORT:", {
-    sessionVisitId: sessionVisitId,
-    hasSession: !!session,
-    sessionType: session?.fromAppointment ? "appointment" : "manual",
-    appointmentId: session?.appointmentId
-  });
   
   const [selectedMap, setSelectedMap] = useState(null);
   const [stations, setStations] = useState([]);
@@ -374,34 +334,13 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   const [serviceStarted, setServiceStarted] = useState(false);
   const [serviceCompleted, setServiceCompleted] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const SERVER_BASE_URL = API_BASE_URL.replace("/api", ""); // http://192.168.1.71:3000
-  console.log("📊 Edit flags:", {
-    isCompletedAppointment,
-    canEditCompletedVisit,
-    sessionVisitId: sessionVisitId,
-    isEditCompletedVisit
-  });
-
-  console.log("⚡ Calculated flags:", {
-    isCompletedAppointment,
-    canEditCompletedVisit,
-    hasVisitId: !!sessionVisitId
-  });
+  const SERVER_BASE_URL = API_BASE_URL.replace("/api", ""); 
 
   const effectiveCustomer = customerWithMaps ?? normalizedCustomer;
   
   // Log the first map details
   if (Array.isArray(customerMaps) && customerMaps.length > 0) {
     const firstMap = customerMaps[0];
-
-    console.log("🔍 FIRST MAP DETAILS:", {
-      name: firstMap?.name,
-      image: firstMap?.image,
-      imageType: typeof firstMap?.image,
-      mapId: firstMap?.mapId,
-      hasStations: Array.isArray(firstMap?.stations),
-      stationCount: firstMap?.stations?.length || 0
-    });
   }
 
   // In your useEffect that checks for completed visits, make sure it always runs:
@@ -417,7 +356,6 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
       (isEditCompletedVisit && session?.status === "completed");  // Already in edit mode
 
     if (shouldEditCompletedVisit) {
-      console.log("✅ Setting edit mode for completed visit");
       setIsEditCompletedVisit(true);
       setServiceCompleted(true);
       setServiceStarted(true);
@@ -440,7 +378,6 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   useEffect(() => {
     // If session has no visitId and status is not completed, clear any old visitIdRef
     if (!sessionVisitId && session?.status !== "completed") {
-      console.log("🧹 Clearing old visitIdRef for new appointment");
       setIsEditCompletedVisit(false);
       setServiceCompleted(false);
       setServiceStarted(false);
@@ -475,7 +412,6 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
 
   useEffect(() => {
     if (canEditCompletedVisit) {
-      console.log("✏️ Editing completed visit:", session.visitId);
       setIsEditCompletedVisit(true);
     }
   }, [canEditCompletedVisit]);
@@ -492,48 +428,15 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
     };
   }, []);
 
-  // Add this useEffect to debug
-  useEffect(() => {
-    console.log("🔍 DEBUG - CertificationServiceScreen state:", {
-      loggedStationsCount: loggedStations.length,
-      loggedStations: loggedStations.map(s => `${s.stationType}${s.stationId}`),
-      sessionVisitId: sessionVisitId,
-      isEditCompletedVisit,
-      selectedStation: selectedStation
-    });
-  }, [loggedStations, sessionVisitId, isEditCompletedVisit]);
-
-  useEffect(() => {
-    console.log("🔍 STATE DEBUG:", {
-      isEditCompletedVisit,
-      serviceCompleted,
-      serviceStarted,
-      timerActive,
-      workStarted,
-      showSaveCancel,
-      sessionStatus: session?.status,
-      sessionVisitId: sessionVisitId
-    });
-  }, [isEditCompletedVisit, serviceCompleted, serviceStarted, timerActive, workStarted, showSaveCancel, session?.status, sessionVisitId]);
-
   // In your useEffect where you load customer data:
   useEffect(() => {
     const loadCustomerData = async () => {
       if (!normalizedCustomer?.customerId) return;
-      console.log("🔍 Loading customer data for:", normalizedCustomer.customerId);
 
       setLoadingCustomer(true);
       
       try {
         const customerData = await apiService.getCustomerWithMaps(normalizedCustomer.customerId);
-        
-        console.log("✅ Customer data loaded:", {
-          customerId: customerData?.customerId,
-          customerName: customerData?.customerName,
-          mapsCount: customerData?.maps?.length || 0,
-          mapsIsArray: Array.isArray(customerData?.maps),
-          fullData: customerData
-        });
         
         if (!customerData || !customerData.customerId) {
           console.error("❌ Invalid customer data returned:", customerData);
@@ -547,12 +450,6 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
             ? customerData.maps 
             : (customerData.maps === "no maps" ? [] : [])
         };
-        
-        console.log("✅ Setting customerWithMaps:", {
-          customerId: safeCustomer.customerId,
-          customerName: safeCustomer.customerName,
-          mapsCount: safeCustomer.maps.length
-        });
         
         setCustomerWithMaps(safeCustomer);
         
@@ -574,7 +471,7 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
 useEffect(() => {
   const loadExistingVisitData = async () => {
     if (isEditCompletedVisit && sessionVisitId && loggedStations.length === 0) {
-      console.log("🔄 Loading existing visit data for editing:", sessionVisitId);
+
       
       try {
         setLoading(true);
@@ -582,8 +479,6 @@ useEffect(() => {
         // Try getServiceLogByVisitId instead of getVisitReport
         const response = await apiService.getVisitReport(sessionVisitId);
         
-        console.log("📥 Service log response:", JSON.stringify(response, null, 2));
-
         // Check different possible response structures
         let reportData = null;
         
@@ -599,11 +494,6 @@ useEffect(() => {
 
         if (reportData) {
           setServiceStarted(true);
-          console.log("✅ Found report data:", {
-            hasStations: !!(reportData.stations || reportData.treated_areas),
-            stationsCount: reportData.stations?.length || 0,
-            treatedAreasCount: reportData.treated_areas?.length || 0
-          });
           
           // Load existing images
           let parsedImages = [];
@@ -630,9 +520,6 @@ useEffect(() => {
           if (!Array.isArray(parsedImages)) {
             parsedImages = [];
           }
-
-          console.log("📸 Parsed existing images:", parsedImages);
-
           setExistingImages(parsedImages);
 
           const chemicals = reportData.chemicals_used || reportData.chemicalsUsed || [];
@@ -645,7 +532,6 @@ useEffect(() => {
           
           if (reportData.stations && reportData.stations.length > 0) {
             stationsArray = reportData.stations;
-            console.log("📥 Loaded stations from stations field:", stationsArray.length);
           }
           
           // Load stations data
@@ -674,30 +560,21 @@ useEffect(() => {
               insectsCaptured: station.insects_captured || station.insectsCaptured,
               damaged: station.damaged
             }));
-            
-            console.log("🔄 Setting loggedStations from database:", 
-              transformedStations.map(s => `${s.stationType}${s.stationId}`));
-            
+
             setLoggedStations(transformedStations);
-          } else {
-            console.log("⚠️ No stations found in report data");
-          }
+          } 
           
           // Load notes
           if (reportData.notes) {
-            console.log("📝 Loading notes:", reportData.notes);
             setNotes(reportData.notes);
           }
           
           // Load duration if available
           if (reportData.duration) {
-            console.log("⏱️ Loading duration:", reportData.duration);
             setElapsedTime(reportData.duration * 1000); // Convert seconds to milliseconds
           }
           
-        } else {
-          console.log("⚠️ No valid report data found for visit:", sessionVisitId);
-        }
+        } 
       } catch (error) {
         console.error("❌ Failed to load existing visit data:", error);
         Alert.alert(
@@ -720,9 +597,6 @@ useEffect(() => {
 
   const startTimer = () => {
     if (timerActive) return;
-
-    // Clear any old data when starting new work
-    console.log("🧹 Starting new work - clearing old data");
     setLoggedStations([]); // Clear old stations
     setIsEditCompletedVisit(false); // Ensure not in edit mode
     setServiceCompleted(false); // Not completed yet
@@ -753,7 +627,6 @@ useEffect(() => {
   };
     
   const handleGenerateReport = async () => {
-    console.log("📄 Generate Report pressed");
 
     if (!sessionVisitId) {
       Alert.alert(
@@ -762,8 +635,6 @@ useEffect(() => {
       );
       return;
     }
-
-    console.log("✅ Navigating to report with visitId:", sessionVisitId);
 
     onGenerateReport({
       visitId: sessionVisitId,
@@ -804,9 +675,7 @@ useEffect(() => {
 // In CertificationServiceScreen.js - Update the handleSaveAll function
 
 const handleSaveAll = async () => {
-  console.log("🔍 handleSaveAll called, isEditCompletedVisit:", isEditCompletedVisit);
-  console.log("📊 Total logged stations:", loggedStations.length);
-  
+
   // Transform stations to the format expected by the backend
   const stationsToSend = loggedStations.map(station => ({
     station_id: station.stationId,
@@ -834,9 +703,6 @@ const handleSaveAll = async () => {
     insects_captured: station.insectsCaptured,
     damaged: station.damaged
   }));
-
-  console.log(`📤 Sending ${stationsToSend.length} stations to backend`);
-  console.log("✅ Stations being sent:", stationsToSend.map(s => `${s.station_type}${s.station_id}`));
 
   if (!effectiveCustomer?.tin || !effectiveCustomer?.ama) {
     Alert.alert(
@@ -870,9 +736,7 @@ const handleSaveAll = async () => {
   
   // 🚨 FIX: Convert elapsedTime from milliseconds to seconds
   const durationInSeconds = Math.floor(elapsedTime / 1000);
-  
-  console.log(`⏱️ Duration conversion: ${elapsedTime}ms → ${durationInSeconds}s`);
-  
+ 
   const visitSummary = {
     serviceType: "certificate",
     startTime,
@@ -947,27 +811,17 @@ const handleSaveAll = async () => {
     // Add existing images as JSON string
     formData.append("existingImages", JSON.stringify(existingImages));
 
-    console.log("📦 Sending FormData with:", {
-      imagesCount: imagesToUpload.length,
-      existingImagesCount: existingImages.length,
-      stationsCount: stationsToSend.length,
-      durationSeconds: durationInSeconds
-    });
-
     // Show loading indicator
     setSaving(true);
 
     const result = await apiService.submitServiceLog(formData);
     
-    console.log("📥 API Response:", result);
-
     if (!result?.success) {
       throw new Error(result?.error || i18n.t("technician.myocide.alerts.saveFailed"));
     }
 
     // Success handling...
     if (result?.visitId) {
-      console.log("✅ Saving backend visitId:", result.visitId);
       session.visitId = result.visitId;
       setSessionVisitId(result.visitId);
 
@@ -1016,8 +870,7 @@ const handleSaveAll = async () => {
 };
 
   const handleSaveResponse = async (result, isEdit = false) => {
-    console.log("✅ handleSaveResponse result:", result);
-
+   
     if (!result) {
       Alert.alert(i18n.t("technician.common.error"), i18n.t("technician.myocide.alerts.saveFailed"));
       return;
@@ -1176,87 +1029,15 @@ const handleSaveAll = async () => {
     setImageError(false);
   }, [selectedMap]);
 
-  // Debug useEffect - add this
-  useEffect(() => {
-    console.log("🔍 DEBUG selectedMap:", {
-      exists: !!selectedMap,
-      image: selectedMap?.image,
-      imageError: imageError,
-      currentImageUri: currentImageUri,
-      customerMapsLength: customerMaps.length
-    });
-    
-    if (selectedMap) {
-      console.log("🔍 Full selectedMap object:", JSON.stringify(selectedMap, null, 2));
-    }
-  }, [selectedMap, imageError, currentImageUri]);
-
-  // Debug customer data
-  useEffect(() => {
-    console.log("👤 Customer data:", {
-      customerId: customer?.customerId,
-      customerName: customer?.customerName,
-      mapsCount: customerMaps.length,
-      firstMapImage: customerMaps[0]?.image
-    });
-  }, [customer]);
-
-  // Add this with your other useEffect hooks
-  useEffect(() => {
-    console.log("🔍 ARRAY COMPARISON DEBUG:", {
-      stationsCount: stations.length,
-      loggedStationsCount: loggedStations.length,
-      stations: stations.map(s => `${s.type || "BS"}${s.id}`),
-      loggedStations: loggedStations.map(s => `${s.stationType || "BS"}${s.stationId || "?"}`),
-      loggedStationsData: loggedStations.map(s => ({
-        type: s.stationType,
-        id: s.stationId,
-        capture: s.capture,
-        rodentsCaptured: s.rodentsCaptured,
-        consumption: s.consumption
-      }))
-    });
-  }, [stations, loggedStations]);
-
-  // Add this useEffect to debug the data
-  useEffect(() => {
-    console.log("🔍 CUSTOMER DATA DEBUG:", {
-      customerId: customer?.customerId,
-      customerName: customer?.customerName,
-      mapsLoaded: !!customer?.maps,
-      mapsCount: customer?.maps?.length || 0,
-      firstMap: customer?.maps?.[0] ? {
-        mapId: customer.maps[0].mapId,
-        name: customer.maps[0].name,
-        stationsCount: customer.maps[0].stations?.length || 0,
-        stations: customer.maps[0].stations || []
-      } : 'none',
-      secondMap: customer?.maps?.[1] ? {
-        mapId: customer.maps[1].mapId,
-        name: customer.maps[1].name,
-        stationsCount: customer.maps[1].stations?.length || 0
-      } : 'none'
-    });
-    
-    // Also check the customerMaps computed value
-    console.log("🔍 CUSTOMER MAPS (computed):", {
-      count: customerMaps.length,
-      maps: customerMaps.map(m => ({
-        mapId: m.mapId,
-        name: m.name,
-        stationsCount: m.stations?.length || 0
-      }))
-    });
-  }, [customer, customerMaps]);
 
   useEffect(() => {
     const getVisitIdFromAppointment = async () => {
       if (session?.appointmentId && !sessionVisitId && session?.status === "completed") {
-        console.log("🔍 Getting visitId for appointment:", session.appointmentId);
+
         try {
           const visitId = await apiService.getVisitIdByAppointmentId(session.appointmentId);
           if (visitId) {
-            console.log("✅ Found visitId:", visitId);
+
             setSessionVisitId(visitId);
             if (session) {
               session.visitId = visitId;
@@ -1271,24 +1052,6 @@ const handleSaveAll = async () => {
     getVisitIdFromAppointment();
   }, [session?.appointmentId, session?.status, sessionVisitId]);
 
-  // Add this at the top of your MapScreen after the useEffects
-  console.log("🔍 MAPSCREEN STATE:", {
-    hasCustomer: !!customer,
-    hasCustomerWithMaps: !!customerWithMaps,
-    loadingCustomer,
-    customerId: customer?.customerId,
-    customerMapsCount: customerMaps.length,
-    effectiveCustomerId: effectiveCustomer?.customerId,
-    effectiveCustomerName: effectiveCustomer?.customerName,
-    effectiveCustomerMaps: effectiveCustomer?.maps?.length || 0
-  });
-
-  // Also update your earlier debug log
-  console.log("🔍 RAW CUSTOMER DATA from backend:", {
-    customerId: effectiveCustomer?.customerId, // ← Change to effectiveCustomer
-    customerName: effectiveCustomer?.customerName, // ← Change to effectiveCustomer
-    maps: effectiveCustomer?.maps ? JSON.stringify(effectiveCustomer.maps) : 'no maps'
-  });
 
   // In CertificationServiceScreen.js - buildMyocideReportContext function
   const buildMyocideReportContext = () => {
@@ -1345,9 +1108,7 @@ const handleSaveAll = async () => {
 
   // In CertificationServiceScreen.js - Update upsertLoggedStation
   const upsertLoggedStation = (stationData) => {
-    console.log("🚨 ====== upsertLoggedStation CALLED ======");
-    console.log("🚨 FULL stationData received:", JSON.stringify(stationData, null, 2));
-    
+
     // Ensure stationType is included
     if (!stationData.stationType) {
       stationData.stationType = selectedStation?.type || "BS";
@@ -1383,8 +1144,6 @@ const handleSaveAll = async () => {
       } : {})
     };
 
-    console.log("✅ Normalized station data:", normalized);
-
     setLoggedStations(prev => {
       const index = prev.findIndex(
         s =>
@@ -1395,11 +1154,9 @@ const handleSaveAll = async () => {
       if (index !== -1) {
         const updated = [...prev];
         updated[index] = normalized;
-        console.log("🔄 Updated existing station in loggedStations");
         return updated;
       }
 
-      console.log("➕ Added new station to loggedStations");
       return [...prev, normalized];
     });
 
@@ -1448,16 +1205,7 @@ const handleSaveAll = async () => {
       (foundStation.replacedPheromone !== null && foundStation.replacedPheromone !== undefined) ||
       (foundStation.insectsCaptured !== null && foundStation.insectsCaptured !== undefined && String(foundStation.insectsCaptured).trim() !== "") ||
       (foundStation.damaged !== null && foundStation.damaged !== undefined);
-        
-    console.log(`🔍 isStationCompleted check for ${stationType}${stationId}:`, {
-      found: true,
-      access: foundStation.access,
-      capture: foundStation.capture,
-      consumption: foundStation.consumption,
-      hasData,
-      isAccessNo: foundStation.access === "No" || foundStation.access === "no"
-    });
-    
+
     return hasData;
   };
 
@@ -1465,17 +1213,7 @@ const handleSaveAll = async () => {
     const station = loggedStations.find(s => 
       s.stationId === stationId && s.stationType === stationType
     );
-    
-    console.log("🔍 DEBUG Station Data:", {
-      stationId,
-      stationType,
-      exists: !!station,
-      data: station,
-      access: station?.access,
-      capture: station?.capture,
-      condition: station?.condition,
-      isAccessNo: station?.access === "No"
-    });
+
     
     return station;
   };
@@ -1491,8 +1229,6 @@ const handleSaveAll = async () => {
 
     setSaving(true);
     try {
-      console.log("💾 Saving station locations for map:", selectedMap.mapId);
-      console.log("📍 Stations to save:", stations);
 
       // Format stations for backend
       const stationsToSave = stations.map(st => ({
@@ -1502,27 +1238,14 @@ const handleSaveAll = async () => {
         y: st.y
       }));
 
-      console.log("📤 Sending to backend:", {
-        mapId: selectedMap.mapId,
-        stationsCount: stationsToSave.length,
-        stations: stationsToSave
-      });
-
       // Save to SQL using new endpoint
       const result = await apiService.saveMapStations(selectedMap.mapId, stationsToSave);
 
       if (result && result.success) {
-        console.log("✅ Save successful:", result);
-        
+ 
         // Immediately refresh the customer data to see if stations were saved
         try {
-          console.log("🔄 Refreshing customer data...");
           const freshCustomerData = await apiService.getCustomerWithMaps(effectiveCustomer.customerId);
-          
-          console.log("🔄 Fresh customer data:", {
-            mapsCount: freshCustomerData.maps?.length,
-            stationsInFirstMap: freshCustomerData.maps?.[0]?.stations?.length || 0
-          });
           
           setCustomerWithMaps(freshCustomerData);
         } catch (refreshError) {
@@ -1580,22 +1303,13 @@ const handleSaveAll = async () => {
   };
 
   const debugStationCompletion = () => {
-    console.log("🔍 DEBUG Station Completion Status:");
-    
+
     stations.forEach(st => {
       const isCompleted = isStationCompleted(st.id, st.type || "BS");
       const stationData = loggedStations.find(s => 
         s.stationId === st.id && s.stationType === (st.type || "BS")
       );
-      
-      console.log(`   ${st.type || "BS"}${st.id}:`, {
-        isCompleted,
-        hasData: !!stationData,
-        access: stationData?.access,
-        capture: stationData?.capture,
-        consumption: stationData?.consumption,
-        mosquitoes: stationData?.mosquitoes
-      });
+
     });
   };
 
@@ -1606,8 +1320,7 @@ const handleSaveAll = async () => {
   };
   
   const handleUpdateService = async () => {
-    console.log("🔄 Updating service without timer");
-    
+
     // Ensure technician name is available
     const technicianName = technician?.name || 
                           `${technician?.firstName || ''} ${technician?.lastName || ''}`.trim();
@@ -1617,13 +1330,6 @@ const handleSaveAll = async () => {
       Alert.alert(i18n.t("technician.common.error"), i18n.t("technician.specialServices.errors.missingInfo"));
       return;
     }
-    
-    console.log("📊 All logged stations:", loggedStations.map(s => ({
-      type: s.stationType,
-      id: s.stationId,
-      access: s.access,
-      hasData: s.access === "No" || s.capture || s.consumption || s.mosquitoes
-    })));
     
     // Transform stations to the format expected by the backend
     const stationsToSend = loggedStations.map(station => ({
@@ -1652,9 +1358,6 @@ const handleSaveAll = async () => {
       insects_captured: station.insectsCaptured,
       damaged: station.damaged
     }));
-
-    console.log(`📤 Sending ${stationsToSend.length} stations for update`);
-    console.log("✅ Valid stations:", stationsToSend.map(s => `${s.station_type}${s.station_id}`));
 
     if (!effectiveCustomer?.tin || !effectiveCustomer?.ama) {
       Alert.alert(
@@ -1732,10 +1435,7 @@ const handleSaveAll = async () => {
         throw new Error(result?.error || i18n.t("technician.myocide.alerts.saveFailed"));
       }
 
-      console.log("✅ Service updated:", result);
-      
       if (result?.visitId) {
-        console.log("✅ Saving backend visitId:", result.visitId);
         session.visitId = result.visitId;
         setSessionVisitId(result.visitId);
         
@@ -1785,7 +1485,6 @@ const handleSaveAll = async () => {
   useEffect(() => {
     const refreshData = () => {
       if (isEditCompletedVisit && sessionVisitId) {
-        console.log("🔄 Refreshing data after returning from ReportScreen");
         setRefreshKey(prev => prev + 1);
       }
     };
@@ -1864,7 +1563,6 @@ const handleSaveAll = async () => {
                         console.log("Testing image URL:", currentImageUri);
                         fetch(currentImageUri)
                           .then(res => {
-                            console.log("Image fetch result:", res.status, res.statusText);
                             Alert.alert("Image Test", `Status: ${res.status} ${res.statusText}`);
                           })
                           .catch(err => {
@@ -2052,12 +1750,7 @@ const handleSaveAll = async () => {
                                   
                                   // DEBUG: Check if station is completed
                                   const isCompletedValue = isStationCompleted(st.id, st.type || "BS");
-                                  console.log(`🎯 Marker ${st.type || "BS"}${st.id} opacity check:`, {
-                                    stationId: st.id,
-                                    stationType: st.type,
-                                    isCompleted: isCompletedValue,
-                                    opacity: isCompletedValue ? 0.4 : 1
-                                  });
+           
 
                                   return {
                                     left,
@@ -2088,17 +1781,14 @@ const handleSaveAll = async () => {
                                 onPress={() => {
                                   const stationType = st.type || "BS";
                                   
-                                  console.log("🚨 Station clicked:", {
-                                    stationId: st.id,
-                                    stationType: stationType
-                                  });
+                        
                                   
                                   // Debug the station data
                                   debugStationData(st.id, stationType);
                                   
                                   // EDIT MODE (for completed visits)
                                   if (isEditCompletedVisit) {
-                                    console.log("🚨 Setting selectedStation for edit mode");
+                                   
                                     setSelectedStation({ id: st.id, type: stationType });
                                     return;
                                   }
@@ -2658,8 +2348,7 @@ const handleSaveAll = async () => {
 
         const imageUri = buildExistingImageUrl(img);
 
-        console.log("📸 Existing image URI:", imageUri);
-
+      
         return (
           <View key={`existing-${index}`} style={styles.photoWrapper}>
             <Image

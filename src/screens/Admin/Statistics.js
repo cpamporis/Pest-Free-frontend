@@ -46,7 +46,7 @@ export default function Statistics({ onClose }) {
   });
   const [newCustomersThisMonth, setNewCustomersThisMonth] = useState(0);
   const [bestTechnician, setBestTechnician] = useState(i18n.t("admin.statistics.insights.notAvailable") || "N/A");
-  const [topService, setTopService] = useState(i18n.t("admin.statistics.insights.notAvailable") || "N/A");
+  const [topService, setTopService] = useState(null);
   
   // CHART INTERACTIVITY STATES
   const [timePeriod, setTimePeriod] = useState('6months'); // '3months', '6months', '1year', 'all'
@@ -686,7 +686,11 @@ const completedAppointmentsDisplay =
       const topServiceData = revenueByServiceData.reduce((max, service) => 
         parseFloat(service.total_revenue || 0) > parseFloat(max.total_revenue || 0) ? service : max
       );
-      setTopService(topServiceData.service_type || i18n.t("admin.statistics.insights.notAvailable") || 'N/A');
+      setTopService(
+        topServiceData.service_type ||
+        topServiceData.serviceType ||
+        null
+      );
     }
     
     setKpiData({
@@ -845,7 +849,11 @@ const completedAppointmentsDisplay =
               <InsightCard 
                 icon="star"
                 title={i18n.t("admin.statistics.insights.topService")}
-                value={topService}
+                value={
+                  topService
+                    ? formatServiceType(topService)
+                    : i18n.t("admin.statistics.insights.notAvailable") || "N/A"
+                }
                 color="#1f9c8b"
               />
             </View>

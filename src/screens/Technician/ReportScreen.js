@@ -1600,33 +1600,6 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
   };
 
 
-  // Format date nicely
-  const formatReportDate = (dateString) => {
-    if (!dateString || dateString === 'N/A' || dateString === 'Not recorded') {
-      return i18n.t("technician.report.visitOverview.notRecorded") || 'Not recorded';
-    }
-    
-    try {
-      const date = new Date(dateString);
-      
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        console.warn("⚠️ Invalid date string:", dateString);
-        return i18n.t("technician.report.visitOverview.invalidDate") || 'Invalid date';
-      }
-      
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        weekday: 'short'
-      });
-    } catch (error) {
-      console.error("❌ Error formatting date:", error);
-      return dateString || i18n.t("technician.report.visitOverview.notRecorded") || 'Not recorded';
-    }
-  };
-
   if (loading) {
     return (
       <SafeAreaView style={styles.safeArea}>
@@ -1764,7 +1737,10 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
                 <Text style={styles.overviewLabel}>{i18n.t("technician.report.visitOverview.date")}</Text>
                 <Text style={styles.overviewValue}>
                   {report.date && report.date !== 'N/A' 
-                    ? formatDateInGreece(report.date) 
+                    ? formatDateInGreece(
+                      report.date,
+                      i18n.getLocale()
+                    )
                     : i18n.t("technician.report.visitOverview.notRecorded") || 'Not recorded'}
                 </Text>
               </View>
