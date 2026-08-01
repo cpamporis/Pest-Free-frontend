@@ -24,51 +24,113 @@ export default function SwipeableVisitRow({
   appointmentId
 }) {
   const swipeableRef = useRef(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [isAlertVisible, setIsAlertVisible] = useState(false); // Track alert visibility
+  const [activeDownloadType, setActiveDownloadType] = useState(null);
+
+  const isDownloading = activeDownloadType !== null;
+
+  const serviceType = String(
+    visit.serviceType ??
+    visit.service_type ??
+    visit.serviceCategory ??
+    visit.service_category ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const isCertificateService = [
+    "certificate",
+    "certification",
+    "st"
+  ].includes(serviceType);
+
+  const visitDate =
+    visit.appointmentDate ??
+    visit.appointment_date ??
+    visit.startTime ??
+    visit.start_time ??
+    visit.date ??
+    visit.createdAt ??
+    visit.created_at ??
+    null;
+
+  const getVisitYear = (value) => {
+    if (!value) return null;
+
+    const directYear = String(value).match(/^(\d{4})/);
+    if (directYear) return Number(directYear[1]);
+
+    const parsedDate = new Date(value);
+    return Number.isNaN(parsedDate.getTime())
+      ? null
+      : parsedDate.getFullYear();
+  };
+
+  const certificateYear = getVisitYear(visitDate);
+  const currentYear = new Date().getFullYear();
+  const canDownloadCertificate =
+    isCertificateService &&
+    certificateYear === currentYear;
+
+  const locale = String(i18n.getLocale() || "").toLowerCase();
+  const isGreek = locale.startsWith("el") || locale.startsWith("gr");
+
+  const certificateCopy = {
+    label: isGreek ? "Πιστοποιητικό" : "Certificate",
+    title: isGreek
+      ? "Λήψη πιστοποιητικού"
+      : "Download Certificate",
+    confirmation: isGreek
+      ? `Θέλετε να κατεβάσετε το πιστοποιητικό του ${certificateYear};`
+      : `Do you want to download the ${certificateYear} certificate?`,
+    unavailable: isGreek
+      ? "Το πιστοποιητικό είναι διαθέσιμο μόνο για το τρέχον έτος."
+      : "The certificate is available only for the current year."
+  };
   
-  const handleDownloadPDF = async () => {
+  const handleDownloadPDF = (documentType = "report") => {
     // Close swipeable first
     swipeableRef.current?.close();
-    
-    // Set alert as visible
-    setIsAlertVisible(true);
+
+    if (documentType === "certificate" && !canDownloadCertificate) {
+      Alert.alert(certificateCopy.title, certificateCopy.unavailable);
+      return;
+    }
+
+    const isCertificate = documentType === "certificate";
+    const alertTitle = isCertificate
+      ? certificateCopy.title
+      : i18n.t("components.swipeableVisitRow.downloadReport");
+
+    const alertMessage = isCertificate
+      ? certificateCopy.confirmation
+      : i18n.t("components.swipeableVisitRow.downloadConfirm", {
+          service:
+            visit.serviceType ||
+            i18n.t("components.swipeableVisitRow.service") ||
+            "service"
+        });
     
     Alert.alert(
-      i18n.t("components.swipeableVisitRow.downloadReport"),
-      i18n.t("components.swipeableVisitRow.downloadConfirm", { 
-        service: visit.serviceType || i18n.t("components.swipeableVisitRow.service") || 'service' 
-      }),
+      alertTitle,
+      alertMessage,
       [
         { 
           text: i18n.t("components.swipeableVisitRow.cancel"), 
-          style: "cancel", 
-          onPress: () => {
-            setIsAlertVisible(false);
-          }
+          style: "cancel"
         },
         { 
           text: i18n.t("components.swipeableVisitRow.download"), 
           style: "default",
           onPress: async () => {
-            if (isAlertVisible) {
-              setIsAlertVisible(false);
-              try {
-                await downloadPDF();
-              } catch (error) {
-                console.error("❌ Download error:", error);
-              }
+            try {
+              await downloadPDF(documentType);
+            } catch (error) {
+              console.error("❌ Download error:", error);
             }
           }
         }
-      ],
-      {
-        // Add onDismiss callback for when alert is dismissed by tapping outside
-        onDismiss: () => {
-          setIsAlertVisible(false);
-        }
-      }
+      ]
     );
   };
 
@@ -94,26 +156,37 @@ export default function SwipeableVisitRow({
     return i18n.t("components.swipeableVisitRow.serviceTypes.myocide"); 
   };
 
-  const downloadPDF = async () => {
+  const downloadPDF = async (documentType = "report") => {
     // Double-check we're not already downloading
     if (isDownloading) {
       return;
     }
-    
-    setIsDownloading(true);
-    setDownloadProgress(0);
+
+    if (documentType === "certificate" && !canDownloadCertificate) {
+      Alert.alert(certificateCopy.title, certificateCopy.unavailable);
+      return;
+    }
+
+    setActiveDownloadType(documentType);
 
     try {
-      
+      if (!visit.visitId) {
+        throw new Error("Missing visit ID");
+      }
+
       const token = apiService.getCurrentToken();
       const customerNameSlug = customerName 
         ? customerName.replace(/[^a-z0-9]/gi, '_').toLowerCase()
         : 'customer';
-      const serviceType = visit.serviceType || 'service';
-      const filename = `report_${customerNameSlug}_${serviceType}_${visit.visitId.substring(0, 8)}.pdf`;
+      const reportServiceType = visit.serviceType || 'service';
+      const filename = documentType === "certificate"
+        ? `certificate_${customerNameSlug}_${certificateYear}_${visit.visitId.substring(0, 8)}.pdf`
+        : `report_${customerNameSlug}_${reportServiceType}_${visit.visitId.substring(0, 8)}.pdf`;
       
       const lang = i18n.getLocale();
-      const url = `${apiService.API_BASE_URL}/reports/pdf/${visit.visitId}?lang=${lang}`;
+      const url = documentType === "certificate"
+        ? apiService.getCertificatePdfUrl(visit.visitId)
+        : apiService.getReportPdfUrl(visit.visitId, lang);
       
       const getDownloadDirectory = () => {
         if (FileSystem.documentDirectory) {
@@ -138,7 +211,47 @@ export default function SwipeableVisitRow({
         },
       );
 
-      const { uri } = await downloadResumable.downloadAsync();
+      const downloadResult =
+  await downloadResumable.downloadAsync();
+
+const { uri, status, headers } = downloadResult;
+
+const contentType = String(
+  headers?.["content-type"] ||
+  headers?.["Content-Type"] ||
+  ""
+).toLowerCase();
+
+if (
+  status !== 200 ||
+  !contentType.includes("application/pdf")
+) {
+  let backendMessage = `Download failed with status ${status}`;
+
+  try {
+    const errorText =
+      await FileSystem.readAsStringAsync(uri);
+
+    const errorJson = JSON.parse(errorText);
+
+    backendMessage =
+      errorJson?.error ||
+      errorJson?.message ||
+      backendMessage;
+  } catch {
+    // Keep the HTTP error message
+  }
+
+  try {
+    await FileSystem.deleteAsync(uri, {
+      idempotent: true
+    });
+  } catch {
+    // Ignore cleanup failure
+  }
+
+  throw new Error(backendMessage);
+}
     
       
       const canShare = await Sharing.isAvailableAsync();
@@ -146,7 +259,9 @@ export default function SwipeableVisitRow({
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: i18n.t("components.swipeableVisitRow.downloadReport"),
+          dialogTitle: documentType === "certificate"
+            ? certificateCopy.title
+            : i18n.t("components.swipeableVisitRow.downloadReport"),
           UTI: 'com.adobe.pdf'
         });
         
@@ -174,37 +289,68 @@ export default function SwipeableVisitRow({
       }
       
       Alert.alert(
-        i18n.t("components.swipeableVisitRow.downloadFailed"), 
+        documentType === "certificate"
+          ? certificateCopy.title
+          : i18n.t("components.swipeableVisitRow.downloadFailed"),
         errorMessage,
         [{ text: i18n.t("common.ok") || "OK" }]
       );
     } finally {
-      setIsDownloading(false);
-      setDownloadProgress(0);
+      setActiveDownloadType(null);
     }
   };
 
   const renderRightActions = () => {
     return (
-      <View style={styles.rightActionContainer}>
-        {isDownloading ? (
-          <View style={[styles.pdfButton, styles.pdfButtonDownloading]}>
+      <View
+        style={[
+          styles.rightActionContainer,
+          canDownloadCertificate &&
+            styles.rightActionContainerWithCertificate
+        ]}
+      >
+        <TouchableOpacity 
+          style={[
+            styles.pdfButton,
+            canDownloadCertificate && styles.pdfButtonPaired,
+            activeDownloadType === "report" &&
+              styles.pdfButtonDownloading
+          ]}
+          onPress={() => handleDownloadPDF("report")}
+          activeOpacity={0.7}
+          disabled={isDownloading}
+        >
+          {activeDownloadType === "report" ? (
             <ActivityIndicator size="small" color="#fff" />
-            <Text style={styles.pdfButtonText}>
-              {Math.round(downloadProgress * 100)}%
-            </Text>
-          </View>
-        ) : (
-          <TouchableOpacity 
-            style={styles.pdfButton}
-            onPress={handleDownloadPDF}
-            activeOpacity={0.7}
-            disabled={isDownloading}
-          >
+          ) : (
             <View style={styles.pdfButtonContent}>
               <MaterialIcons name="picture-as-pdf" size={22} color="#fff" />
               <Text style={styles.pdfButtonText}>{i18n.t("components.swipeableVisitRow.download")}</Text>
             </View>
+          )}
+        </TouchableOpacity>
+
+        {canDownloadCertificate && (
+          <TouchableOpacity
+            style={[
+              styles.certificateButton,
+              activeDownloadType === "certificate" &&
+                styles.pdfButtonDownloading
+            ]}
+            onPress={() => handleDownloadPDF("certificate")}
+            activeOpacity={0.7}
+            disabled={isDownloading}
+          >
+            {activeDownloadType === "certificate" ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <View style={styles.pdfButtonContent}>
+                <MaterialIcons name="verified" size={22} color="#fff" />
+                <Text style={styles.certificateButtonText}>
+                  {certificateCopy.label}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         )}
       </View>
@@ -366,8 +512,12 @@ const styles = StyleSheet.create({
   rightActionContainer: {
     width: 100,
     height: '100%',
-    justifyContent: 'center',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+  rightActionContainerWithCertificate: {
+    width: 190,
   },
   pdfButton: {
     width: 80,
@@ -389,6 +539,27 @@ const styles = StyleSheet.create({
   pdfButtonDownloading: {
     backgroundColor: '#666',
   },
+  pdfButtonPaired: {
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  certificateButton: {
+    width: 100,
+    height: '100%',
+    backgroundColor: '#176f64',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderTopRightRadius: 16,
+    borderBottomRightRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   pdfButtonContent: {
     alignItems: 'center',
   },
@@ -397,6 +568,14 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     marginTop: 2,
+    fontFamily: 'System',
+  },
+  certificateButtonText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginTop: 2,
+    textAlign: 'center',
     fontFamily: 'System',
   },
 });

@@ -157,6 +157,94 @@ async function request(method, endpoint, body = null) {
   }
 }
 
+function getUploadedFileUrl(filename) {
+  if (!filename) return null;
+
+  const value = String(filename).trim();
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  const backendOrigin = API_BASE_URL.replace(/\/api\/?$/, "");
+  const cleanFilename = value
+    .replace(/^\/?uploads\//i, "")
+    .replace(/^\/+/, "");
+
+  return `${backendOrigin}/uploads/${encodeURIComponent(cleanFilename)}`;
+}
+
+async function uploadOrganizationImage({
+  organizationId,
+  endpoint,
+  fieldName,
+  asset
+}) {
+  if (!organizationId) {
+    return { success: false, error: "Organization ID is required" };
+  }
+
+  if (!asset?.uri && !asset?.file) {
+    return { success: false, error: "An image must be selected first" };
+  }
+
+  const formData = new FormData();
+
+  if (asset.file) {
+    formData.append(fieldName, asset.file);
+  } else {
+    formData.append(fieldName, {
+      uri: asset.uri,
+      type: asset.type || "image/png",
+      name: asset.fileName || `${fieldName}_${Date.now()}.png`
+    });
+  }
+
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/super-admin/organizations/` +
+        `${encodeURIComponent(organizationId)}/${endpoint}`,
+      {
+        method: "POST",
+        headers: {
+          ...(authToken
+            ? { Authorization: `Bearer ${authToken}` }
+            : {})
+        },
+        body: formData
+      }
+    );
+
+    const responseText = await response.text();
+    let result = null;
+
+    try {
+      result = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      result = null;
+    }
+
+    if (!response.ok) {
+      return {
+        success: false,
+        status: response.status,
+        error:
+          result?.error ||
+          `Upload failed with status ${response.status}`
+      };
+    }
+
+    return result || { success: true };
+  } catch (error) {
+    console.error(`❌ Organization ${fieldName} upload failed:`, error);
+    return {
+      success: false,
+      networkError: true,
+      error: error.message || "Upload failed"
+    };
+  }
+}
+
 const apiService = {
   // TOKEN MANAGEMENT
   setAuthToken,
@@ -395,6 +483,68 @@ const apiService = {
   async updateOrganization(id, data) {
     return request("PUT", `/super-admin/organizations/${id}`, data);
   },
+
+  async getOrganizationCertificateSettings(organizationId) {
+    return request(
+      "GET",
+      `/super-admin/organizations/${encodeURIComponent(organizationId)}` +
+        "/certificate-settings"
+    );
+  },
+
+  async updateOrganizationCertificateSettings(organizationId, data) {
+    return request(
+      "PUT",
+      `/super-admin/organizations/${encodeURIComponent(organizationId)}` +
+        "/certificate-settings",
+      data
+    );
+  },
+
+  async uploadOrganizationLogo(organizationId, asset) {
+    return uploadOrganizationImage({
+      organizationId,
+      endpoint: "logo",
+      fieldName: "logo",
+      asset
+    });
+  },
+
+  async uploadOrganizationCertificateSignature(organizationId, asset) {
+    return uploadOrganizationImage({
+      organizationId,
+      endpoint: "certificate-signature",
+      fieldName: "signature",
+      asset
+    });
+  },
+
+  async deleteOrganizationCertificateSignature(organizationId) {
+    return request(
+      "DELETE",
+      `/super-admin/organizations/${encodeURIComponent(organizationId)}` +
+        "/certificate-signature"
+    );
+  },
+
+  async uploadOrganizationCertificateTemplate(organizationId, asset) {
+    return uploadOrganizationImage({
+      organizationId,
+      endpoint: "certificate-template",
+      fieldName: "template",
+      asset
+    });
+  },
+
+  async deleteOrganizationCertificateTemplate(organizationId) {
+    return request(
+      "DELETE",
+      `/super-admin/organizations/${encodeURIComponent(organizationId)}` +
+        "/certificate-template"
+    );
+  },
+
+  getUploadedFileUrl,
 
   async getOrganizationAdmins(id) {
     return request("GET", `/super-admin/organizations/${id}/admins`);
@@ -1027,6 +1177,28 @@ const apiService = {
   // REPORTS
   async getVisitReport(visitId) {
     return request("GET", `/reports/visit/${visitId}`);
+  },
+
+  getReportPdfUrl(visitId, lang = "en") {
+    if (!visitId) {
+      throw new Error("Visit ID is required for report download");
+    }
+
+    return (
+      `${API_BASE_URL}/reports/pdf/${encodeURIComponent(visitId)}` +
+      `?lang=${encodeURIComponent(lang || "en")}`
+    );
+  },
+
+  getCertificatePdfUrl(visitId) {
+    if (!visitId) {
+      throw new Error("Visit ID is required for certificate download");
+    }
+
+    return (
+      `${API_BASE_URL}/certificates/pdf/` +
+      encodeURIComponent(visitId)
+    );
   },
 
   // CUSTOMER ENDPOINTS

@@ -166,7 +166,10 @@ export default function OrganizationsScreen({ onClose }) {
         <Modal animationType="slide" visible>
           <OrganizationDetailsScreen
             organization={selectedOrg}
-            onClose={() => setSelectedOrg(null)}
+            onClose={() => {
+              setSelectedOrg(null);
+              loadOrganizations();
+            }}
           />
         </Modal>
       )}
