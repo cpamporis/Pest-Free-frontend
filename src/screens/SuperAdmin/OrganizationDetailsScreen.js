@@ -16,6 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { launchImageLibrary } from "react-native-image-picker";
 import apiService from "../../services/apiService";
 import CertificateTemplateEditorScreen from "./CertificateTemplateEditorScreen";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const EMPTY_LAYOUT = {
   version: 1,
@@ -133,7 +134,12 @@ export default function OrganizationDetailsScreen({
   const [uploadingAsset, setUploadingAsset] = useState(null);
 
   const isCustomPlan = plan === "custom";
-  const customPlanIsSaved = savedPlan === "custom";
+
+  const supportsCustomCertificate =
+    plan === "premium" || plan === "custom";
+
+  const certificatePlanIsSaved =
+    savedPlan === "premium" || savedPlan === "custom";
 
   const logoPreview = selectedLogo?.uri ||
     apiService.getUploadedFileUrl(currentLogoUrl);
@@ -169,13 +175,19 @@ export default function OrganizationDetailsScreen({
   }, [organization.id]);
 
   useEffect(() => {
-    if (!isCustomPlan && certificateSettings.certificateMode !== "standard") {
+    if (
+      !supportsCustomCertificate &&
+      certificateSettings.certificateMode !== "standard"
+    ) {
       setCertificateSettings(current => ({
         ...current,
         certificateMode: "standard"
       }));
     }
-  }, [isCustomPlan, certificateSettings.certificateMode]);
+  }, [
+    supportsCustomCertificate,
+    certificateSettings.certificateMode
+  ]);
 
   const loadAdmins = async () => {
     setLoadingAdmins(true);
@@ -370,10 +382,10 @@ export default function OrganizationDetailsScreen({
   };
 
   const uploadTemplate = async () => {
-    if (!customPlanIsSaved) {
+    if (!certificatePlanIsSaved) {
       Alert.alert(
-        "Custom Plan",
-        "Save the organization as a Custom plan before uploading a template."
+        "Save Plan",
+        "Save the organization as Premium or Custom before uploading a template."
       );
       return;
     }
@@ -488,24 +500,49 @@ export default function OrganizationDetailsScreen({
       return;
     }
 
-    if (plan === "custom") {
-      const technicians = Number(maxTech);
-      const customers = Number(maxCust);
+    let parsedMaxTechnicians;
+let parsedMaxCustomers;
 
-      if (
-        !Number.isInteger(technicians) ||
-        technicians < 1 ||
-        !Number.isInteger(customers) ||
-        customers < 1
-      ) {
-        Alert.alert(
-          "Validation",
-          "Custom plan limits must be positive whole numbers"
-        );
-        return;
-      }
+if (plan === "custom") {
+  const normalizedTechnicians =
+    String(maxTech ?? "").trim();
+
+  const normalizedCustomers =
+    String(maxCust ?? "").trim();
+
+  parsedMaxTechnicians =
+    normalizedTechnicians === ""
+      ? null
+      : Number(normalizedTechnicians);
+
+  parsedMaxCustomers =
+    normalizedCustomers === ""
+      ? null
+      : Number(normalizedCustomers);
+
+    if (
+      (
+        parsedMaxTechnicians !== null &&
+        (
+          !Number.isInteger(parsedMaxTechnicians) ||
+          parsedMaxTechnicians < 1
+        )
+      ) ||
+      (
+        parsedMaxCustomers !== null &&
+        (
+          !Number.isInteger(parsedMaxCustomers) ||
+          parsedMaxCustomers < 1
+        )
+      )
+    ) {
+      Alert.alert(
+        "Validation",
+        "Enter positive whole numbers or leave the fields empty for unlimited"
+      );
+      return;
     }
-
+  }
     setSaving(true);
 
     try {
@@ -516,9 +553,14 @@ export default function OrganizationDetailsScreen({
           brandColor: color.trim() || "#1f9c8b",
           subscriptionPlan: plan,
           maxTechnicians:
-            plan === "custom" ? Number(maxTech) : undefined,
+            plan === "custom"
+              ? parsedMaxTechnicians
+              : undefined,
+
           maxCustomers:
-            plan === "custom" ? Number(maxCust) : undefined
+            plan === "custom"
+              ? parsedMaxCustomers
+              : undefined
         }
       );
 
@@ -535,7 +577,7 @@ export default function OrganizationDetailsScreen({
           organization.id,
           {
             certificateMode:
-              plan === "custom"
+              supportsCustomCertificate
                 ? certificateSettings.certificateMode
                 : "standard",
             legalName: certificateSettings.legalName,
@@ -578,10 +620,19 @@ export default function OrganizationDetailsScreen({
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "right", "bottom", "left"]}
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Edit Organization</Text>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.closeButton}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close organization details"
+        >
           <MaterialIcons name="close" size={24} color="#333" />
         </TouchableOpacity>
       </View>
@@ -641,6 +692,7 @@ export default function OrganizationDetailsScreen({
               <Text style={styles.label}>Max Technicians</Text>
               <TextInput
                 style={styles.input}
+                placeholder="Leave empty for unlimited"
                 keyboardType="numeric"
                 value={maxTech}
                 onChangeText={setMaxTech}
@@ -649,6 +701,7 @@ export default function OrganizationDetailsScreen({
               <Text style={styles.label}>Max Customers</Text>
               <TextInput
                 style={styles.input}
+                placeholder="Leave empty for unlimited"
                 keyboardType="numeric"
                 value={maxCust}
                 onChangeText={setMaxCust}
@@ -784,11 +837,11 @@ export default function OrganizationDetailsScreen({
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Certificate Template</Text>
 
-          {!isCustomPlan ? (
+          {!supportsCustomCertificate ? (
             <View style={styles.infoBox}>
               <MaterialIcons name="verified" size={20} color="#1f9c8b" />
               <Text style={styles.infoText}>
-                Basic and Premium plans use the standard branded template.
+                The Basic plan uses the default certificate template.
               </Text>
             </View>
           ) : (
@@ -820,10 +873,10 @@ export default function OrganizationDetailsScreen({
                 ))}
               </View>
 
-              {!customPlanIsSaved && (
+              {!certificatePlanIsSaved && (
                 <View style={styles.warningBox}>
                   <Text style={styles.warningText}>
-                    Save the Custom plan first. Then upload the custom
+                    Save the Premium or Custom plan first. Then upload the custom
                     certificate background.
                   </Text>
                 </View>
@@ -849,7 +902,7 @@ export default function OrganizationDetailsScreen({
                     <TouchableOpacity
                       style={styles.outlineButton}
                       onPress={() => pickImage(setSelectedTemplate)}
-                      disabled={!customPlanIsSaved}
+                      disabled={!certificatePlanIsSaved}
                     >
                       <MaterialIcons
                         name="upload-file"
@@ -947,8 +1000,15 @@ export default function OrganizationDetailsScreen({
         </View>
       </ScrollView>
 
-      <Modal visible={showEditModal} animationType="slide">
-        <View style={styles.adminModal}>
+      <Modal
+        visible={showEditModal}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
+        <SafeAreaView
+          style={styles.adminModal}
+          edges={["top", "right", "bottom", "left"]}
+        >
           <Text style={styles.title}>Edit Admin</Text>
 
           <TextInput
@@ -1008,10 +1068,14 @@ export default function OrganizationDetailsScreen({
           >
             <Text style={styles.modalCancelText}>Cancel</Text>
           </TouchableOpacity>
-        </View>
+        </SafeAreaView>
       </Modal>
 
-      <Modal visible={editorVisible} animationType="slide">
+      <Modal
+        visible={editorVisible}
+        animationType="slide"
+        presentationStyle="fullScreen"
+      >
         <CertificateTemplateEditorScreen
           organizationId={organization.id}
           templateUrl={apiService.getUploadedFileUrl(
@@ -1029,7 +1093,7 @@ export default function OrganizationDetailsScreen({
           onClose={() => setEditorVisible(false)}
         />
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -1054,7 +1118,11 @@ const styles = StyleSheet.create({
     color: "#111827"
   },
   closeButton: {
-    padding: 6
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
   },
   scroll: {
     flex: 1
@@ -1211,7 +1279,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#2563eb",
+    backgroundColor: "#1f9c8b",
     paddingVertical: 13,
     borderRadius: 8,
     marginTop: 12

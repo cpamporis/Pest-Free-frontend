@@ -1,5 +1,7 @@
 //SuperAdmin/CreateOrganizationAdmin.js
 import React, { useState, useEffect } from "react";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { MaterialIcons } from "@expo/vector-icons";
 import {
   View,
   Text,
@@ -11,7 +13,10 @@ import {
 import { StyleSheet } from "react-native";
 import apiService from "../../services/apiService";
 
-export default function CreateOrganizationAdmin({ organizationId }) {
+export default function CreateOrganizationAdmin({
+  organizationId,
+  onClose
+}) {
   const [admins, setAdmins] = useState([]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,8 +46,25 @@ export default function CreateOrganizationAdmin({ organizationId }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Admin</Text>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "right", "bottom", "left"]}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>Create Admin</Text>
+
+        {onClose && (
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={onClose}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Close create admin screen"
+          >
+            <MaterialIcons name="close" size={24} color="#333" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       <View style={styles.form}>
         <TextInput
@@ -74,7 +96,7 @@ export default function CreateOrganizationAdmin({ organizationId }) {
           </View>
         )}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -85,11 +107,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#f4f6f8"
   },
 
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 16
-  },
+  header: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  marginBottom: 16
+},
+
+title: {
+  flex: 1,
+  fontSize: 18,
+  fontWeight: "bold",
+  color: "#111827"
+},
+
+closeButton: {
+  width: 44,
+  height: 44,
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0
+},
 
   form: {
     backgroundColor: "#fff",

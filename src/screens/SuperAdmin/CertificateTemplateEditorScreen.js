@@ -16,7 +16,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import apiService from "../../services/apiService";
 
@@ -191,7 +191,11 @@ function normalizeLayout(value) {
           align: ["left", "center", "right"].includes(element.align)
             ? element.align
             : "left",
-          bold: Boolean(element.bold)
+          bold: Boolean(element.bold),
+            text:
+              typeof element.text === "string"
+                ? element.text
+                : ""
         }))
       : []
   };
@@ -259,7 +263,7 @@ function DraggableElement({
 
   const isImage = element.type === "image";
   const isCheckbox = element.type === "checkbox";
-
+  const isStaticText = element.type === "staticText";
   return (
     <View
       {...panResponder.panHandlers}
@@ -294,7 +298,11 @@ function DraggableElement({
       )}
 
       <Text
-        numberOfLines={element.type === "materials" ? 4 : 2}
+        numberOfLines={
+          element.type === "materials" || isStaticText
+            ? 6
+            : 2
+        }
         style={{
           flex: 1,
           color: element.color,
@@ -303,7 +311,9 @@ function DraggableElement({
           textAlign: element.align
         }}
       >
-        {element.label}
+        {isStaticText
+          ? element.text || "Custom text"
+          : element.label}
       </Text>
     </View>
   );
@@ -324,6 +334,7 @@ export default function CertificateTemplateEditorScreen({
   const [canvasWidth, setCanvasWidth] = useState(320);
   const [saving, setSaving] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [customText, setCustomText] = useState("");
 
   useEffect(() => {
     setLayout(normalizeLayout(initialLayout));
@@ -380,6 +391,53 @@ export default function CertificateTemplateEditorScreen({
     }));
     setSelectedId(id);
   };
+
+  const addCustomText = () => {
+  const text = customText.trim();
+
+  if (!text) {
+    Alert.alert(
+      "Text required",
+      "Enter the text you want to add."
+    );
+    return;
+  }
+
+  const offset = (layout.elements.length * 12) % 120;
+  const id = `custom_text_${Date.now()}`;
+
+  const estimatedLines = Math.max(
+    1,
+    Math.ceil(text.length / 48)
+  );
+
+  const newElement = {
+    id,
+    field: "custom.text",
+    label: "Custom Text",
+    type: "staticText",
+    text,
+    x: 35 + offset,
+    y: 45 + offset,
+    width: 320,
+    height: Math.min(
+      130,
+      Math.max(36, estimatedLines * 18 + 10)
+    ),
+    fontSize: 11,
+    color: "#000000",
+    align: "left",
+    bold: false
+  };
+
+  setLayout(current => ({
+    ...current,
+    elements: [...current.elements, newElement]
+  }));
+
+  setSelectedId(id);
+  setCustomText("");
+};
 
   const updateSelected = changes => {
     if (!selectedId) return;
@@ -474,16 +532,26 @@ export default function CertificateTemplateEditorScreen({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+  <SafeAreaProvider>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "right", "bottom", "left"]}
+    >
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerTextContainer}>
           <Text style={styles.title}>Certificate Template Editor</Text>
           <Text style={styles.subtitle}>
             Add fields and drag them to their required position.
           </Text>
         </View>
 
-        <TouchableOpacity onPress={onClose} style={styles.iconButton}>
+        <TouchableOpacity
+          onPress={onClose}
+          style={styles.iconButton}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel="Close certificate template editor"
+        >
           <MaterialIcons name="close" size={24} color="#333" />
         </TouchableOpacity>
       </View>
@@ -495,6 +563,51 @@ export default function CertificateTemplateEditorScreen({
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.sectionTitle}>Available fields</Text>
+
+        <View style={styles.customTextCard}>
+          <View style={styles.customTextHeadingRow}>
+            <MaterialIcons
+              name="text-fields"
+              size={20}
+              color="#1f9c8b"
+            />
+
+            <Text style={styles.customTextTitle}>
+              Add custom text
+            </Text>
+          </View>
+
+          <Text style={styles.customTextHelp}>
+            Enter any fixed information for this organization.
+            You can add multiple text areas and position each
+            one independently.
+          </Text>
+
+          <TextInput
+            style={[styles.input, styles.customTextInput]}
+            value={customText}
+            onChangeText={setCustomText}
+            placeholder="Type additional certificate information..."
+            multiline
+            maxLength={2000}
+            textAlignVertical="top"
+          />
+
+          <TouchableOpacity
+            style={[
+              styles.addCustomTextButton,
+              !customText.trim() && styles.disabledButton
+            ]}
+            onPress={addCustomText}
+            disabled={!customText.trim()}
+          >
+            <MaterialIcons name="add" size={18} color="#fff" />
+
+            <Text style={styles.addCustomTextButtonLabel}>
+              Add Text Area
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <ScrollView
           horizontal
@@ -566,6 +679,26 @@ export default function CertificateTemplateEditorScreen({
             <Text style={styles.selectedName}>
               {selectedElement.label}
             </Text>
+
+            {selectedElement.type === "staticText" && (
+              <>
+                <Text style={styles.inputLabel}>
+                  Text content
+                </Text>
+
+                <TextInput
+                  style={[styles.input, styles.selectedTextInput]}
+                  value={selectedElement.text || ""}
+                  onChangeText={text =>
+                    updateSelected({ text })
+                  }
+                  placeholder="Enter the text shown on the certificate"
+                  multiline
+                  maxLength={2000}
+                  textAlignVertical="top"
+                />
+              </>
+            )}
 
             <View style={styles.propertyRow}>
               <Text style={styles.propertyLabel}>Font size</Text>
@@ -764,6 +897,7 @@ export default function CertificateTemplateEditorScreen({
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+  </SafeAreaProvider>
   );
 }
 
@@ -793,7 +927,11 @@ const styles = StyleSheet.create({
     color: "#6b7280"
   },
   iconButton: {
-    padding: 8
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0
   },
   scroll: {
     flex: 1
@@ -1000,5 +1138,64 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5
-  }
+  },
+  headerTextContainer: {
+  flex: 1,
+  paddingRight: 12
+},
+
+customTextCard: {
+  backgroundColor: "#fff",
+  borderWidth: 1,
+  borderColor: "#d7e9e5",
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 14
+},
+
+customTextHeadingRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  marginBottom: 5
+},
+
+customTextTitle: {
+  marginLeft: 7,
+  color: "#1f2937",
+  fontSize: 14,
+  fontWeight: "700"
+},
+
+customTextHelp: {
+  color: "#6b7280",
+  fontSize: 12,
+  lineHeight: 17,
+  marginBottom: 9
+},
+
+customTextInput: {
+  minHeight: 78
+},
+
+addCustomTextButton: {
+  alignSelf: "flex-end",
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#1f9c8b",
+  borderRadius: 8,
+  paddingHorizontal: 13,
+  paddingVertical: 10
+},
+
+addCustomTextButtonLabel: {
+  color: "#fff",
+  fontWeight: "700",
+  fontSize: 12,
+  marginLeft: 5
+},
+
+selectedTextInput: {
+  minHeight: 96
+},
 });

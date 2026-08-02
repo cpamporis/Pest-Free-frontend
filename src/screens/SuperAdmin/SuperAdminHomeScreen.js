@@ -19,7 +19,10 @@ export default function SuperAdminHomeScreen({ onLogout }) {
   const [showOrganizations, setShowOrganizations] = useState(false);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={styles.container}
+      edges={["top", "right", "bottom", "left"]}
+    >
       <ScrollView>
 
         {/* HEADER */}

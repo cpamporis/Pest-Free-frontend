@@ -16,6 +16,21 @@ import OrganizationDetailsScreen from "./OrganizationDetailsScreen";
 import apiService from "../../services/apiService";
 import { TextInput } from "react-native";
 
+const PLAN_DESCRIPTIONS = {
+  basic:
+    "1 technician • 150 customers • Default certificate",
+  premium:
+    "3 technicians • Unlimited customers • Custom certificate",
+  custom:
+    "Custom or unlimited usage limits • Custom certificate"
+};
+
+const formatLimit = value => {
+  return value === null || value === undefined
+    ? "Unlimited"
+    : String(value);
+};
+
 export default function OrganizationsScreen({ onClose }) {
   const [organizations, setOrganizations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,6 +107,20 @@ export default function OrganizationsScreen({ onClose }) {
 
             <Text style={styles.meta}>
               Plan: {org.subscription_plan}
+            </Text>
+
+            <Text style={styles.meta}>
+              Technicians:{" "}
+              {formatLimit(
+                org.maxTechnicians ?? org.max_technicians
+              )}
+            </Text>
+
+            <Text style={styles.meta}>
+              Customers:{" "}
+              {formatLimit(
+                org.maxCustomers ?? org.max_customers
+              )}
             </Text>
 
             <Text style={styles.meta}>
@@ -211,7 +240,7 @@ export default function OrganizationsScreen({ onClose }) {
             <>
               <TextInput
                 style={styles.input}
-                placeholder="Max Technicians"
+                placeholder="Max Technicians (empty = unlimited)"
                 keyboardType="numeric"
                 value={newOrg.maxTechnicians}
                 onChangeText={(text) =>
@@ -221,7 +250,7 @@ export default function OrganizationsScreen({ onClose }) {
 
               <TextInput
                 style={styles.input}
-                placeholder="Max Customers"
+                placeholder="Max Customers (empty = unlimited)"
                 keyboardType="numeric"
                 value={newOrg.maxCustomers}
                 onChangeText={(text) =>
