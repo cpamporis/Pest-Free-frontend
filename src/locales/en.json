@@ -20,6 +20,9 @@
     "emailPlaceholder": "Enter your registered email",
     "submitButton": "Submit Recovery Request",
     "backButton": "Back to Login",
+    "adminContactTitle": "Organization administrator recovery",
+      "adminRecoveryTitle": "Are you an organization administrator?",
+      "adminRecoveryText": "If you have forgotten your administrator password, contact Pestify at the email below.",
     "footer": {
       "help": "Need Help? Contact Support",
       "contact": "info@pestify.gr • +30 6986244371",
@@ -29,7 +32,8 @@
       "noEmail": "Please enter your registered email",
       "invalidEmail": "Please enter a valid email address",
       "submitFailed": "Failed to submit recovery request",
-      "unexpected": "An unexpected error occurred. Please try again."
+      "unexpected": "An unexpected error occurred. Please try again.",
+      "notRegisteredCustomer": "Not registered"
     },
     "success": {
       "title": "Password Recovery Request Submitted",
@@ -174,14 +178,15 @@
         }
       },
       "actions": {
+        "changePassword": {
+          "title": "Change password",
+          "subtitle": "Update your organization administrator password"
+        },
         "refreshDashboard": {
           "title": "Refresh Dashboard",
           "title_refreshing": "Refreshing Data...",
-          "subtitle": "Update all statistics and information",
-          "changePassword": {
-          "title": "Change password",
-          "subtitle": "Update your organization administrator password"
-        }
+          "subtitle": "Update all statistics and information"
+          
         },
         "logout": {
           "title": "Logout",
@@ -304,12 +309,6 @@
         "unknown": "Unknown"
       }
     },
-    "passwordRecovery": {
-      "adminContactTitle": "Organization administrator recovery",
-      "adminRecoveryTitle": "Are you an organization administrator?",
-      "adminRecoveryText": "If you have forgotten your administrator password, contact Pestify at the email below."
-    },
-
     "schedule": {
       "loading": "Loading Schedule...",
       "header": {

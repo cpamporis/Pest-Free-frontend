@@ -63,10 +63,24 @@ export default function PasswordRecovery({ onBack, onDone }) {
       const result = await apiService.submitPasswordRecovery(email);
 
       if (!result?.success) {
+        const errorCode =
+          result?.data?.code || result?.code;
+
+        const errorMessage =
+          errorCode === "NOT_REGISTERED_CUSTOMER"
+            ? i18n.t(
+                "passwordRecovery.errors.notRegisteredCustomer"
+              )
+            : result?.error ||
+              i18n.t(
+                "passwordRecovery.errors.submitFailed"
+              );
+
         Alert.alert(
-          i18n.t("common.error"), 
-          result?.error || i18n.t("passwordRecovery.errors.submitFailed")
+          i18n.t("common.error"),
+          errorMessage
         );
+
         return;
       }
 

@@ -1693,12 +1693,13 @@ const apiService = {
   },
 
   async submitPasswordRecovery(email) {
-    return request("POST", "/customer-requests", {
-      customerEmail: email,
-      serviceType: "password_recovery",
-      description: "Password recovery request",
-      type: "password_recovery"
-    });
+    return request(
+      "POST",
+      "/customer-requests/password-recovery",
+      {
+        email: email.trim().toLowerCase()
+      }
+    );
   },
 
   async resetCustomerPassword(requestId, newPassword) {

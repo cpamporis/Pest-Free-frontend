@@ -804,88 +804,110 @@ export default function AdminHomeScreen({
       }
     }}
   >
-    <SafeAreaView style={styles.passwordScreen}>
-      <View style={styles.passwordHeader}>
-        <TouchableOpacity
-          onPress={
-            forcePasswordChange
-              ? onLogout
-              : () => setShowPasswordChange(false)
-          }
-        >
-          <MaterialIcons
-            name={forcePasswordChange ? "logout" : "close"}
-            size={26}
-            color="#fff"
-          />
-        </TouchableOpacity>
-
-        <Text style={styles.passwordHeaderTitle}>
-          {i18n.t("admin.password.title")}
-        </Text>
-
-        <View style={{ width: 26 }} />
-      </View>
-
+    <SafeAreaView
+      style={styles.passwordScreen}
+      edges={["top", "right", "bottom", "left"]}
+    >
       <ScrollView
-        contentContainerStyle={styles.passwordContent}
+        style={styles.passwordScrollView}
+        contentContainerStyle={styles.passwordScrollContent}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <MaterialIcons
-          name="lock-reset"
-          size={58}
-          color="#1f9c8b"
-        />
+        <View style={styles.passwordHeader}>
+          <TouchableOpacity
+            style={styles.passwordCloseButton}
+            hitSlop={{
+              top: 8,
+              right: 8,
+              bottom: 8,
+              left: 8
+            }}
+            onPress={
+              forcePasswordChange
+                ? onLogout
+                : () => setShowPasswordChange(false)
+            }
+          >
+            <MaterialIcons
+              name={forcePasswordChange ? "logout" : "close"}
+              size={26}
+              color="#fff"
+            />
+          </TouchableOpacity>
 
-        <Text style={styles.passwordDescription}>
-          {forcePasswordChange
-            ? i18n.t("admin.password.forcedDescription")
-            : i18n.t("admin.password.description")}
-        </Text>
+          <Text style={styles.passwordHeaderTitle}>
+            {i18n.t("admin.password.title")}
+          </Text>
 
-        <TextInput
-          style={styles.passwordInput}
-          placeholder={i18n.t("admin.password.currentPassword")}
-          secureTextEntry
-          autoCapitalize="none"
-          value={currentAdminPassword}
-          onChangeText={setCurrentAdminPassword}
-        />
+          <View style={styles.passwordHeaderSpacer} />
+        </View>
 
-        <TextInput
-          style={styles.passwordInput}
-          placeholder={i18n.t("admin.password.newPassword")}
-          secureTextEntry
-          autoCapitalize="none"
-          value={newAdminPassword}
-          onChangeText={setNewAdminPassword}
-        />
+        <View style={styles.passwordContent}>
+          <MaterialIcons
+            name="lock-reset"
+            size={58}
+            color="#1f9c8b"
+          />
 
-        <TextInput
-          style={styles.passwordInput}
-          placeholder={i18n.t("admin.password.confirmPassword")}
-          secureTextEntry
-          autoCapitalize="none"
-          value={confirmAdminPassword}
-          onChangeText={setConfirmAdminPassword}
-        />
+          <Text style={styles.passwordDescription}>
+            {forcePasswordChange
+              ? i18n.t("admin.password.forcedDescription")
+              : i18n.t("admin.password.description")}
+          </Text>
 
-        <TouchableOpacity
-          style={[
-            styles.passwordSubmitButton,
-            changingAdminPassword && { opacity: 0.6 }
-          ]}
-          disabled={changingAdminPassword}
-          onPress={handleChangeAdminPassword}
-        >
-          {changingAdminPassword ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.passwordSubmitText}>
-              {i18n.t("admin.password.submit")}
-            </Text>
-          )}
-        </TouchableOpacity>
+          <TextInput
+            style={styles.passwordInput}
+            placeholder={i18n.t(
+              "admin.password.currentPassword"
+            )}
+            secureTextEntry
+            autoCapitalize="none"
+            value={currentAdminPassword}
+            onChangeText={setCurrentAdminPassword}
+          />
+
+          <TextInput
+            style={styles.passwordInput}
+            placeholder={i18n.t(
+              "admin.password.newPassword"
+            )}
+            secureTextEntry
+            autoCapitalize="none"
+            value={newAdminPassword}
+            onChangeText={setNewAdminPassword}
+          />
+
+          <TextInput
+            style={styles.passwordInput}
+            placeholder={i18n.t(
+              "admin.password.confirmPassword"
+            )}
+            secureTextEntry
+            autoCapitalize="none"
+            value={confirmAdminPassword}
+            onChangeText={setConfirmAdminPassword}
+          />
+
+          <TouchableOpacity
+            style={[
+              styles.passwordSubmitButton,
+              changingAdminPassword && {
+                opacity: 0.6
+              }
+            ]}
+            disabled={changingAdminPassword}
+            onPress={handleChangeAdminPassword}
+          >
+            {changingAdminPassword ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.passwordSubmitText}>
+                {i18n.t("admin.password.submit")}
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   </Modal>
@@ -1282,62 +1304,92 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#2c3e50",
     marginBottom: 4,
-  },passwordScreen: {
-  flex: 1,
-  backgroundColor: "#f8f9fa"
-},
-passwordHeader: {
-  backgroundColor: "#1f9c8b",
-  paddingHorizontal: 20,
-  paddingVertical: 18,
-  flexDirection: "row",
-  alignItems: "center",
-  justifyContent: "space-between"
-},
-passwordHeaderTitle: {
-  color: "#fff",
-  fontSize: 18,
-  fontWeight: "700"
-},
-passwordContent: {
-  flexGrow: 1,
-  padding: 24,
-  alignItems: "center",
-  justifyContent: "center"
-},
-passwordDescription: {
-  maxWidth: 500,
-  marginTop: 20,
-  marginBottom: 28,
-  color: "#666",
-  fontSize: 15,
-  lineHeight: 22,
-  textAlign: "center"
-},
-passwordInput: {
-  width: "100%",
-  maxWidth: 500,
-  backgroundColor: "#fff",
-  borderWidth: 1,
-  borderColor: "#e1e5e8",
-  borderRadius: 12,
-  paddingHorizontal: 16,
-  paddingVertical: 15,
-  marginBottom: 14,
-  fontSize: 16
-},
-passwordSubmitButton: {
-  width: "100%",
-  maxWidth: 500,
-  backgroundColor: "#1f9c8b",
-  borderRadius: 12,
-  paddingVertical: 16,
-  alignItems: "center",
-  marginTop: 10
-},
-passwordSubmitText: {
-  color: "#fff",
-  fontSize: 16,
-  fontWeight: "700"
-}
+  },
+  
+  passwordScreen: {
+    flex: 1,
+    backgroundColor: "#f8f9fa",
+  },
+
+  passwordScrollView: {
+    flex: 1,
+  },
+
+  passwordScrollContent: {
+    flexGrow: 1,
+    backgroundColor: "#f8f9fa",
+  },
+
+  passwordHeader: {
+    backgroundColor: "#1f9c8b",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  passwordCloseButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  passwordHeaderSpacer: {
+    width: 44,
+    height: 44,
+  },
+
+  passwordHeaderTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+
+  passwordContent: {
+    flexGrow: 1,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  passwordDescription: {
+    maxWidth: 500,
+    marginTop: 20,
+    marginBottom: 28,
+    color: "#666",
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+  },
+
+  passwordInput: {
+    width: "100%",
+    maxWidth: 500,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e1e5e8",
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    marginBottom: 14,
+    fontSize: 16,
+  },
+
+  passwordSubmitButton: {
+    width: "100%",
+    maxWidth: 500,
+    backgroundColor: "#1f9c8b",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 10,
+  },
+
+  passwordSubmitText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
 });
