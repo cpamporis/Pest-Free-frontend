@@ -8,6 +8,7 @@ import {
   Alert,
   StyleSheet,
   ScrollView,
+  Linking,
   Image,
   ActivityIndicator
 } from "react-native";
@@ -20,6 +21,22 @@ import i18n from "../services/i18n";
 export default function PasswordRecovery({ onBack, onDone }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const contactAdminSupport = async () => {
+  const subject = encodeURIComponent(
+    "Pestify Organization Admin Password Recovery"
+  );
+
+  try {
+    await Linking.openURL(
+      `mailto:info@pestify.gr?subject=${subject}`
+    );
+  } catch {
+    Alert.alert(
+      i18n.t("passwordRecovery.adminContactTitle"),
+      "info@pestify.gr"
+    );
+  }
+};
 
   const submitRecovery = async () => {
     if (!email) {
@@ -104,6 +121,30 @@ export default function PasswordRecovery({ onBack, onDone }) {
             <Text style={styles.subtitle}>
               {i18n.t("passwordRecovery.subtitle")}
             </Text>
+
+            <View style={styles.adminRecoveryNotice}>
+              <MaterialIcons
+                name="admin-panel-settings"
+                size={22}
+                color="#1f9c8b"
+              />
+
+              <View style={styles.adminRecoveryContent}>
+                <Text style={styles.adminRecoveryTitle}>
+                  {i18n.t("passwordRecovery.adminRecoveryTitle")}
+                </Text>
+
+                <Text style={styles.adminRecoveryText}>
+                  {i18n.t("passwordRecovery.adminRecoveryText")}
+                </Text>
+
+                <TouchableOpacity onPress={contactAdminSupport}>
+                  <Text style={styles.adminRecoveryEmail}>
+                    info@pestify.gr
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
             
             {/* Email Input */}
             <View style={styles.inputContainer}>
@@ -366,4 +407,35 @@ const styles = StyleSheet.create({
     color: "#aaa",
     fontFamily: 'System',
   },
+  adminRecoveryNotice: {
+  flexDirection: "row",
+  backgroundColor: "#f1f9f8",
+  borderWidth: 1,
+  borderColor: "#cce9e5",
+  borderRadius: 12,
+  padding: 16,
+  marginBottom: 24,
+},
+adminRecoveryContent: {
+  flex: 1,
+  marginLeft: 12,
+},
+adminRecoveryTitle: {
+  fontSize: 14,
+  fontWeight: "700",
+  color: "#2c3e50",
+  marginBottom: 5,
+},
+adminRecoveryText: {
+  fontSize: 13,
+  lineHeight: 19,
+  color: "#666",
+  marginBottom: 6,
+},
+adminRecoveryEmail: {
+  fontSize: 14,
+  fontWeight: "700",
+  color: "#1f9c8b",
+  textDecorationLine: "underline",
+},
 });

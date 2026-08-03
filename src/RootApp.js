@@ -16,6 +16,7 @@ import CustomerHomeScreen from "./screens/Customer/CustomerHomeScreen";
 import CustomerVisitsScreen from "./screens/Customer/CustomerVisitsScreen";
 import CustomerProfile from "./screens/Admin/CustomerProfile";
 import PasswordRecovery from "./screens/PasswordRecovery";
+import apiService from "./services/apiService";
 import SuperAdminHomeScreen from "./screens/SuperAdmin/SuperAdminHomeScreen";
 
 async function checkForUpdate() {
@@ -52,6 +53,8 @@ export default function RootApp() {
   const [adminView, setAdminView] = useState("home"); 
   const [adminCustomerId, setAdminCustomerId] = useState(null);
   const [authView, setAuthView] = useState("login"); 
+  const [adminMustChangePassword, setAdminMustChangePassword] =
+  useState(false);
 
   useEffect(() => {
     if (!__DEV__) {
@@ -69,9 +72,12 @@ export default function RootApp() {
     return () => subscription.remove();
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await apiService.clearAuthToken();
+
     setLoggedTechnician(null);
     setAdminRole(null);
+    setAdminMustChangePassword(false);
     setCurrentCustomer(null);
     setCurrentSession(null);
     setShowNavigation(false);
@@ -159,7 +165,12 @@ export default function RootApp() {
 
     return (
       <LoginScreen
-        onAdminLogin={(role) => setAdminRole(role)}
+        onAdminLogin={(role, mustChangePassword = false) => {
+          setAdminRole(role);
+          setAdminMustChangePassword(
+            role === "admin" && mustChangePassword
+          );
+        }}
         onTechnicianLogin={(tech) => setLoggedTechnician(tech)}
         onCustomerLogin={(customer) => setLoggedCustomer(customer)}
         onPasswordRecovery={() => setAuthView("passwordRecovery")}
@@ -181,6 +192,10 @@ export default function RootApp() {
         return (
           <AdminHomeScreen
             onLogout={handleLogout}
+            forcePasswordChange={adminMustChangePassword}
+            onPasswordChanged={() =>
+              setAdminMustChangePassword(false)
+            }
             onOpenCustomerProfile={(customerId) => {
               setAdminCustomerId(customerId);
               setAdminView("customerProfile");

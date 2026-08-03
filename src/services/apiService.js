@@ -1685,6 +1685,13 @@ const apiService = {
     return getResult;
   },
 
+  async changeAdminPassword(currentPassword, newPassword) {
+    return request("POST", "/admin/change-password", {
+      currentPassword,
+      newPassword
+    });
+  },
+
   async submitPasswordRecovery(email) {
     return request("POST", "/customer-requests", {
       customerEmail: email,

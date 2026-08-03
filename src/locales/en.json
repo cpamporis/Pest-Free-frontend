@@ -53,6 +53,7 @@
     "content": "Terms of Use\n\nEffective Date: 23/02/2026\nLast Updated: 23/02/2026\n\nThese Terms of Use (\"Terms\") govern your access to and use of:\n\npestify.gr (marketing website), and\napp.pestify.gr and related mobile applications (the \"Platform\"),\noperated by:\n\nPest – Free\nOwner: Christos Pamporis (Χρήστος Παμπόρης)\nGreece\n\nBy accessing or using Pestify, you agree to be bound by these Terms.\n\nIf you do not agree, you must not use the services.\n\n1. Scope of the Services\nPestify is a digital software platform designed for pest control businesses to:\n\nManage customer data\nOrganize service schedules\nMaintain service logs and documentation\nGenerate structured compliance reports\nImprove operational workflows\nThe marketing website (pestify.gr) is informational only and does not provide pest control services.\n\n2. Eligibility\nThe Platform is intended primarily for business users (B2B).\n\nBy using the Platform, you confirm that:\n\nYou are acting on behalf of a business entity, or\nYou are legally authorized to bind the business you represent\nIf you are a consumer within the meaning of EU consumer law, certain mandatory consumer protections may apply.\n\n3. Account Registration\nTo access the Platform, you may need to create an account.\n\nYou agree to:\n\nProvide accurate and complete information\nMaintain confidentiality of login credentials\nBe responsible for all activities under your account\nYou must notify us immediately of unauthorized use.\n\nWe reserve the right to suspend or terminate accounts in case of breach.\n\n4. Subscription & Payments\nIf paid plans are offered:\n\nSubscription fees are stated on the Pricing page.\nFees are exclusive of VAT unless stated otherwise.\nPayment terms will be specified at checkout.\nFailure to pay may result in suspension.\nFree trials, if offered, convert to paid subscriptions unless cancelled before expiration.\n\n5. Acceptable Use\nYou agree NOT to:\n\nUse the Platform for unlawful purposes\nUpload illegal or harmful content\nInterfere with system security\nReverse engineer, copy, or exploit the software\nUse the Platform to process data without legal basis under GDPR\nYou are solely responsible for the legality of the data you upload.\n\n6. Intellectual Property\nAll intellectual property rights in:\n\nSoftware\nCode\nDesign\nBranding\nDocumentation\nLogos\nare owned by Pest – Free unless otherwise stated.\n\nYou are granted a limited, non-exclusive, non-transferable license to use the Platform for internal business purposes only.\n\nYou may not:\n\nResell the Platform\nModify or redistribute it\nCreate derivative works\n\n7. Data Protection (GDPR Roles)\n\n7.1 Marketing Website\nFor pestify.gr, Pest – Free acts as Data Controller as described in the Privacy Policy.\n\n7.2 Application Platform\nWhen business customers upload personal data (e.g., homeowner names):\n\nThe pest control company is the Data Controller\nPestify acts as a Data Processor under Article 28 GDPR\nWe process data solely:\n\nOn documented instructions from the business customer\nTo provide the contracted service\nRequests from individuals (data subjects) should primarily be directed to the business acting as Controller.\n\nA Data Processing Agreement (DPA) may apply where required by law.\n\n8. Availability of Service\nWe aim to provide continuous access but do not guarantee uninterrupted availability.\n\nThe Platform may be temporarily unavailable due to:\n\nMaintenance\nSecurity updates\nTechnical failures\nForce majeure events\nWe reserve the right to modify or discontinue features.\n\n9. Limitation of Liability\nTo the maximum extent permitted under Greek and EU law:\n\nThe Platform is provided \"as is\".\nWe do not guarantee error-free or uninterrupted service.\nWe are not liable for indirect, incidental, or consequential damages.\nOur total liability shall not exceed the amount paid by the customer in the preceding 12 months.\nNothing in these Terms excludes liability for:\n\nDeath or personal injury caused by negligence\nFraud or fraudulent misrepresentation\nAny liability that cannot be excluded under applicable law\n\n10. No Professional Advice\nPestify is a software tool.\n\nIt does not provide:\n\nLegal advice\nRegulatory advice\nPest control services\nCertification guarantees\nUsers remain fully responsible for regulatory compliance in their jurisdiction.\n\n11. Termination\nWe may suspend or terminate access if:\n\nYou breach these Terms\nYou fail to pay subscription fees\nUse poses security risks\nRequired by law\nYou may terminate your account at any time.\n\nUpon termination:\n\nAccess is revoked\nData may be deleted according to the Privacy Policy\n\n12. Third-Party Services\nThe Platform may integrate third-party services such as:\n\nHosting providers\nCalendly (demo booking)\nInfrastructure services\nWe are not responsible for third-party policies or performance.\n\n13. Confidentiality\nBoth parties agree to maintain confidentiality of non-public business information.\n\nThis obligation survives termination.\n\n14. Force Majeure\nWe are not liable for failure to perform due to events beyond reasonable control, including:\n\nNatural disasters\nWar\nGovernment actions\nInternet failures\nPower outages\n\n15. Governing Law & Jurisdiction\nThese Terms are governed by the laws of Greece.\n\nAny disputes shall be subject to the exclusive jurisdiction of the courts of Greece, unless mandatory EU consumer law provides otherwise.\n\n16. Amendments\nWe may update these Terms.\n\nUpdated versions will be published on this page with a revised date.\n\nContinued use constitutes acceptance.\n\n17. Contact\nFor legal inquiries:\n\nmanager@pestify.gr"
   },
   
+  
   "common": {
     "loading": "Loading...",
     "error": "Error",
@@ -176,7 +177,11 @@
         "refreshDashboard": {
           "title": "Refresh Dashboard",
           "title_refreshing": "Refreshing Data...",
-          "subtitle": "Update all statistics and information"
+          "subtitle": "Update all statistics and information",
+          "changePassword": {
+          "title": "Change password",
+          "subtitle": "Update your organization administrator password"
+        }
         },
         "logout": {
           "title": "Logout",
@@ -189,7 +194,25 @@
         "copyright": "© {{year}} Pestify. All rights reserved."
       }
     },
-
+    "password": {
+      "title": "Change administrator password",
+      "description": "Enter your current password and choose a new password.",
+      "forcedDescription": "You are signed in with a temporary password. You must set a new password before continuing.",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "submit": "Change password",
+      "successTitle": "Password changed",
+      "successMessage": "Your password was changed successfully.",
+      "errors": {
+        "required": "Please complete all password fields.",
+        "tooShort": "The new password must be at least 8 characters.",
+        "notMatching": "The new passwords do not match.",
+        "currentIncorrect": "The current password is incorrect.",
+        "samePassword": "The new password must be different from the current password.",
+        "failed": "Unable to change the password. Please try again."
+      }
+    },
     "notifications": {
       "loading": "Loading Notifications...",
       "header": {
@@ -280,6 +303,11 @@
         "expired": "Expired",
         "unknown": "Unknown"
       }
+    },
+    "passwordRecovery": {
+      "adminContactTitle": "Organization administrator recovery",
+      "adminRecoveryTitle": "Are you an organization administrator?",
+      "adminRecoveryText": "If you have forgotten your administrator password, contact Pestify at the email below."
     },
 
     "schedule": {
