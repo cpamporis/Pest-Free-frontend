@@ -78,12 +78,27 @@ function filterCustomersBySearch(customers, searchText) {
 }
 
 function getCustomerSearchCopy() {
-  const locale = String(i18n.locale || i18n.language || "").toLocaleLowerCase();
-  const isGreek = locale.startsWith("el") || locale.startsWith("gr");
+  const locale = String(
+    i18n.resolvedLanguage ||
+    i18n.language ||
+    i18n.currentLang ||
+    i18n.getLocale?.() ||
+    i18n.locale ||
+    ""
+  ).toLocaleLowerCase();
+
+  const isGreek =
+    locale.startsWith("el") ||
+    locale.startsWith("gr");
 
   return {
-    placeholder: isGreek ? "Αναζήτηση πελάτη..." : "Search customer...",
-    noResults: isGreek ? "Δεν βρέθηκαν πελάτες." : "No customers found.",
+    placeholder: isGreek
+      ? "Αναζήτηση Πελάτη..."
+      : "Search customer...",
+
+    noResults: isGreek
+      ? "Δεν βρέθηκαν πελάτες."
+      : "No customers found.",
   };
 }
 
