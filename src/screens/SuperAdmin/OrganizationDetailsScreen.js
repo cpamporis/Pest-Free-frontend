@@ -17,6 +17,7 @@ import { launchImageLibrary } from "react-native-image-picker";
 import apiService from "../../services/apiService";
 import CertificateTemplateEditorScreen from "./CertificateTemplateEditorScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TimeZonePicker from "../../components/TimeZonePicker";
 
 const EMPTY_LAYOUT = {
   version: 1,
@@ -91,6 +92,11 @@ export default function OrganizationDetailsScreen({
     organization.brandColor ||
       organization.brand_color ||
       "#1f9c8b"
+  );
+  const [timeZone, setTimeZone] = useState(
+    organization.timeZone ||
+      organization.time_zone ||
+      "Europe/Athens"
   );
   const [plan, setPlan] = useState(initialPlan);
   const [savedPlan, setSavedPlan] = useState(initialPlan);
@@ -551,6 +557,7 @@ if (plan === "custom") {
         {
           name: name.trim(),
           brandColor: color.trim() || "#1f9c8b",
+          timeZone,
           subscriptionPlan: plan,
           maxTechnicians:
             plan === "custom"
@@ -668,6 +675,12 @@ if (plan === "custom") {
               placeholder="#1f9c8b"
             />
           </View>
+
+          <TimeZonePicker
+            value={timeZone}
+            onChange={setTimeZone}
+            disabled={saving}
+          />
 
           <Text style={styles.label}>Plan</Text>
           <View style={styles.planRow}>
