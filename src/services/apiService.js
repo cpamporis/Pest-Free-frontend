@@ -296,6 +296,13 @@ const apiService = {
   getEnhancedKPIs,
   getTopPerformance,
   getVisitFrequency,
+  async getStatisticsDashboard(year = null) {
+    const query = year === null || year === undefined
+      ? ""
+      : `?year=${encodeURIComponent(String(year))}`;
+
+    return request("GET", `/statistics/v2/dashboard${query}`);
+  },
   updateRescheduleStatus(appointmentId, payload) {
     return apiService.updateAppointmentRescheduleStatus(appointmentId, payload);
   },
@@ -519,6 +526,10 @@ const apiService = {
 
   async getOrganizations() {
     return request("GET", "/super-admin/organizations");
+  },
+
+  async getTimeZones() {
+    return request("GET", "/super-admin/time-zones");
   },
 
   async updateOrganization(id, data) {

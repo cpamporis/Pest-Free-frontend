@@ -15,6 +15,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import OrganizationDetailsScreen from "./OrganizationDetailsScreen";
 import apiService from "../../services/apiService";
 import { TextInput } from "react-native";
+import TimeZonePicker from "../../components/TimeZonePicker";
 
 const PLAN_DESCRIPTIONS = {
   basic:
@@ -43,7 +44,8 @@ export default function OrganizationsScreen({ onClose }) {
     adminPassword: "",
     subscriptionPlan: "basic",
     maxTechnicians: "",
-    maxCustomers: ""
+    maxCustomers: "",
+    timeZone: "Europe/Athens"
   });
 
   useEffect(() => {
@@ -121,6 +123,10 @@ export default function OrganizationsScreen({ onClose }) {
               {formatLimit(
                 org.maxCustomers ?? org.max_customers
               )}
+            </Text>
+
+            <Text style={styles.meta}>
+              Time zone: {org.timeZone || org.time_zone || "Europe/Athens"}
             </Text>
 
             <Text style={styles.meta}>
@@ -207,6 +213,11 @@ export default function OrganizationsScreen({ onClose }) {
         <SafeAreaView style={styles.container}>
           <Text style={styles.title}>Create Organization</Text>
 
+          <ScrollView
+            contentContainerStyle={styles.createContent}
+            keyboardShouldPersistTaps="handled"
+          >
+
           <TextInput
             style={styles.input}
             placeholder="Organization Name"
@@ -235,6 +246,13 @@ export default function OrganizationsScreen({ onClose }) {
             value={newOrg.adminPassword}
             onChangeText={(text) => setNewOrg({ ...newOrg, adminPassword: text })}
           />
+
+          <View style={styles.timeZoneField}>
+            <TimeZonePicker
+              value={newOrg.timeZone}
+              onChange={(timeZone) => setNewOrg({ ...newOrg, timeZone })}
+            />
+          </View>
 
           {newOrg.subscriptionPlan === "custom" && (
             <>
@@ -297,7 +315,8 @@ export default function OrganizationsScreen({ onClose }) {
                     adminPassword: "",
                     subscriptionPlan: "basic",
                     maxTechnicians: "",
-                    maxCustomers: ""
+                    maxCustomers: "",
+                    timeZone: "Europe/Athens"
                   });
                   loadOrganizations();
                 } else {
@@ -314,6 +333,7 @@ export default function OrganizationsScreen({ onClose }) {
           <TouchableOpacity onPress={() => setShowCreateModal(false)}>
             <Text style={{ textAlign: "center", marginTop: 10 }}>Cancel</Text>
           </TouchableOpacity>
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -328,6 +348,9 @@ const styles = StyleSheet.create({
     padding: 16
   },
   title: { fontSize: 18, fontWeight: "bold" },
+  createContent: {
+    paddingBottom: 24
+  },
   card: {
     padding: 16,
     borderBottomWidth: 1,
@@ -353,6 +376,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 10,
     margin: 10
+  },
+  timeZoneField: {
+    marginHorizontal: 10
   },
 
   createButton: {
