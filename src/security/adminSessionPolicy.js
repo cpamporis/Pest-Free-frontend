@@ -95,8 +95,23 @@ function remainingSessionSeconds(session, now = Date.now()) {
   );
 }
 
+function canApplySessionRefresh(
+  expectedActive,
+  liveActive,
+  now = Date.now()
+) {
+  return Boolean(
+    expectedActive &&
+    liveActive &&
+    liveActive.role === expectedActive.role &&
+    liveActive.session?.id === expectedActive.session?.id &&
+    remainingSessionSeconds(liveActive.session, now) > 0
+  );
+}
+
 module.exports = {
   normalizeAdminSession,
   validateRefreshedSession,
-  remainingSessionSeconds
+  remainingSessionSeconds,
+  canApplySessionRefresh
 };

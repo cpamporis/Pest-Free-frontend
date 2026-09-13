@@ -14,7 +14,8 @@ import apiService from "../services/apiService";
 const {
   normalizeAdminSession,
   validateRefreshedSession,
-  remainingSessionSeconds
+  remainingSessionSeconds,
+  canApplySessionRefresh
 } = require("./adminSessionPolicy");
 
 const AdminSessionContext = createContext(null);
@@ -212,20 +213,31 @@ export function AdminSessionProvider({ children }) {
       }
 
       try {
+        const liveCurrent = activeRef.current;
+
+        if (!canApplySessionRefresh(current, liveCurrent)) {
+          await apiService.clearAuthToken();
+          clearAdminSession(true);
+          return {
+            success: false,
+            error: "Session expired before refresh completed"
+          };
+        }
+
         const normalized = validateRefreshedSession(
-          current.session,
-          current.role,
+          liveCurrent.session,
+          liveCurrent.role,
           result.session
         );
 
         replaceActive({
-          role: current.role,
+          role: liveCurrent.role,
           session: normalized
         });
 
         channelRef.current?.postMessage({
           type: "refreshed",
-          role: current.role,
+          role: liveCurrent.role,
           token: result.token,
           session: result.session
         });

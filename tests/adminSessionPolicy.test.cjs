@@ -4,7 +4,8 @@ const assert = require("node:assert/strict");
 const {
   normalizeAdminSession,
   validateRefreshedSession,
-  remainingSessionSeconds
+  remainingSessionSeconds,
+  canApplySessionRefresh
 } = require("../src/security/adminSessionPolicy");
 const {
   normalizeMfaFlow,
@@ -157,5 +158,34 @@ test("super admins cannot receive an optional MFA offer", () => {
       challengeToken: "B".repeat(43),
       canSkipMfa: true
     })
+  );
+});
+
+test("a late refresh cannot resurrect a logged-out or expired session", () => {
+  const normalized = normalizeAdminSession("admin", session(), NOW);
+  const expected = { role: "admin", session: normalized };
+
+  assert.equal(
+    canApplySessionRefresh(expected, expected, NOW),
+    true
+  );
+  assert.equal(
+    canApplySessionRefresh(expected, null, NOW),
+    false
+  );
+  assert.equal(
+    canApplySessionRefresh(expected, expected, NOW + 901000),
+    false
+  );
+  assert.equal(
+    canApplySessionRefresh(
+      expected,
+      {
+        role: "admin",
+        session: { ...normalized, id: "another-session" }
+      },
+      NOW
+    ),
+    false
   );
 });
