@@ -7,8 +7,7 @@ import {
   StyleSheet, 
   ScrollView,
   ActivityIndicator,
-  Image,
-  Modal
+  Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
@@ -21,6 +20,7 @@ import {
   debugTimeConversion 
 } from "../../utils/timeZoneUtils";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 
 export default function ReportScreen({ route, navigation, context, onBack }) { 

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Modal,
   Alert,
   ActivityIndicator
 } from "react-native";
@@ -16,6 +15,7 @@ import OrganizationDetailsScreen from "./OrganizationDetailsScreen";
 import apiService from "../../services/apiService";
 import { TextInput } from "react-native";
 import TimeZonePicker from "../../components/TimeZonePicker";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 const PLAN_DESCRIPTIONS = {
   basic:

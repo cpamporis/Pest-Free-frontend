@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import apiService from "../services/apiService";
+import { ProtectedAdminModal as Modal } from "./AdminSessionTimer";
 
 function formatOffset(offsetSeconds) {
   const totalMinutes = Math.round(Number(offsetSeconds || 0) / 60);

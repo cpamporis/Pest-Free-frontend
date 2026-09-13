@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Modal,
   Alert,
   ActivityIndicator,
   Image,
@@ -22,6 +21,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomerProfile from "./CustomerProfile";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 function normalizeCustomerSearch(value) {
   const text = String(value ?? "").trim().toLocaleLowerCase();

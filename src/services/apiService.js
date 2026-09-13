@@ -1,9 +1,81 @@
-// apiService.js - Android with FULL iOS functionality
-import AsyncStorage from '@react-native-async-storage/async-storage';
+// apiService.js - Pestify Security Lab only
+import { Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { normalizeAppointment } from "./normalizeAppointment";
 
-export const API_BASE_URL = 
-  "https://field-inspections-backend-production.up.railway.app/api";
+const SECURITY_LAB_API_ORIGIN =
+  "https://security-lab-security-lab.up.railway.app";
+
+export const API_BASE_URL = `${SECURITY_LAB_API_ORIGIN}/api`;
+
+if (
+  !API_BASE_URL.startsWith(SECURITY_LAB_API_ORIGIN) ||
+  API_BASE_URL.includes("field-inspections-backend-production")
+) {
+  throw new Error("Security Lab API configuration refused");
+}
+
+const STORAGE_KEYS = Object.freeze({
+  authToken: "pestify.security-lab.auth-token.v1",
+  mfaDevice: "pestify.security-lab.mfa-device.v1"
+});
+
+function getWebStorage() {
+  if (
+    Platform.OS !== "web" ||
+    typeof window === "undefined" ||
+    !window.localStorage
+  ) {
+    return null;
+  }
+
+  return window.localStorage;
+}
+
+async function secureGetItem(key) {
+  const webStorage = getWebStorage();
+
+  if (webStorage) {
+    return webStorage.getItem(key);
+  }
+
+  if (!(await SecureStore.isAvailableAsync())) {
+    throw new Error("Secure credential storage is unavailable");
+  }
+
+  return SecureStore.getItemAsync(key);
+}
+
+async function secureSetItem(key, value) {
+  const webStorage = getWebStorage();
+
+  if (webStorage) {
+    webStorage.setItem(key, value);
+    return;
+  }
+
+  if (!(await SecureStore.isAvailableAsync())) {
+    throw new Error("Secure credential storage is unavailable");
+  }
+
+  await SecureStore.setItemAsync(key, value, {
+    keychainAccessible:
+      SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY
+  });
+}
+
+async function secureDeleteItem(key) {
+  const webStorage = getWebStorage();
+
+  if (webStorage) {
+    webStorage.removeItem(key);
+    return;
+  }
+
+  if (await SecureStore.isAvailableAsync()) {
+    await SecureStore.deleteItemAsync(key);
+  }
+}
 
 function normalizeAmaNumbers(value) {
   const sourceValues = Array.isArray(value) ? value : [value];
@@ -48,15 +120,18 @@ function normalizeCustomerAma(customer) {
 
 let authToken = null;
 
-// Load token from storage when module loads
-(async () => {
+// Load token once before any request or mutation touches auth state.
+const authStorageReady = (async () => {
   try {
-    const token = await AsyncStorage.getItem('authToken');
+    const token = await secureGetItem(
+      STORAGE_KEYS.authToken
+    );
     if (token) {
       authToken = token;
     }
   } catch (error) {
-    console.error("❌ Failed to load token from storage:", error);
+    authToken = null;
+    console.error("Failed to load the stored authentication token");
   }
 })();
 
@@ -105,26 +180,151 @@ async function getVisitFrequency(customerId = null) {
 
 // Set auth token and persist it
 async function setAuthToken(token) {
-  authToken = token;
+  await authStorageReady;
+
   try {
     if (token) {
-      await AsyncStorage.setItem('authToken', token);
+      await secureSetItem(
+        STORAGE_KEYS.authToken,
+        String(token)
+      );
     } else {
-      await AsyncStorage.removeItem('authToken');
+      await secureDeleteItem(STORAGE_KEYS.authToken);
     }
+
+    authToken = token ? String(token) : null;
   } catch (error) {
-    console.error("❌ Failed to save token to storage:", error);
+    authToken = null;
+    throw new Error(
+      "Authentication could not be stored securely"
+    );
   }
 }
 
 // Clear auth token (for logout)
 async function clearAuthToken() {
+  await authStorageReady;
+
   authToken = null;
   try {
-    await AsyncStorage.removeItem('authToken');
+    await secureDeleteItem(STORAGE_KEYS.authToken);
   } catch (error) {
-    console.error("❌ Failed to clear token:", error);
+    console.error("Failed to clear the stored authentication token");
   }
+}
+
+function normalizeMfaDeviceAccount(value) {
+  const account = String(value || "").trim().toLowerCase();
+
+  return (
+    account.length <= 320 &&
+    /^[^\s@]+@[^\s@]+$/.test(account)
+  )
+    ? account
+    : null;
+}
+
+function validStoredMfaCredential(credential) {
+  const expiresAt = Date.parse(credential?.expiresAt);
+
+  return (
+    typeof credential?.token === "string" &&
+    /^[A-Za-z0-9_-]{43}$/.test(credential.token) &&
+    Number.isFinite(expiresAt) &&
+    expiresAt > Date.now()
+  );
+}
+
+async function getMfaDeviceToken(accountValue) {
+  const account = normalizeMfaDeviceAccount(accountValue);
+
+  if (!account) {
+    return null;
+  }
+
+  try {
+    const stored = await secureGetItem(
+      STORAGE_KEYS.mfaDevice
+    );
+
+    if (!stored) {
+      return null;
+    }
+
+    const collection = JSON.parse(stored);
+    const credential =
+      collection?.accounts &&
+      Object.prototype.hasOwnProperty.call(
+        collection.accounts,
+        account
+      )
+        ? collection.accounts[account]
+        : null;
+
+    if (
+      collection?.version !== 1 ||
+      !validStoredMfaCredential(credential)
+    ) {
+      return null;
+    }
+
+    return credential.token;
+  } catch {
+    return null;
+  }
+}
+
+async function storeMfaDeviceCredential(result, accountValue) {
+  if (!result?.mfaDeviceToken) {
+    return;
+  }
+
+  const account = normalizeMfaDeviceAccount(accountValue);
+  const expiresAt = Date.parse(result.mfaDeviceExpiresAt);
+
+  if (
+    !account ||
+    !/^[A-Za-z0-9_-]{43}$/.test(result.mfaDeviceToken) ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= Date.now()
+  ) {
+    throw new Error("Invalid trusted-device credential");
+  }
+
+  let accounts = {};
+
+  try {
+    const stored = await secureGetItem(STORAGE_KEYS.mfaDevice);
+    const parsed = stored ? JSON.parse(stored) : null;
+
+    if (
+      parsed?.version === 1 &&
+      parsed.accounts &&
+      typeof parsed.accounts === "object"
+    ) {
+      accounts = Object.fromEntries(
+        Object.entries(parsed.accounts)
+          .filter(([storedAccount, credential]) =>
+            normalizeMfaDeviceAccount(storedAccount) &&
+            validStoredMfaCredential(credential)
+          )
+          .slice(-7)
+      );
+    }
+  } catch {
+    accounts = {};
+  }
+
+  accounts[account] = {
+    token: result.mfaDeviceToken,
+    expiresAt: new Date(expiresAt).toISOString(),
+    storedAt: new Date().toISOString()
+  };
+
+  await secureSetItem(
+    STORAGE_KEYS.mfaDevice,
+    JSON.stringify({ version: 1, accounts })
+  );
 }
 
 // Get current token (useful for debugging)
@@ -150,8 +350,88 @@ async function verifyTokenWithBackend(token) {
   }
 }
 
+function validAdministratorSession(result) {
+  const accessExpiresAt = Date.parse(
+    result?.session?.accessTokenExpiresAt
+  );
+  const absoluteExpiresAt = Date.parse(
+    result?.session?.absoluteExpiresAt
+  );
+
+  return (
+    typeof result?.session?.id === "string" &&
+    Number.isFinite(accessExpiresAt) &&
+    Number.isFinite(absoluteExpiresAt) &&
+    accessExpiresAt > Date.now() &&
+    absoluteExpiresAt > Date.now() &&
+    accessExpiresAt <= absoluteExpiresAt
+  );
+}
+
+async function acceptAuthenticationResult(
+  result,
+  { mfaDeviceAccount = null } = {}
+) {
+  if (!result?.success || typeof result?.token !== "string") {
+    return result;
+  }
+
+  const isAdministrator =
+    result.role === "admin" ||
+    result.role === "super_admin";
+
+  if (isAdministrator && !validAdministratorSession(result)) {
+    await clearAuthToken();
+    return {
+      success: false,
+      error: "Invalid administrator session response"
+    };
+  }
+
+  if (
+    result.mfaDeviceToken &&
+    result.role !== "admin"
+  ) {
+    await clearAuthToken();
+    return {
+      success: false,
+      error: "Invalid trusted-device authentication response"
+    };
+  }
+
+  try {
+    await setAuthToken(result.token);
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      authenticationStorageFailure: true
+    };
+  }
+
+  let mfaDeviceStored = true;
+
+  if (result.mfaDeviceToken) {
+    try {
+      await storeMfaDeviceCredential(
+        result,
+        mfaDeviceAccount
+      );
+    } catch {
+      mfaDeviceStored = false;
+    }
+  }
+
+  return {
+    ...result,
+    mfaDeviceStored
+  };
+}
+
 // Generic request wrapper
 async function request(method, endpoint, body = null) {
+  await authStorageReady;
+
   const options = {
     method,
     headers: {
@@ -467,61 +747,147 @@ const apiService = {
 
   // LOGIN
   async login(email, password) {
-    const result = await request("POST", "/login", { email, password });
+    await clearAuthToken();
+
+    const mfaDeviceAccount = normalizeMfaDeviceAccount(email);
+    const mfaDeviceToken = await getMfaDeviceToken(
+      mfaDeviceAccount
+    );
+    const result = await request("POST", "/login", {
+      email,
+      password,
+      ...(mfaDeviceToken ? { mfaDeviceToken } : {})
+    });
 
     if (!result || !result.success) {
       return result;
     }
 
-    // Set the token immediately upon successful login
+    if (result.token && result.challengeToken) {
+      await clearAuthToken();
+      return {
+        success: false,
+        error: "Invalid mixed authentication response"
+      };
+    }
+
     if (result.token) {
-      await setAuthToken(result.token);
-      
-      // Verify token was set
-      const currentToken = getCurrentToken();
-      
-      // Test the token immediately
-      if (currentToken) {
-        const verification = await verifyTokenWithBackend(currentToken);
-        
-        if (!verification.success) {
-          console.error("❌ Token is invalid! Clearing...");
-          await clearAuthToken();
-          return {
+      return acceptAuthenticationResult(result, {
+        mfaDeviceAccount
+      });
+    }
+
+    if (
+      (result.role === "admin" ||
+        result.role === "super_admin") &&
+      typeof result.challengeToken === "string" &&
+      result.challengeToken.length >= 40 &&
+      result.challengeToken.length <= 128 &&
+      [
+        "enrollment_offer",
+        "enrollment_challenge",
+        "login_challenge"
+      ].includes(result.mfaAction)
+    ) {
+      return result;
+    }
+
+    return {
+      success: false,
+      error: "Incomplete authentication response"
+    };
+  },
+
+  async startMfaEnrollment(challengeToken) {
+    return request(
+      "POST",
+      "/auth/mfa/enrollment/start",
+      { challengeToken }
+    );
+  },
+
+  async confirmMfaEnrollment(
+    challengeToken,
+    code,
+    mfaDeviceAccount
+  ) {
+    const result = await request(
+      "POST",
+      "/auth/mfa/enrollment/confirm",
+      { challengeToken, code }
+    );
+
+    return result?.token
+      ? acceptAuthenticationResult(result, {
+          mfaDeviceAccount
+        })
+      : result;
+  },
+
+  async declineMfaEnrollment(challengeToken) {
+    const result = await request(
+      "POST",
+      "/auth/mfa/enrollment/decline",
+      { challengeToken }
+    );
+
+    return result?.token
+      ? acceptAuthenticationResult(result)
+      : result;
+  },
+
+  async verifyMfaLogin(
+    challengeToken,
+    code,
+    mfaDeviceAccount
+  ) {
+    const result = await request(
+      "POST",
+      "/auth/mfa/verify",
+      { challengeToken, code }
+    );
+
+    return result?.token
+      ? acceptAuthenticationResult(result, {
+          mfaDeviceAccount
+        })
+      : result;
+  },
+
+  async refreshAdminSession() {
+    const result = await request(
+      "POST",
+      "/auth/session/refresh"
+    );
+
+    if (!result?.token || !validAdministratorSession(result)) {
+      return result?.success
+        ? {
             success: false,
-            error: "Token validation failed. Please try again."
-          };
-        }
-      }
+            error: "Invalid administrator session response",
+            invalidSessionResponse: true
+          }
+        : result;
     }
 
-    if (result.role === "admin" || result.role === "super_admin") {
+    try {
+      await setAuthToken(result.token);
+      return result;
+    } catch (error) {
       return {
-        success: true,
-        role: result.role,
-        token: result.token
+        success: false,
+        error: error.message,
+        authenticationStorageFailure: true
       };
     }
+  },
 
-    if (result.role === "tech" && result.technician) {
-      return {
-        success: true,
-        role: "tech",
-        token: result.token,
-        technician: result.technician
-      };
+  async logoutAdminSession() {
+    if (!authToken) {
+      return { success: true };
     }
 
-    if (result.role === "customer" && result.customer) {
-      return {
-        success: true,
-        role: "customer",
-        token: result.token,
-        customer: result.customer
-      };
-    }
-
-    return { success: false, error: "Invalid credentials" };
+    return request("POST", "/auth/session/logout");
   },
 
   async getOrganizations() {

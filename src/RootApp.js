@@ -18,6 +18,8 @@ import CustomerProfile from "./screens/Admin/CustomerProfile";
 import PasswordRecovery from "./screens/PasswordRecovery";
 import apiService from "./services/apiService";
 import SuperAdminHomeScreen from "./screens/SuperAdmin/SuperAdminHomeScreen";
+import { useAdminSession } from "./security/AdminSessionContext";
+import { ProtectedAdminSurface } from "./components/AdminSessionTimer";
 
 async function checkForUpdate() {
   try {
@@ -39,6 +41,13 @@ async function checkForUpdate() {
 }
 
 export default function RootApp() {
+  const {
+    session: administratorSession,
+    expiredAt: administratorSessionExpiredAt,
+    startAdminSession,
+    clearAdminSession,
+    broadcastLogout
+  } = useAdminSession();
   const [loggedTechnician, setLoggedTechnician] = useState(null);
   const [adminRole, setAdminRole] = useState(null);
   const [currentCustomer, setCurrentCustomer] = useState(null);
@@ -72,7 +81,30 @@ export default function RootApp() {
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    if (!administratorSessionExpiredAt) {
+      return;
+    }
+
+    setAdminRole(null);
+    setAdminMustChangePassword(false);
+    setAdminView("home");
+    setAdminCustomerId(null);
+    setAuthView("login");
+  }, [administratorSessionExpiredAt]);
+
   const handleLogout = async () => {
+    if (administratorSession) {
+      try {
+        await apiService.logoutAdminSession();
+      } catch {
+        // Local logout still proceeds if the network is unavailable.
+      }
+
+      broadcastLogout();
+      clearAdminSession(false);
+    }
+
     await apiService.clearAuthToken();
 
     setLoggedTechnician(null);
@@ -85,6 +117,9 @@ export default function RootApp() {
     setReportContext(null);
     setReportRefreshKey(0);
     setLoggedCustomer(null);
+    setAdminView("home");
+    setAdminCustomerId(null);
+    setAuthView("login");
   };
 
   // Report refresh function
@@ -165,7 +200,12 @@ export default function RootApp() {
 
     return (
       <LoginScreen
-        onAdminLogin={(role, mustChangePassword = false) => {
+        onAdminLogin={(
+          role,
+          mustChangePassword = false,
+          session
+        ) => {
+          startAdminSession(role, session);
           setAdminRole(role);
           setAdminMustChangePassword(
             role === "admin" && mustChangePassword
@@ -181,38 +221,44 @@ export default function RootApp() {
   // 2️⃣ ADMIN FLOW
   if (adminRole === "super_admin") {
       return (
-        <SuperAdminHomeScreen
-          onLogout={handleLogout}
-        />
+        <ProtectedAdminSurface>
+          <SuperAdminHomeScreen
+            onLogout={handleLogout}
+          />
+        </ProtectedAdminSurface>
       );
     }
   
     if (adminRole === "admin") {
       if (adminView === "home") {
         return (
-          <AdminHomeScreen
-            onLogout={handleLogout}
-            forcePasswordChange={adminMustChangePassword}
-            onPasswordChanged={() =>
-              setAdminMustChangePassword(false)
-            }
-            onOpenCustomerProfile={(customerId) => {
-              setAdminCustomerId(customerId);
-              setAdminView("customerProfile");
-            }}
-          />
+          <ProtectedAdminSurface>
+            <AdminHomeScreen
+              onLogout={handleLogout}
+              forcePasswordChange={adminMustChangePassword}
+              onPasswordChanged={() =>
+                setAdminMustChangePassword(false)
+              }
+              onOpenCustomerProfile={(customerId) => {
+                setAdminCustomerId(customerId);
+                setAdminView("customerProfile");
+              }}
+            />
+          </ProtectedAdminSurface>
         );
       }
   
       if (adminView === "customerProfile" && adminCustomerId) {
         return (
-          <CustomerProfile
-            customerId={adminCustomerId}
-            onBack={() => {
-              setAdminCustomerId(null);
-              setAdminView("home");
-            }}
-          />
+          <ProtectedAdminSurface>
+            <CustomerProfile
+              customerId={adminCustomerId}
+              onBack={() => {
+                setAdminCustomerId(null);
+                setAdminView("home");
+              }}
+            />
+          </ProtectedAdminSurface>
         );
       }
     }

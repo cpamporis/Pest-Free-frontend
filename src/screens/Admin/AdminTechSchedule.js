@@ -10,7 +10,6 @@ import {
   ScrollView,
   TextInput,
   ActivityIndicator,
-  Modal,
   Platform,
   Image,
   Pressable
@@ -21,6 +20,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import apiService, { API_BASE_URL } from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 function normalizeCustomerSearch(value) {
   const text = String(value ?? "").trim().toLocaleLowerCase();

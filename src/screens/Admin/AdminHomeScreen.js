@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Modal,
   ActivityIndicator,
   Alert,
   TextInput,
@@ -28,6 +27,7 @@ import ReportScreen from "../Technician/ReportScreen";
 import Statistics from "./Statistics";
 import AdminTechCalendarPreview from "./AdminTechCalendarPreview"; //temporary
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 export default function AdminHomeScreen({
   onLogout,
@@ -717,7 +717,7 @@ export default function AdminHomeScreen({
 
         {showCustomers && (
           <Modal animationType="slide" visible>
-            <CustomersScreen 
+            <CustomersScreen
               onClose={() => {
                 setShowCustomers(false);
                 refreshAllData();
@@ -729,25 +729,25 @@ export default function AdminHomeScreen({
 
         {showCustomerRequests && (
           <Modal animationType="slide" visible>
-            <CustomerRequestScreen 
+            <CustomerRequestScreen
               onClose={() => {
                 setShowCustomerRequests(false);
                 // Force refresh with a slight delay to ensure backend has updated
                 setTimeout(() => {
                   loadAllData(true);
                 }, 500);
-              }} 
+              }}
             />
           </Modal>
         )}
 
         {showTechnicians && (
           <Modal animationType="slide" visible>
-            <TechniciansScreen 
+            <TechniciansScreen
               onClose={() => {
                 setShowTechnicians(false);
                 refreshAllData();
-              }} 
+              }}
             />
           </Modal>
         )}

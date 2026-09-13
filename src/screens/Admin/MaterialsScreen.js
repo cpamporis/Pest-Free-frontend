@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   Image,
-  Modal,
   KeyboardAvoidingView,
   Platform
 } from "react-native";
@@ -19,6 +18,7 @@ import { MaterialIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-ico
 import apiService from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 function normalizeMaterialSearch(value) {
   const text = String(value ?? "").trim().toLocaleLowerCase();

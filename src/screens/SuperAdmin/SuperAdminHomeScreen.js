@@ -5,8 +5,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
-  Modal
+  Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native";
@@ -14,6 +13,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import OrganizationsScreen from "./OrganizationsScreen";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 export default function SuperAdminHomeScreen({ onLogout }) {
   const [showOrganizations, setShowOrganizations] = useState(false);
@@ -73,7 +73,9 @@ export default function SuperAdminHomeScreen({ onLogout }) {
         {/* MODAL */}
         {showOrganizations && (
           <Modal animationType="slide" visible>
-            <OrganizationsScreen onClose={() => setShowOrganizations(false)} />
+            <OrganizationsScreen
+              onClose={() => setShowOrganizations(false)}
+            />
           </Modal>
         )}
       </ScrollView>

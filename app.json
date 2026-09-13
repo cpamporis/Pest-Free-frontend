@@ -42,7 +42,13 @@
     "owner": "cpamporis",
     "plugins": [
       "expo-font",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ]
     ],
     "runtimeVersion": {
       "policy": "appVersion"

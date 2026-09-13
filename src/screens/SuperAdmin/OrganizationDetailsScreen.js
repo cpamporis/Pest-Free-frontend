@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +17,7 @@ import apiService from "../../services/apiService";
 import CertificateTemplateEditorScreen from "./CertificateTemplateEditorScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TimeZonePicker from "../../components/TimeZonePicker";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 const EMPTY_LAYOUT = {
   version: 1,

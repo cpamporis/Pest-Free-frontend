@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Modal,
   TextInput,
   Alert,
   ScrollView,
@@ -18,6 +17,7 @@ import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import apiService from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 // Technician Modal Component
 const TechnicianModal = ({ isEdit, visible, onClose, onSubmit, technician, loading }) => {

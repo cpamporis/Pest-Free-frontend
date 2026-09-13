@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Modal,
   Platform,
   Image,
   TextInput
@@ -19,8 +18,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import apiService from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import { incrementTodayRequests } from './Statistics';
-import ImageViewing from "react-native-image-viewing";
+import SecureImageViewer from "../../components/SecureImageViewer";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 export default function CustomerRequestScreen({ onClose }) {
   const [requests, setRequests] = useState([]);
@@ -2174,7 +2174,7 @@ const MONTH_KEYS = [
           </View>
         </View>
       </Modal>
-      <ImageViewing
+      <SecureImageViewer
         images={viewerImages}
         imageIndex={viewerIndex}
         visible={isImageViewerVisible}

@@ -7,12 +7,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
-  Modal
+  SafeAreaView
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import apiService from "../../services/apiService";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 
 export default function AdminTechCalendarPreview() {
   const [appointments, setAppointments] = useState([]);
