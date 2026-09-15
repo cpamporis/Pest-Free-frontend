@@ -5,8 +5,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Image,
-  Modal
+  Image
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StyleSheet } from "react-native";
@@ -14,6 +13,10 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import OrganizationsScreen from "./OrganizationsScreen";
+import {
+  AdminSessionTimer,
+  ProtectedAdminModal as Modal
+} from "../../components/AdminSessionTimer";
 
 export default function SuperAdminHomeScreen({ onLogout }) {
   const [showOrganizations, setShowOrganizations] = useState(false);
@@ -30,16 +33,25 @@ export default function SuperAdminHomeScreen({ onLogout }) {
           <View style={styles.headerTop}>
             <View style={styles.brandContainer}>
               <Image source={pestfreeLogo} style={styles.logo} />
-              <View style={styles.adminBadge}>
-                <MaterialIcons name="security" size={14} color="#fff" />
-                <Text style={styles.adminBadgeText}>SUPER ADMIN</Text>
-              </View>
             </View>
 
-            <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+            <View style={styles.headerActions}>
+              <AdminSessionTimer inline headerAction />
+              <TouchableOpacity
+                style={styles.logoutButton}
+                onPress={onLogout}
+              >
               <MaterialIcons name="logout" size={18} color="#fff" />
               <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.roleBadgeRow}>
+            <View style={styles.adminBadge}>
+              <MaterialIcons name="security" size={14} color="#fff" />
+              <Text style={styles.adminBadgeText}>SUPER ADMIN</Text>
+            </View>
           </View>
 
           <Text style={styles.title}>System Control Panel</Text>
@@ -73,7 +85,9 @@ export default function SuperAdminHomeScreen({ onLogout }) {
         {/* MODAL */}
         {showOrganizations && (
           <Modal animationType="slide" visible>
-            <OrganizationsScreen onClose={() => setShowOrganizations(false)} />
+            <OrganizationsScreen
+              onClose={() => setShowOrganizations(false)}
+            />
           </Modal>
         )}
       </ScrollView>
@@ -95,9 +109,20 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center"
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    flexShrink: 1
+  },
   brandContainer: {
     flexDirection: "row",
     alignItems: "center"
+  },
+  roleBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 10
   },
   logo: {
     width: 40,
@@ -118,12 +143,21 @@ const styles = StyleSheet.create({
     marginLeft: 4
   },
   logoutButton: {
+    height: 40,
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)"
   },
   logoutText: {
     color: "#fff",
-    marginLeft: 5
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4
   },
   title: {
     color: "#fff",

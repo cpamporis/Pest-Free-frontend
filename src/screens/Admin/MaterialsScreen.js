@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   Image,
-  Modal,
   KeyboardAvoidingView,
   Platform
 } from "react-native";
@@ -19,6 +18,8 @@ import { MaterialIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-ico
 import apiService from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 function normalizeMaterialSearch(value) {
   const text = String(value ?? "").trim().toLocaleLowerCase();
@@ -436,21 +437,25 @@ export default function MaterialsScreen({ onClose }) {
           {/* HEADER */}
           <View style={styles.header}>
             <View style={styles.headerTop}>
-              <View style={styles.brandContainer}>
-                <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
-                <View style={styles.adminBadge}>
-                  <MaterialIcons name="inventory" size={14} color="#fff" />
-                  <Text style={styles.adminBadgeText}>{i18n.t("admin.materials.header.badge")}</Text>
-                </View>
-              </View>
-              <TouchableOpacity 
-                style={styles.closeButton} 
+            <View style={styles.brandContainer}>
+              <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
+            </View>
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity
+                style={styles.closeButton}
                 onPress={onClose}
                 activeOpacity={0.7}
               >
                 <MaterialIcons name="close" size={22} color="#fff" />
               </TouchableOpacity>
-            </View>
+            </AdminHeaderSessionActions>
+          </View>
+
+          <View style={[styles.adminBadge, { alignSelf: "flex-start", marginLeft: 0 }]}>
+                  <MaterialIcons name="inventory" size={14} color="#fff" />
+                  <Text style={styles.adminBadgeText}>{i18n.t("admin.materials.header.badge")}</Text>
+                </View>
 
             <View style={styles.headerContent}>
               <Text style={styles.welcomeText}>{i18n.t("admin.materials.header.welcome")}</Text>

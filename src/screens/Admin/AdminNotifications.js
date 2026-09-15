@@ -15,6 +15,7 @@ import styles from "./AdminNotifications.styles";
 import { Image } from "react-native"; 
 import pestfreeLogo from "../../../assets/pestfree_logo.png"; 
 import i18n from "../../services/i18n";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 export default function AdminNotifications({ onClose, onOpenSchedule }) {
   const [loading, setLoading] = useState(true);
@@ -67,15 +68,19 @@ export default function AdminNotifications({ onClose, onOpenSchedule }) {
           <View style={styles.headerTop}>
             <View style={styles.brandContainer}>
               <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
-              <View style={styles.adminBadge}>
+            </View>
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <MaterialIcons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            </AdminHeaderSessionActions>
+          </View>
+
+          <View style={[styles.adminBadge, { alignSelf: "flex-start", marginLeft: 0 }]}>
                 <MaterialIcons name="notifications-active" size={14} color="#fff" />
                 <Text style={styles.adminBadgeText}>{i18n.t("admin.notifications.header.badge")}</Text>
               </View>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <MaterialIcons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.headerContent}>
             <Text style={styles.welcomeText}>{i18n.t("admin.notifications.header.welcome")}</Text>

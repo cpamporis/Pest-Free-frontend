@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { StyleSheet } from "react-native";
 import apiService from "../../services/apiService";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 export default function CreateOrganizationAdmin({
   organizationId,
@@ -53,7 +54,8 @@ export default function CreateOrganizationAdmin({
       <View style={styles.header}>
         <Text style={styles.title}>Create Admin</Text>
 
-        {onClose && (
+        <AdminHeaderSessionActions>
+          {onClose && (
           <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}
@@ -61,9 +63,10 @@ export default function CreateOrganizationAdmin({
             accessibilityRole="button"
             accessibilityLabel="Close create admin screen"
           >
-            <MaterialIcons name="close" size={24} color="#333" />
+            <MaterialIcons name="close" size={24} color="#fff" />
           </TouchableOpacity>
         )}
+        </AdminHeaderSessionActions>
       </View>
 
       <View style={styles.form}>
@@ -111,22 +114,31 @@ const styles = StyleSheet.create({
   flexDirection: "row",
   alignItems: "center",
   justifyContent: "space-between",
-  marginBottom: 16
+  marginHorizontal: -16,
+  marginTop: -16,
+  marginBottom: 16,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+  backgroundColor: "#1f9c8b"
 },
 
 title: {
   flex: 1,
   fontSize: 18,
   fontWeight: "bold",
-  color: "#111827"
+  color: "#fff"
 },
 
 closeButton: {
-  width: 44,
-  height: 44,
+  width: 40,
+  height: 40,
   alignItems: "center",
   justifyContent: "center",
-  flexShrink: 0
+  flexShrink: 0,
+  borderRadius: 8,
+  backgroundColor: "rgba(255, 255, 255, 0.2)",
+  borderWidth: 1,
+  borderColor: "rgba(255, 255, 255, 0.3)"
 },
 
   form: {

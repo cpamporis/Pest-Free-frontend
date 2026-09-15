@@ -19,6 +19,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import apiService from "../../services/apiService";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 const PAGE_WIDTH = 612;
 const PAGE_HEIGHT = 792;
@@ -545,15 +546,17 @@ export default function CertificateTemplateEditorScreen({
           </Text>
         </View>
 
-        <TouchableOpacity
+        <AdminHeaderSessionActions>
+          <TouchableOpacity
           onPress={onClose}
           style={styles.iconButton}
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel="Close certificate template editor"
         >
-          <MaterialIcons name="close" size={24} color="#333" />
+          <MaterialIcons name="close" size={24} color="#fff" />
         </TouchableOpacity>
+        </AdminHeaderSessionActions>
       </View>
 
       <ScrollView
@@ -912,26 +915,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#1f9c8b",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb"
+    borderBottomColor: "rgba(255, 255, 255, 0.3)"
   },
   title: {
     fontSize: 19,
     fontWeight: "700",
-    color: "#111827"
+    color: "#fff"
   },
   subtitle: {
     marginTop: 3,
     fontSize: 12,
-    color: "#6b7280"
+    color: "rgba(255, 255, 255, 0.82)"
   },
   iconButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0
+    flexShrink: 0,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)"
   },
   scroll: {
     flex: 1

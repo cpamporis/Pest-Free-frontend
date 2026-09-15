@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Modal,
   Alert,
   ActivityIndicator
 } from "react-native";
@@ -16,6 +15,8 @@ import OrganizationDetailsScreen from "./OrganizationDetailsScreen";
 import apiService from "../../services/apiService";
 import { TextInput } from "react-native";
 import TimeZonePicker from "../../components/TimeZonePicker";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 const PLAN_DESCRIPTIONS = {
   basic:
@@ -80,15 +81,27 @@ export default function OrganizationsScreen({ onClose }) {
       <View style={styles.header}>
         <Text style={styles.title}>Organizations</Text>
 
-        <View style={{ flexDirection: "row" }}>
-          <TouchableOpacity onPress={() => setShowCreateModal(true)}>
-            <MaterialIcons name="add" size={26} color="#1f9c8b" />
+        <AdminHeaderSessionActions>
+          <TouchableOpacity
+            onPress={() => setShowCreateModal(true)}
+            style={styles.headerIconButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Create organization"
+          >
+            <MaterialIcons name="add" size={24} color="#fff" />
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={onClose} style={{ marginLeft: 12 }}>
-            <MaterialIcons name="close" size={24} />
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.headerIconButton}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Close organizations screen"
+          >
+            <MaterialIcons name="close" size={24} color="#fff" />
           </TouchableOpacity>
-        </View>
+        </AdminHeaderSessionActions>
       </View>
 
       <ScrollView>
@@ -211,7 +224,21 @@ export default function OrganizationsScreen({ onClose }) {
 
       <Modal visible={showCreateModal} animationType="slide">
         <SafeAreaView style={styles.container}>
-          <Text style={styles.title}>Create Organization</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>Create Organization</Text>
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity
+                onPress={() => setShowCreateModal(false)}
+                style={styles.headerIconButton}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close create organization screen"
+              >
+                <MaterialIcons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </AdminHeaderSessionActions>
+          </View>
 
           <ScrollView
             contentContainerStyle={styles.createContent}
@@ -345,9 +372,29 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
-    padding: 16
+    alignItems: "center",
+    padding: 16,
+    backgroundColor: "#1f9c8b",
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.3)"
   },
-  title: { fontSize: 18, fontWeight: "bold" },
+  title: {
+    flex: 1,
+    paddingRight: 12,
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#fff"
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)"
+  },
   createContent: {
     paddingBottom: 24
   },

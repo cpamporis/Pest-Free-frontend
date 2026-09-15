@@ -268,7 +268,7 @@ const getCertificateCopy = (year) => {
         : `Service_Report_${safeName}_${dateStr}.pdf`;
 
       
-      const API_BASE_URL = apiService.API_BASE_URL || "http://192.168.1.79:3000/api";
+      const API_BASE_URL = apiService.API_BASE_URL;
       const lang = i18n.getLocale();
       const pdfUrl = isCertificate
         ? apiService.getCertificatePdfUrl(reportId)

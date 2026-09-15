@@ -4,7 +4,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -18,6 +17,8 @@ import apiService from "../../services/apiService";
 import CertificateTemplateEditorScreen from "./CertificateTemplateEditorScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TimeZonePicker from "../../components/TimeZonePicker";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 const EMPTY_LAYOUT = {
   version: 1,
@@ -633,15 +634,18 @@ if (plan === "custom") {
     >
       <View style={styles.header}>
         <Text style={styles.title}>Edit Organization</Text>
-        <TouchableOpacity
+
+        <AdminHeaderSessionActions>
+          <TouchableOpacity
           onPress={onClose}
           style={styles.closeButton}
           hitSlop={12}
           accessibilityRole="button"
           accessibilityLabel="Close organization details"
         >
-          <MaterialIcons name="close" size={24} color="#333" />
+          <MaterialIcons name="close" size={24} color="#fff" />
         </TouchableOpacity>
+        </AdminHeaderSessionActions>
       </View>
 
       <ScrollView
@@ -1022,7 +1026,21 @@ if (plan === "custom") {
           style={styles.adminModal}
           edges={["top", "right", "bottom", "left"]}
         >
-          <Text style={styles.title}>Edit Admin</Text>
+          <View style={styles.adminModalHeader}>
+            <Text style={styles.title}>Edit Admin</Text>
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity
+                onPress={() => setShowEditModal(false)}
+                style={styles.closeButton}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Close edit admin screen"
+              >
+                <MaterialIcons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </AdminHeaderSessionActions>
+          </View>
 
           <TextInput
             style={styles.input}
@@ -1121,21 +1139,25 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 18,
     paddingVertical: 14,
-    backgroundColor: "#fff",
+    backgroundColor: "#1f9c8b",
     borderBottomWidth: 1,
-    borderBottomColor: "#e5e7eb"
+    borderBottomColor: "rgba(255, 255, 255, 0.3)"
   },
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#111827"
+    color: "#fff"
   },
   closeButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    flexShrink: 0
+    flexShrink: 0,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)"
   },
   scroll: {
     flex: 1
@@ -1380,6 +1402,17 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: "#fff"
+  },
+  adminModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: -20,
+    marginTop: -20,
+    marginBottom: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    backgroundColor: "#1f9c8b"
   },
   modalCancelButton: {
     alignItems: "center",

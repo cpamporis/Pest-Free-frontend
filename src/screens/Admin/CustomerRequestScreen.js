@@ -8,7 +8,6 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Modal,
   Platform,
   Image,
   TextInput
@@ -19,8 +18,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import apiService from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import { incrementTodayRequests } from './Statistics';
-import ImageViewing from "react-native-image-viewing";
+import SecureImageViewer from "../../components/SecureImageViewer";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 export default function CustomerRequestScreen({ onClose }) {
   const [requests, setRequests] = useState([]);
@@ -48,8 +49,6 @@ export default function CustomerRequestScreen({ onClose }) {
   const [insecticideDetails, setInsecticideDetails] = useState('');
   const [disinfectionDetails, setDisinfectionDetails] = useState('');
   const [otherPestName, setOtherPestName] = useState(selectedRequest?.other_pest_name || '');
-  const IMAGE_BASE =
-  "https://field-inspections-backend-production.up.railway.app/uploads/";
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [verifyPassword, setVerifyPassword] = useState("");
@@ -244,9 +243,12 @@ const MONTH_KEYS = [
   const openImageViewer = (images, index) => {
     if (!images || !Array.isArray(images) || images.length === 0) return;
 
-    const formatted = images.map(img => ({
-      uri: IMAGE_BASE + img
-    }));
+    const formatted = images
+      .map(img => apiService.getUploadedFileUrl(img))
+      .filter(Boolean)
+      .map(uri => ({ uri }));
+
+    if (formatted.length === 0) return;
 
     setViewerImages(formatted);
     setViewerIndex(index);
@@ -1013,15 +1015,19 @@ const MONTH_KEYS = [
           <View style={styles.headerTop}>
             <View style={styles.brandContainer}>
               <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
-              <View style={styles.adminBadge}>
+            </View>
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <MaterialIcons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+            </AdminHeaderSessionActions>
+          </View>
+
+          <View style={[styles.adminBadge, { alignSelf: "flex-start", marginLeft: 0 }]}>
                 <MaterialIcons name="request-page" size={14} color="#fff" />
                 <Text style={styles.adminBadgeText}>{i18n.t("admin.customerRequests.header.badge")}</Text>
               </View>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <MaterialIcons name="close" size={24} color="#fff" />
-            </TouchableOpacity>
-          </View>
 
           <View style={styles.headerContent}>
             <Text style={styles.welcomeText}>{i18n.t("admin.customerRequests.header.welcome")}</Text>
@@ -1194,7 +1200,7 @@ const MONTH_KEYS = [
                                 activeOpacity={0.8}
                               >
                                 <Image
-                                  source={{ uri: IMAGE_BASE + img }}
+                                  source={{ uri: apiService.getUploadedFileUrl(img) }}
                                   style={{
                                     width: 70,
                                     height: 70,
@@ -1342,7 +1348,7 @@ const MONTH_KEYS = [
                               activeOpacity={0.8}
                             >
                               <Image
-                                source={{ uri: IMAGE_BASE + img }}
+                                source={{ uri: apiService.getUploadedFileUrl(img) }}
                                 style={{
                                   width: 70,
                                   height: 70,
@@ -2174,7 +2180,7 @@ const MONTH_KEYS = [
           </View>
         </View>
       </Modal>
-      <ImageViewing
+      <SecureImageViewer
         images={viewerImages}
         imageIndex={viewerIndex}
         visible={isImageViewerVisible}
