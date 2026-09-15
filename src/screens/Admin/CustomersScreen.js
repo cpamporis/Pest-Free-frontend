@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Modal,
   Alert,
   ActivityIndicator,
   Image,
@@ -22,6 +21,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomerProfile from "./CustomerProfile";
 import i18n from "../../services/i18n";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 function normalizeCustomerSearch(value) {
   const text = String(value ?? "").trim().toLocaleLowerCase();
@@ -1503,19 +1504,23 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
           <View style={styles.headerTop}>
             <View style={styles.brandContainer}>
               <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
-              <View style={styles.adminBadge}>
-                <MaterialIcons name="people" size={14} color="#fff" />
-                <Text style={styles.adminBadgeText}>{i18n.t("admin.customers.header.badge")}</Text>
-              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.closeButton} 
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity
+              style={styles.closeButton}
               onPress={onClose}
               activeOpacity={0.7}
             >
               <MaterialIcons name="close" size={22} color="#fff" />
             </TouchableOpacity>
+            </AdminHeaderSessionActions>
           </View>
+
+          <View style={[styles.adminBadge, { alignSelf: "flex-start", marginLeft: 0 }]}>
+                <MaterialIcons name="people" size={14} color="#fff" />
+                <Text style={styles.adminBadgeText}>{i18n.t("admin.customers.header.badge")}</Text>
+              </View>
 
           <View style={styles.headerContent}>
             <Text style={styles.welcomeText}>{i18n.t("admin.customers.header.welcome")}</Text>

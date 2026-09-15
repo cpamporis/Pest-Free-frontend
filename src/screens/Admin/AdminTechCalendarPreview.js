@@ -7,14 +7,17 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
-  Modal
+  Image,
+  SafeAreaView
 } from "react-native";
 import { MaterialIcons, FontAwesome5 } from "@expo/vector-icons";
 import apiService from "../../services/apiService";
 import i18n from "../../services/i18n";
+import pestfreeLogo from "../../../assets/pestfree_logo.png";
+import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
-export default function AdminTechCalendarPreview() {
+export default function AdminTechCalendarPreview({ onClose }) {
   const [appointments, setAppointments] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [selectedTech, setSelectedTech] = useState(null);
@@ -619,12 +622,39 @@ const getSpecialServiceLabel = (subtype) => {
         <View style={styles.header}>
             <View style={styles.headerTop}>
                 <View style={styles.brandContainer}>
+                  {onClose ? (
+                    <Image
+                      source={pestfreeLogo}
+                      style={styles.logo}
+                      resizeMode="contain"
+                    />
+                  ) : (
                     <View style={styles.badge}>
                         <MaterialIcons name="calendar-view-week" size={14} color="#fff" />
                         <Text style={styles.badgeText}>{i18n.t("admin.calendar.header.badge")}</Text>
                     </View>
+                  )}
                 </View>
+
+                {onClose ? (
+                  <AdminHeaderSessionActions>
+                    <TouchableOpacity
+                      style={styles.closeButton}
+                      onPress={onClose}
+                      activeOpacity={0.7}
+                    >
+                      <MaterialIcons name="close" size={22} color="#fff" />
+                    </TouchableOpacity>
+                  </AdminHeaderSessionActions>
+                ) : null}
             </View>
+
+            {onClose ? (
+              <View style={[styles.badge, { alignSelf: "flex-start", marginLeft: 0 }]}>
+                        <MaterialIcons name="calendar-view-week" size={14} color="#fff" />
+                        <Text style={styles.badgeText}>{i18n.t("admin.calendar.header.badge")}</Text>
+                    </View>
+            ) : null}
 
             <View style={styles.headerContent}>
                 <Text style={styles.subtitle}>
@@ -1087,6 +1117,10 @@ const styles = StyleSheet.create({
   brandContainer: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  logo: {
+    width: 120,
+    height: 50,
   },
   headerTitle: {
     fontSize: 24,

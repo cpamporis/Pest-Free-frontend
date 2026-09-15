@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Modal,
   ActivityIndicator,
   Alert,
   TextInput,
@@ -28,6 +27,11 @@ import ReportScreen from "../Technician/ReportScreen";
 import Statistics from "./Statistics";
 import AdminTechCalendarPreview from "./AdminTechCalendarPreview"; //temporary
 import i18n from "../../services/i18n";
+import {
+  AdminSessionTimer,
+  ProtectedAdminModal as Modal
+} from "../../components/AdminSessionTimer";
+import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 export default function AdminHomeScreen({
   onLogout,
@@ -292,19 +296,31 @@ export default function AdminHomeScreen({
           <View style={styles.headerTop}>
             <View style={styles.brandContainer}>
               <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
-              <View style={styles.adminBadge}>
-                <MaterialIcons name="admin-panel-settings" size={14} color="#fff" />
-                <Text style={styles.adminBadgeText}>{i18n.t("admin.home.header.badge")}</Text>
-              </View>
             </View>
-            <TouchableOpacity 
-              style={styles.logoutButtonTop} 
+            <View style={styles.headerActions}>
+              <AdminSessionTimer inline headerAction />
+              <TouchableOpacity
+                style={styles.logoutButtonTop}
               onPress={onLogout}
               activeOpacity={0.7}
             >
               <MaterialIcons name="logout" size={18} color="#fff" />
               <Text style={styles.logoutTextTop}>{i18n.t("admin.home.header.logout")}</Text>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.roleBadgeRow}>
+            <View style={[styles.adminBadge, styles.roleBadge]}>
+              <MaterialIcons
+                name="admin-panel-settings"
+                size={14}
+                color="#fff"
+              />
+              <Text style={styles.adminBadgeText}>
+                {i18n.t("admin.home.header.badge")}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.headerContent}>
@@ -717,7 +733,7 @@ export default function AdminHomeScreen({
 
         {showCustomers && (
           <Modal animationType="slide" visible>
-            <CustomersScreen 
+            <CustomersScreen
               onClose={() => {
                 setShowCustomers(false);
                 refreshAllData();
@@ -729,25 +745,25 @@ export default function AdminHomeScreen({
 
         {showCustomerRequests && (
           <Modal animationType="slide" visible>
-            <CustomerRequestScreen 
+            <CustomerRequestScreen
               onClose={() => {
                 setShowCustomerRequests(false);
                 // Force refresh with a slight delay to ensure backend has updated
                 setTimeout(() => {
                   loadAllData(true);
                 }, 500);
-              }} 
+              }}
             />
           </Modal>
         )}
 
         {showTechnicians && (
           <Modal animationType="slide" visible>
-            <TechniciansScreen 
+            <TechniciansScreen
               onClose={() => {
                 setShowTechnicians(false);
                 refreshAllData();
-              }} 
+              }}
             />
           </Modal>
         )}
@@ -815,7 +831,12 @@ export default function AdminHomeScreen({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.passwordHeader}>
-          <TouchableOpacity
+          <Text style={styles.passwordHeaderTitle}>
+            {i18n.t("admin.password.title")}
+          </Text>
+
+          <AdminHeaderSessionActions>
+            <TouchableOpacity
             style={styles.passwordCloseButton}
             hitSlop={{
               top: 8,
@@ -835,12 +856,7 @@ export default function AdminHomeScreen({
               color="#fff"
             />
           </TouchableOpacity>
-
-          <Text style={styles.passwordHeaderTitle}>
-            {i18n.t("admin.password.title")}
-          </Text>
-
-          <View style={styles.passwordHeaderSpacer} />
+          </AdminHeaderSessionActions>
         </View>
 
         <View style={styles.passwordContent}>
@@ -960,11 +976,22 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    flexShrink: 1,
   },
   brandContainer: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  roleBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 18,
   },
   logo: {
     width: 120,
@@ -979,6 +1006,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginLeft: 10,
   },
+  roleBadge: {
+    marginLeft: 0,
+  },
   adminBadgeText: {
     color: "#fff",
     fontSize: 10,
@@ -987,20 +1017,21 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
   },
   logoutButtonTop: {
+    height: 40,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
     backgroundColor: "rgba(255, 255, 255, 0.2)",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "rgba(255, 255, 255, 0.3)",
   },
   logoutTextTop: {
     color: "#fff",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
-    marginLeft: 6,
+    marginLeft: 4,
     fontFamily: 'System',
   },
   headerContent: {
@@ -1330,10 +1361,14 @@ const styles = StyleSheet.create({
   },
 
   passwordCloseButton: {
-    width: 44,
-    height: 44,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)",
   },
 
   passwordHeaderSpacer: {

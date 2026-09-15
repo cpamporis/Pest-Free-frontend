@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
-  Modal,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -12,6 +11,8 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import apiService from "../services/apiService";
+import { ProtectedAdminModal as Modal } from "./AdminSessionTimer";
+import AdminHeaderSessionActions from "./AdminHeaderSessionActions";
 
 function formatOffset(offsetSeconds) {
   const totalMinutes = Math.round(Number(offsetSeconds || 0) / 60);
@@ -114,11 +115,19 @@ export default function TimeZonePicker({
       >
         <SafeAreaView style={styles.modal}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={close} style={styles.iconButton}>
-              <MaterialIcons name="arrow-back" size={24} color="#1f2937" />
-            </TouchableOpacity>
             <Text style={styles.title}>Choose time zone</Text>
-            <View style={styles.iconButton} />
+
+            <AdminHeaderSessionActions>
+              <TouchableOpacity
+                onPress={close}
+                style={styles.iconButton}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Close time zone picker"
+              >
+                <MaterialIcons name="arrow-back" size={24} color="#fff" />
+              </TouchableOpacity>
+            </AdminHeaderSessionActions>
           </View>
 
           <View style={styles.searchContainer}>
@@ -241,8 +250,8 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderBottomColor: "#e5e7eb",
+    backgroundColor: "#1f9c8b",
+    borderBottomColor: "rgba(255, 255, 255, 0.3)",
     borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -253,10 +262,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 40,
     justifyContent: "center",
-    width: 40
+    width: 40,
+    borderRadius: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.3)"
   },
   title: {
-    color: "#111827",
+    flex: 1,
+    paddingRight: 12,
+    color: "#fff",
     fontSize: 17,
     fontWeight: "700"
   },
