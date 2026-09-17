@@ -197,3 +197,20 @@ test("legacy authentication storage is explicitly purged", () => {
   assert.match(source, /AsyncStorage\.removeItem\(LEGACY_AUTH_TOKEN_KEY\)/);
   assert.match(source, /authStorageInitializationError/);
 });
+
+test("customer map uploads use the active secure administrator token", () => {
+  const apiSource = read("src/services/apiService.js");
+  const customersSource = read("src/screens/Admin/CustomersScreen.js");
+
+  assert.match(apiSource, /async function uploadCustomerMap\(formData\)/);
+  assert.match(apiSource, /Authorization: `Bearer \$\{authToken\}`/);
+  assert.equal(
+    (customersSource.match(/apiService\.uploadCustomerMap\(formData\)/g) || []).length,
+    2
+  );
+  assert.doesNotMatch(customersSource, /AsyncStorage|getItem\("authToken"\)/);
+  assert.match(
+    customersSource,
+    /formData\.append\("customerId", createdCustomer\.customerId\)/
+  );
+});
