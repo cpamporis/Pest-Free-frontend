@@ -227,3 +227,14 @@ test("Super Admin image uploads use the active secure administrator token", () =
   assert.match(uploadSource, /Authorization: `Bearer \$\{authToken\}`/);
   assert.doesNotMatch(uploadSource, /AsyncStorage|getItem\("authToken"\)/);
 });
+
+test("CustomerProfile requests reports only from actual visit history", () => {
+  const source = read("src/screens/Admin/CustomerProfile.js");
+
+  assert.match(source, /apiService\.getCustomerActualVisits\(custId\)/);
+  assert.doesNotMatch(
+    source,
+    /`\/appointments\/customer\/\$\{custId\}`/
+  );
+  assert.match(source, /visitSummary\.visitId[\s\S]*visitSummary\.id/);
+});
