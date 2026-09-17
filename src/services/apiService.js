@@ -604,6 +604,16 @@ async function uploadOrganizationImage({
   fieldName,
   asset
 }) {
+  await authStorageReady;
+
+  if (!authToken) {
+    return {
+      success: false,
+      error: "Authentication required",
+      status: 401
+    };
+  }
+
   if (!organizationId) {
     return { success: false, error: "Organization ID is required" };
   }
@@ -631,9 +641,7 @@ async function uploadOrganizationImage({
       {
         method: "POST",
         headers: {
-          ...(authToken
-            ? { Authorization: `Bearer ${authToken}` }
-            : {})
+          Authorization: `Bearer ${authToken}`
         },
         body: formData
       }

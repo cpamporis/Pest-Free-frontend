@@ -214,3 +214,16 @@ test("customer map uploads use the active secure administrator token", () => {
     /formData\.append\("customerId", createdCustomer\.customerId\)/
   );
 });
+
+test("Super Admin image uploads use the active secure administrator token", () => {
+  const source = read("src/services/apiService.js");
+  const start = source.indexOf("async function uploadOrganizationImage");
+  const end = source.indexOf("\nconst apiService", start);
+  const uploadSource = source.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(uploadSource, /await authStorageReady/);
+  assert.match(uploadSource, /if \(!authToken\)/);
+  assert.match(uploadSource, /Authorization: `Bearer \$\{authToken\}`/);
+  assert.doesNotMatch(uploadSource, /AsyncStorage|getItem\("authToken"\)/);
+});
