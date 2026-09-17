@@ -228,6 +228,31 @@ test("Super Admin image uploads use the active secure administrator token", () =
   assert.doesNotMatch(uploadSource, /AsyncStorage|getItem\("authToken"\)/);
 });
 
+test("native multipart uploads replace legacy URI parts with Expo File", () => {
+  const source = read("src/services/apiService.js");
+
+  assert.match(
+    source,
+    /import \{ File as ExpoFile \} from "expo-file-system"/
+  );
+  assert.match(
+    source,
+    /function normalizeNativeMultipartBody\(formData\)/
+  );
+  assert.match(source, /Platform\.OS === "web"/);
+  assert.match(source, /new ExpoFile\(value\.uri\)/);
+  assert.doesNotMatch(
+    source,
+    /body: formData[,\n]/,
+    "native multipart requests must not bypass normalization"
+  );
+  assert.equal(
+    (source.match(/normalizeNativeMultipartBody\(/g) || []).length,
+    5,
+    "the helper and all four multipart request paths must be present"
+  );
+});
+
 test("CustomerProfile requests reports only from actual visit history", () => {
   const source = read("src/screens/Admin/CustomerProfile.js");
 
