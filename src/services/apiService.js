@@ -2,6 +2,7 @@
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import { File as ExpoFile } from "expo-file-system";
 import { normalizeAppointment } from "./normalizeAppointment";
 
 const {
@@ -521,6 +522,38 @@ async function request(method, endpoint, body = null) {
   }
 }
 
+function normalizeNativeMultipartBody(formData) {
+  if (
+    Platform.OS === "web" ||
+    !formData ||
+    typeof formData.entries !== "function"
+  ) {
+    return formData;
+  }
+
+  const normalizedFormData = new FormData();
+  let replacedLegacyUriPart = false;
+
+  for (const [fieldName, value] of formData.entries()) {
+    const isLegacyReactNativeFile =
+      value &&
+      typeof value === "object" &&
+      typeof value.uri === "string" &&
+      typeof value.bytes !== "function";
+
+    if (isLegacyReactNativeFile) {
+      // Expo SDK 57's fetch implementation accepts File/Blob values, but not
+      // React Native's former `{ uri, type, name }` FormData convention.
+      normalizedFormData.append(fieldName, new ExpoFile(value.uri));
+      replacedLegacyUriPart = true;
+    } else {
+      normalizedFormData.append(fieldName, value);
+    }
+  }
+
+  return replacedLegacyUriPart ? normalizedFormData : formData;
+}
+
 async function uploadCustomerMap(formData) {
   await authStorageReady;
 
@@ -538,7 +571,7 @@ async function uploadCustomerMap(formData) {
       headers: {
         Authorization: `Bearer ${authToken}`
       },
-      body: formData
+      body: normalizeNativeMultipartBody(formData)
     });
     const text = await response.text();
     let json = null;
@@ -643,7 +676,7 @@ async function uploadOrganizationImage({
         headers: {
           Authorization: `Bearer ${authToken}`
         },
-        body: formData
+        body: normalizeNativeMultipartBody(formData)
       }
     );
 
@@ -744,7 +777,7 @@ const apiService = {
               "Content-Type": "application/json"
             },
         body: isMultipart
-          ? requestData
+          ? normalizeNativeMultipartBody(requestData)
           : JSON.stringify(requestData)
       });
 
@@ -1146,7 +1179,7 @@ const apiService = {
       const response = await fetch(`${API_BASE_URL}/service-logs`, {
         method: "POST",
         headers, // No Content-Type here - let browser set it
-        body: formData,
+        body: normalizeNativeMultipartBody(formData),
         signal: controller.signal
       });
 
