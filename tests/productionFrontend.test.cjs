@@ -197,3 +197,33 @@ test("legacy authentication storage is explicitly purged", () => {
   assert.match(source, /AsyncStorage\.removeItem\(LEGACY_AUTH_TOKEN_KEY\)/);
   assert.match(source, /authStorageInitializationError/);
 });
+
+test("customer map uploads use the active secure administrator token", () => {
+  const apiSource = read("src/services/apiService.js");
+  const customersSource = read("src/screens/Admin/CustomersScreen.js");
+
+  assert.match(apiSource, /async function uploadCustomerMap\(formData\)/);
+  assert.match(apiSource, /Authorization: `Bearer \$\{authToken\}`/);
+  assert.equal(
+    (customersSource.match(/apiService\.uploadCustomerMap\(formData\)/g) || []).length,
+    2
+  );
+  assert.doesNotMatch(customersSource, /AsyncStorage|getItem\("authToken"\)/);
+  assert.match(
+    customersSource,
+    /formData\.append\("customerId", createdCustomer\.customerId\)/
+  );
+});
+
+test("Super Admin image uploads use the active secure administrator token", () => {
+  const source = read("src/services/apiService.js");
+  const start = source.indexOf("async function uploadOrganizationImage");
+  const end = source.indexOf("\nconst apiService", start);
+  const uploadSource = source.slice(start, end);
+
+  assert.ok(start >= 0 && end > start);
+  assert.match(uploadSource, /await authStorageReady/);
+  assert.match(uploadSource, /if \(!authToken\)/);
+  assert.match(uploadSource, /Authorization: `Bearer \$\{authToken\}`/);
+  assert.doesNotMatch(uploadSource, /AsyncStorage|getItem\("authToken"\)/);
+});

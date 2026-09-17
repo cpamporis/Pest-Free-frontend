@@ -15,10 +15,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-icons';
 import { launchImageLibrary } from 'react-native-image-picker';
-import apiService, { API_BASE_URL } from "../../services/apiService";
+import apiService from "../../services/apiService";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import CustomerProfile from "./CustomerProfile";
 import i18n from "../../services/i18n";
 import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
@@ -438,18 +437,7 @@ function AddCustomerModal({ onClose, onSave }) {
     formData.append("mapName", mapName.trim());
 
     try {
-      const token = await AsyncStorage.getItem("authToken");
-
-      const response = await fetch(`${API_BASE_URL}/upload-image`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-
-      const result = await response.json();
+      const result = await apiService.uploadCustomerMap(formData);
 
       if (result.success) {
         Alert.alert(i18n.t("common.success"), i18n.t("admin.customers.addModal.mapUploadSuccess") || "Map uploaded successfully");
@@ -842,17 +830,7 @@ function EditCustomerModal({ customer, onClose, onSave }) {
     formData.append('mapName', mapName.trim());
 
     try {
-      const token = await AsyncStorage.getItem("authToken");
-
-      const response = await fetch(`${API_BASE_URL}/upload-image`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      const result = await response.json();
+      const result = await apiService.uploadCustomerMap(formData);
 
       if (result.success) {
         setCustomerMaps(prev => [...prev, result.map]);
