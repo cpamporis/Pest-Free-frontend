@@ -23,6 +23,11 @@ import i18n from "../../services/i18n";
 import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
+const {
+  buildAppointmentDurationEstimates,
+  formatDurationHhMmSs
+} = require("../../utils/appointmentDurationEstimate");
+
 function normalizeCustomerSearch(value) {
   const text = String(value ?? "").trim().toLocaleLowerCase();
   return typeof text.normalize === "function"
@@ -120,6 +125,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedCustomerForAdd, setSelectedCustomerForAdd] = useState(null);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [appointmentDurationEstimates, setAppointmentDurationEstimates] =
+    useState({});
 
   // Define special service subtypes
   const specialServiceSubtypes = [
@@ -185,6 +192,47 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  useEffect(() => {
+    let isCurrentSelection = true;
+
+    setAppointmentDurationEstimates({});
+
+    if (!selectedCustomerForAdd) {
+      return () => {
+        isCurrentSelection = false;
+      };
+    }
+
+    const loadDurationEstimates = async () => {
+      try {
+        const visits = await apiService.getCustomerActualVisits(
+          selectedCustomerForAdd
+        );
+
+        if (isCurrentSelection) {
+          setAppointmentDurationEstimates(
+            buildAppointmentDurationEstimates(visits)
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "Failed to load appointment duration estimate:",
+          error?.message || error
+        );
+
+        if (isCurrentSelection) {
+          setAppointmentDurationEstimates({});
+        }
+      }
+    };
+
+    loadDurationEstimates();
+
+    return () => {
+      isCurrentSelection = false;
+    };
+  }, [selectedCustomerForAdd]);
 
 
   useEffect(() => {
@@ -1110,6 +1158,13 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const selectedTechnicianName = technicians.find(t => t.id === selectedTech)?.name || i18n.t("admin.schedule.technician.select") || "Select Technician";
   const filteredCustomersForAdd = filterCustomersBySearch(customers, customerSearch);
   const customerSearchCopy = getCustomerSearchCopy();
+  const selectedDurationEstimate =
+    appointmentDurationEstimates[serviceType] || null;
+  const estimatedDurationDisplay = selectedDurationEstimate
+    ? formatDurationHhMmSs(
+        selectedDurationEstimate.estimatedDurationSeconds
+      )
+    : null;
 
   if (loading) {
     return (
@@ -1395,6 +1450,21 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           </View>
         )}
 
+        {estimatedDurationDisplay && (
+          <View style={styles.estimatedDurationCard}>
+            <View style={styles.estimatedDurationIcon}>
+              <MaterialIcons name="timer" size={22} color="#1f9c8b" />
+            </View>
+            <View style={styles.estimatedDurationContent}>
+              <Text style={styles.estimatedDurationLabel}>
+                {i18n.t("admin.schedule.estimatedDuration.label")}
+              </Text>
+              <Text style={styles.estimatedDurationValue}>
+                {estimatedDurationDisplay}
+              </Text>
+            </View>
+          </View>
+        )}
         {/* SERVICE TYPE SELECTION */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
@@ -2826,6 +2896,43 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginBottom: 24,
     gap: 12,
+  },
+  estimatedDurationCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 24,
+    marginTop: -12,
+    marginBottom: 24,
+    padding: 14,
+    backgroundColor: "rgba(31, 156, 139, 0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(31, 156, 139, 0.24)",
+    borderRadius: 12,
+  },
+  estimatedDurationIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+    backgroundColor: "rgba(31, 156, 139, 0.12)",
+  },
+  estimatedDurationContent: {
+    flex: 1,
+  },
+  estimatedDurationLabel: {
+    color: "#52606d",
+    fontSize: 13,
+    marginBottom: 3,
+    fontFamily: "System",
+  },
+  estimatedDurationValue: {
+    color: "#14796c",
+    fontSize: 18,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    fontFamily: "System",
   },
   dateTimeButton: {
     backgroundColor: "#fff",
