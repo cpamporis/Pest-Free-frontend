@@ -28,20 +28,20 @@ function javascriptFiles(directory) {
   });
 }
 
-test("the production frontend is fail-closed to the production API", () => {
+test("the Security Lab frontend is fail-closed to the Lab API", () => {
   const source = read("src/services/apiService.js");
 
   assert.match(
     source,
-    /https:\/\/field-inspections-backend-production\.up\.railway\.app/
+    /https:\/\/security-lab-security-lab\.up\.railway\.app/
   );
   assert.match(source, /SecureStore\.setItemAsync/);
   assert.match(source, /mfaDeviceToken/);
-  assert.match(source, /pestify\.production\.auth-token\.v1/);
-  assert.match(source, /pestify\.production\.mfa-device\.v1/);
+  assert.match(source, /pestify\.security-lab\.auth-token\.v1/);
+  assert.match(source, /pestify\.security-lab\.mfa-device\.v1/);
   assert.doesNotMatch(
     source,
-    /https:\/\/security-lab-security-lab\.up\.railway\.app/
+    /https:\/\/field-inspections-backend-production\.up\.railway\.app/
   );
 });
 
@@ -158,10 +158,10 @@ test("administrator session timers are header-bound and never floating", () => {
 });
 
 
-test("production source tree cannot contact Security Lab", () => {
+test("Security Lab source tree cannot contact Production", () => {
   const sourceFiles = javascriptFiles(path.join(root, "src"));
   const securityLabOrigin =
-    "security-lab-security-lab.up.railway.app";
+    "field-inspections-backend-production.up.railway.app";
   const violations = sourceFiles
     .filter(file =>
       fs.readFileSync(file, "utf8").includes(securityLabOrigin)
