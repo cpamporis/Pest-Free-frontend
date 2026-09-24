@@ -19,6 +19,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import apiService from "../../services/apiService";
+import ProtectedImage from "../../components/ProtectedImage";
 import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
 
 const PAGE_WIDTH = 612;
@@ -655,7 +656,7 @@ export default function CertificateTemplateEditorScreen({
           }}
         >
           {templateUrl && (
-            <Image
+            <ProtectedImage
               source={{ uri: templateUrl }}
               style={StyleSheet.absoluteFillObject}
               resizeMode="stretch"
