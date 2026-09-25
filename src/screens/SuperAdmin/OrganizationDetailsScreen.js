@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import TimeZonePicker from "../../components/TimeZonePicker";
 import { ProtectedAdminModal as Modal } from "../../components/AdminSessionTimer";
 import AdminHeaderSessionActions from "../../components/AdminHeaderSessionActions";
+import i18n from "../../services/i18n";
 
 const EMPTY_LAYOUT = {
   version: 1,
@@ -122,6 +123,9 @@ export default function OrganizationDetailsScreen({
   );
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [confirmExport, setConfirmExport] = useState(false);
+  const [exportError, setExportError] = useState(null);
   const [editorVisible, setEditorVisible] = useState(false);
 
   const [admins, setAdmins] = useState([]);
@@ -500,6 +504,21 @@ export default function OrganizationDetailsScreen({
         }
       ]
     );
+  };
+
+  const downloadFullExport = async () => {
+    if (!confirmExport || exporting) return;
+    setExporting(true);
+    setConfirmExport(false);
+    setExportError(null);
+    try {
+      const result = await apiService.downloadOrganizationExport(organization.id);
+      if (!result.success) throw new Error(result.error);
+    } catch (error) {
+      setExportError(error.message || i18n.t("organizationExport.errorMessage"));
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleSave = async () => {
@@ -1015,6 +1034,39 @@ if (plan === "custom") {
               </View>
             ))
           )}
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>
+            {i18n.t("organizationExport.title")}
+          </Text>
+          <Text style={styles.helpText}>
+            {i18n.t("organizationExport.description")}
+          </Text>
+          {confirmExport && (
+            <Text style={styles.helpText}>
+              {i18n.t("organizationExport.confirmation")}
+            </Text>
+          )}
+          {exportError && (
+            <Text accessibilityRole="alert" style={styles.helpText}>
+              {i18n.t("organizationExport.errorTitle")}: {exportError}
+            </Text>
+          )}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={i18n.t("organizationExport.button")}
+            style={[styles.outlineButton, exporting && styles.disabledButton]}
+            disabled={exporting}
+            onPress={confirmExport ? downloadFullExport : () => setConfirmExport(true)}
+          >
+            {exporting ? <ActivityIndicator color="#1f9c8b" /> : (
+              <Text style={styles.outlineButtonText}>
+                {i18n.t(confirmExport ?
+                  "organizationExport.confirmButton" : "organizationExport.button")}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
