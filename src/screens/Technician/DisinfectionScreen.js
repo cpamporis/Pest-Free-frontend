@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Swipeable } from 'react-native-gesture-handler';
 import apiService from '../../services/apiService';
+import ProtectedImage from "../../components/ProtectedImage";
 import ChemicalsDropdown from '../../components/ChemicalsDropdown';
 import { MaterialIcons, FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { launchImageLibrary, launchCamera } from "react-native-image-picker";
@@ -1670,7 +1671,7 @@ export default function DisinfectionScreen({
                 {/* EXISTING IMAGES */}
                 {existingImages.map((img, index) => (
                   <View key={`existing-${index}`} style={{ marginRight: 10, position: "relative" }}>
-                    <Image
+                    <ProtectedImage
                       source={{ uri: buildImageUrl(img) }}
                       style={{ width: 120, height: 120, borderRadius: 10 }}
                       resizeMode="cover"
@@ -1701,7 +1702,7 @@ export default function DisinfectionScreen({
                 {/* NEW IMAGES */}
                 {reportImages.map((img, index) => (
                   <View key={`new-${index}`} style={{ marginRight: 10, position: "relative" }}>
-                    <Image
+                    <ProtectedImage
                       source={{ uri: img.uri }}
                       style={{ width: 120, height: 120, borderRadius: 10 }}
                       resizeMode="cover"

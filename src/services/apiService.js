@@ -1,4 +1,4 @@
-// apiService.js - Pestify production release candidate
+// apiService.js - Pestify production client
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
@@ -127,6 +127,22 @@ function normalizeCustomerAma(customer) {
 }
 
 let authToken = null;
+const privateImageSessionListeners = new Set();
+
+function subscribePrivateImageSession(listener) {
+  privateImageSessionListeners.add(listener);
+  return () => privateImageSessionListeners.delete(listener);
+}
+
+function notifyPrivateImageSession() {
+  for (const listener of privateImageSessionListeners) {
+    try {
+      listener(authToken);
+    } catch {
+      // A viewer must never interrupt login or logout.
+    }
+  }
+}
 let authStorageInitializationError = null;
 
 async function purgeLegacyAuthToken() {
@@ -149,6 +165,8 @@ const authStorageReady = (async () => {
     authToken = null;
     authStorageInitializationError = error;
     console.error("Failed to initialize secure authentication storage");
+  } finally {
+    notifyPrivateImageSession();
   }
 })();
 
@@ -216,8 +234,10 @@ async function setAuthToken(token) {
     }
 
     authToken = token ? String(token) : null;
+    notifyPrivateImageSession();
   } catch (error) {
     authToken = null;
+    notifyPrivateImageSession();
     throw new Error(
       "Authentication could not be stored securely"
     );
@@ -229,6 +249,7 @@ async function clearAuthToken() {
   await authStorageReady;
 
   authToken = null;
+  notifyPrivateImageSession();
   let clearFailed = false;
 
   try {
@@ -715,6 +736,7 @@ const apiService = {
   setAuthToken,
   clearAuthToken,
   getCurrentToken,
+  subscribePrivateImageSession,
   verifyTokenWithBackend,
   request,
   uploadCustomerMap,

@@ -14,6 +14,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { launchImageLibrary } from "react-native-image-picker";
 import apiService from "../../services/apiService";
+import ProtectedImage from "../../components/ProtectedImage";
 import CertificateTemplateEditorScreen from "./CertificateTemplateEditorScreen";
 import { SafeAreaView } from "react-native-safe-area-context";
 import TimeZonePicker from "../../components/TimeZonePicker";
@@ -734,7 +735,7 @@ if (plan === "custom") {
           </Text>
 
           {logoPreview && (
-            <Image
+            <ProtectedImage
               source={{ uri: logoPreview }}
               style={styles.logoPreview}
               resizeMode="contain"
@@ -808,7 +809,7 @@ if (plan === "custom") {
           <Text style={styles.sectionTitle}>Certificate Signature</Text>
 
           {signaturePreview && (
-            <Image
+            <ProtectedImage
               source={{ uri: signaturePreview }}
               style={styles.signaturePreview}
               resizeMode="contain"
@@ -908,7 +909,7 @@ if (plan === "custom") {
                   </Text>
 
                   {templatePreview && (
-                    <Image
+                    <ProtectedImage
                       source={{ uri: templatePreview }}
                       style={styles.templatePreview}
                       resizeMode="contain"
