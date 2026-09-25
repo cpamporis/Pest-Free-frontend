@@ -6,7 +6,9 @@
     "button": "Export all organization data",
     "confirmButton": "Confirm and download ZIP",
     "errorTitle": "Export failed",
-    "errorMessage": "The archive could not be created. Please try again."
+    "errorMessage": "The archive could not be created. Please try again.",
+    "warningTitle": "Incomplete export",
+    "missingImagesMessage": "{count} referenced images are missing from Security Lab storage. Check manifest.json in the ZIP."
   },
   "login": {
     "emailPlaceholder": "Email",

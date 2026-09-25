@@ -6,7 +6,9 @@
     "button": "Εξαγωγή όλων των δεδομένων",
     "confirmButton": "Επιβεβαίωση και λήψη ZIP",
     "errorTitle": "Η εξαγωγή απέτυχε",
-    "errorMessage": "Το αρχείο δεν δημιουργήθηκε. Δοκίμασε ξανά."
+    "errorMessage": "Το αρχείο δεν δημιουργήθηκε. Δοκίμασε ξανά.",
+    "warningTitle": "Ελλιπής εξαγωγή",
+    "missingImagesMessage": "Λείπουν {count} φωτογραφίες από τον αποθηκευτικό χώρο του Security Lab. Δες το manifest.json μέσα στο ZIP."
   },
   "login": {
     "emailPlaceholder": "Email",

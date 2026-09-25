@@ -1088,7 +1088,7 @@ const apiService = {
       } finally {
         setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
       }
-      return { success: true };
+      return { success: true, missingImages: Number(response.headers.get("X-Pestify-Export-Missing-Images")) || 0 };
     }
 
     if (!FileSystem.cacheDirectory) {
@@ -1108,7 +1108,7 @@ const apiService = {
         mimeType: "application/zip",
         dialogTitle: "Pestify organization export"
       });
-      return { success: true };
+      return { success: true, missingImages: Number(result.headers?.["x-pestify-export-missing-images"] || result.headers?.["X-Pestify-Export-Missing-Images"]) || 0 };
     } finally {
       await FileSystem.deleteAsync(file, { idempotent: true }).catch(() => {});
     }

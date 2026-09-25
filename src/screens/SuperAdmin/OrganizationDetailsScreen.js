@@ -126,6 +126,7 @@ export default function OrganizationDetailsScreen({
   const [exporting, setExporting] = useState(false);
   const [confirmExport, setConfirmExport] = useState(false);
   const [exportError, setExportError] = useState(null);
+  const [exportWarning, setExportWarning] = useState(0);
   const [editorVisible, setEditorVisible] = useState(false);
 
   const [admins, setAdmins] = useState([]);
@@ -511,9 +512,11 @@ export default function OrganizationDetailsScreen({
     setExporting(true);
     setConfirmExport(false);
     setExportError(null);
+    setExportWarning(0);
     try {
       const result = await apiService.downloadOrganizationExport(organization.id);
       if (!result.success) throw new Error(result.error);
+      if (result.missingImages > 0) setExportWarning(result.missingImages);
     } catch (error) {
       setExportError(error.message || i18n.t("organizationExport.errorMessage"));
     } finally {
@@ -1051,6 +1054,11 @@ if (plan === "custom") {
           {exportError && (
             <Text accessibilityRole="alert" style={styles.helpText}>
               {i18n.t("organizationExport.errorTitle")}: {exportError}
+            </Text>
+          )}
+          {exportWarning > 0 && (
+            <Text accessibilityRole="alert" style={styles.helpText}>
+              {i18n.t("organizationExport.warningTitle")}: {i18n.t("organizationExport.missingImagesMessage").replace("{count}", String(exportWarning))}
             </Text>
           )}
           <TouchableOpacity
