@@ -1,4 +1,13 @@
 {
+  "organizationExport": {
+    "title": "Organization export",
+    "description": "Download this organization's data, images, reports, certificates and revenue as a ZIP file. The file contains personal data.",
+    "confirmation": "Confirm the export. Store the file securely and remove unnecessary copies.",
+    "button": "Export all organization data",
+    "confirmButton": "Confirm and download ZIP",
+    "errorTitle": "Export failed",
+    "errorMessage": "The archive could not be created. Please try again."
+  },
   "login": {
     "emailPlaceholder": "Email",
     "passwordPlaceholder": "Password",
