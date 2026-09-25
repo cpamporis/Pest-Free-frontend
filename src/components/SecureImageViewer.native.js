@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   TouchableOpacity,
@@ -8,11 +8,20 @@ import { MaterialIcons } from "@expo/vector-icons";
 import ImageViewing from "react-native-image-viewing";
 
 import AdminHeaderSessionActions from "./AdminHeaderSessionActions";
+import { authenticatedImageSource } from "./ProtectedImage";
+import apiService from "../services/apiService";
 
 export default function SecureImageViewer({
   onRequestClose,
   ...viewerProps
 }) {
+  const [token, setToken] = useState(apiService.getCurrentToken());
+
+  useEffect(
+    () => apiService.subscribePrivateImageSession(setToken),
+    []
+  );
+
   const Header = () => (
     <View style={styles.header}>
       <AdminHeaderSessionActions>
@@ -32,6 +41,10 @@ export default function SecureImageViewer({
   return (
     <ImageViewing
       {...viewerProps}
+      visible={!!token && viewerProps.visible}
+      images={(viewerProps.images || [])
+        .map(source => authenticatedImageSource(source, token))
+        .filter(Boolean)}
       HeaderComponent={Header}
       onRequestClose={onRequestClose}
     />

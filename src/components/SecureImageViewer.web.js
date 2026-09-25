@@ -9,6 +9,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 
 import { ProtectedAdminModal } from "./AdminSessionTimer";
+import ProtectedImage from "./ProtectedImage";
 
 export default function SecureImageViewer({
   images = [],
@@ -54,7 +55,7 @@ export default function SecureImageViewer({
         </TouchableOpacity>
 
         {source ? (
-          <Image
+          <ProtectedImage
             resizeMode="contain"
             source={source}
             style={styles.image}
