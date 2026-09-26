@@ -526,14 +526,12 @@ export default function OrganizationDetailsScreen({
     }
   };
 
-  const downloadAudit = async format => {
+  const downloadAudit = async () => {
     if (auditExporting) return;
     setAuditExporting(true);
     setAuditError(null);
     try {
-      const result = await apiService.downloadOrganizationAudit(
-        organization.id, format
-      );
+      const result = await apiService.downloadOrganizationAudit(organization.id);
       if (!result.success) throw new Error(result.error);
     } catch (error) {
       setAuditError(error.message || i18n.t("organizationAudit.errorMessage"));
@@ -1107,22 +1105,17 @@ if (plan === "custom") {
             </Text>
           )}
           {auditExporting && <ActivityIndicator color="#1f9c8b" />}
-          {["json", "csv"].map(format => (
-            <TouchableOpacity
-              key={format}
-              accessibilityRole="button"
-              accessibilityLabel={i18n.t(format === "json" ?
-                "organizationAudit.jsonButton" : "organizationAudit.csvButton")}
-              style={[styles.outlineButton, auditExporting && styles.disabledButton]}
-              disabled={auditExporting}
-              onPress={() => downloadAudit(format)}
-            >
-              <Text style={styles.outlineButtonText}>
-                {i18n.t(format === "json" ?
-                  "organizationAudit.jsonButton" : "organizationAudit.csvButton")}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={i18n.t("organizationAudit.csvButton")}
+            style={[styles.outlineButton, auditExporting && styles.disabledButton]}
+            disabled={auditExporting}
+            onPress={downloadAudit}
+          >
+            <Text style={styles.outlineButtonText}>
+              {i18n.t("organizationAudit.csvButton")}
+            </Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 

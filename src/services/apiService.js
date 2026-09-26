@@ -1114,17 +1114,14 @@ const apiService = {
     }
   },
 
-  async downloadOrganizationAudit(organizationId, format) {
+  async downloadOrganizationAudit(organizationId) {
     await authStorageReady;
     if (!authToken) return { success: false, error: "Session expired" };
-    if (!["json", "csv"].includes(format)) {
-      return { success: false, error: "Invalid audit format" };
-    }
 
     const id = encodeURIComponent(String(organizationId));
-    const url = `${API_BASE_URL}/super-admin/organizations/${id}/audit?format=${format}`;
-    const filename = `pestify-audit-${organizationId}.${format}`;
-    const expectedType = format === "csv" ? "text/csv" : "application/json";
+    const url = `${API_BASE_URL}/super-admin/organizations/${id}/audit?format=csv`;
+    const filename = `pestify-audit-${organizationId}.csv`;
+    const expectedType = "text/csv";
     const headers = { Authorization: `Bearer ${authToken}` };
 
     if (Platform.OS === "web") {

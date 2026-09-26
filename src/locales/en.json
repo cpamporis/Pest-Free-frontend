@@ -1,8 +1,7 @@
 {
   "organizationAudit": {
     "title": "Super Admin activity",
-    "description": "Download this organization's activity history in UTC. The log records actions and results without passwords or request contents. A verified MFA session is required.",
-    "jsonButton": "Download audit JSON",
+    "description": "Download the activity history as CSV with the organization's current name and UTC timestamps. The log records actions and results without passwords or request contents. A verified MFA session is required.",
     "csvButton": "Download audit CSV",
     "errorTitle": "Audit export failed",
     "errorMessage": "The activity history could not be downloaded. Please try again."
