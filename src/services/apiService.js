@@ -1114,6 +1114,61 @@ const apiService = {
     }
   },
 
+  async downloadOrganizationAudit(organizationId, format) {
+    await authStorageReady;
+    if (!authToken) return { success: false, error: "Session expired" };
+    if (!["json", "csv"].includes(format)) {
+      return { success: false, error: "Invalid audit format" };
+    }
+
+    const id = encodeURIComponent(String(organizationId));
+    const url = `${API_BASE_URL}/super-admin/organizations/${id}/audit?format=${format}`;
+    const filename = `pestify-audit-${organizationId}.${format}`;
+    const expectedType = format === "csv" ? "text/csv" : "application/json";
+    const headers = { Authorization: `Bearer ${authToken}` };
+
+    if (Platform.OS === "web") {
+      const response = await fetch(url, { headers, cache: "no-store" });
+      if (!response.ok || !response.headers.get("content-type")?.includes(expectedType)) {
+        return { success: false, error: `Audit export failed (${response.status})` };
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      try {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      }
+      return { success: true };
+    }
+
+    if (!FileSystem.cacheDirectory) {
+      return { success: false, error: "Temporary storage is unavailable" };
+    }
+    const file = `${FileSystem.cacheDirectory}${filename}`;
+    try {
+      const result = await FileSystem.downloadAsync(url, file, { headers });
+      const mime = result.headers?.["content-type"] || result.headers?.["Content-Type"];
+      if (result.status !== 200 || !mime?.includes(expectedType)) {
+        return { success: false, error: `Audit export failed (${result.status})` };
+      }
+      if (!await Sharing.isAvailableAsync()) {
+        return { success: false, error: "Sharing is unavailable on this device" };
+      }
+      await Sharing.shareAsync(result.uri, {
+        mimeType: expectedType,
+        dialogTitle: "Pestify organization audit"
+      });
+      return { success: true };
+    } finally {
+      await FileSystem.deleteAsync(file, { idempotent: true }).catch(() => {});
+    }
+  },
+
   async getTimeZones() {
     return request("GET", "/super-admin/time-zones");
   },

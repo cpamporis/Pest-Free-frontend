@@ -127,6 +127,8 @@ export default function OrganizationDetailsScreen({
   const [confirmExport, setConfirmExport] = useState(false);
   const [exportError, setExportError] = useState(null);
   const [exportWarning, setExportWarning] = useState(0);
+  const [auditExporting, setAuditExporting] = useState(false);
+  const [auditError, setAuditError] = useState(null);
   const [editorVisible, setEditorVisible] = useState(false);
 
   const [admins, setAdmins] = useState([]);
@@ -521,6 +523,22 @@ export default function OrganizationDetailsScreen({
       setExportError(error.message || i18n.t("organizationExport.errorMessage"));
     } finally {
       setExporting(false);
+    }
+  };
+
+  const downloadAudit = async format => {
+    if (auditExporting) return;
+    setAuditExporting(true);
+    setAuditError(null);
+    try {
+      const result = await apiService.downloadOrganizationAudit(
+        organization.id, format
+      );
+      if (!result.success) throw new Error(result.error);
+    } catch (error) {
+      setAuditError(error.message || i18n.t("organizationAudit.errorMessage"));
+    } finally {
+      setAuditExporting(false);
     }
   };
 
@@ -1075,6 +1093,36 @@ if (plan === "custom") {
               </Text>
             )}
           </TouchableOpacity>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>
+            {i18n.t("organizationAudit.title")}
+          </Text>
+          <Text style={styles.helpText}>
+            {i18n.t("organizationAudit.description")}
+          </Text>
+          {auditError && (
+            <Text accessibilityRole="alert" style={styles.helpText}>
+              {i18n.t("organizationAudit.errorTitle")}: {auditError}
+            </Text>
+          )}
+          {auditExporting && <ActivityIndicator color="#1f9c8b" />}
+          {["json", "csv"].map(format => (
+            <TouchableOpacity
+              key={format}
+              accessibilityRole="button"
+              accessibilityLabel={i18n.t(format === "json" ?
+                "organizationAudit.jsonButton" : "organizationAudit.csvButton")}
+              style={[styles.outlineButton, auditExporting && styles.disabledButton]}
+              disabled={auditExporting}
+              onPress={() => downloadAudit(format)}
+            >
+              <Text style={styles.outlineButtonText}>
+                {i18n.t(format === "json" ?
+                  "organizationAudit.jsonButton" : "organizationAudit.csvButton")}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
 
