@@ -3,6 +3,8 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { File as ExpoFile } from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { normalizeAppointment } from "./normalizeAppointment";
 
 const {
@@ -1059,6 +1061,109 @@ const apiService = {
 
   async getOrganizations() {
     return request("GET", "/super-admin/organizations");
+  },
+
+  async downloadOrganizationExport(organizationId) {
+    await authStorageReady;
+    if (!authToken) return { success: false, error: "Session expired" };
+
+    const id = encodeURIComponent(String(organizationId));
+    const url = `${API_BASE_URL}/super-admin/organizations/${id}/export`;
+    const name = `pestify-organization-${organizationId}.zip`;
+    const headers = { Authorization: `Bearer ${authToken}` };
+
+    if (Platform.OS === "web") {
+      const response = await fetch(url, { headers, cache: "no-store" });
+      if (!response.ok || !response.headers.get("content-type")?.includes("application/zip")) {
+        return { success: false, error: `Export failed (${response.status})` };
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      try {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      }
+      return { success: true, missingImages: Number(response.headers.get("X-Pestify-Export-Missing-Images")) || 0 };
+    }
+
+    if (!FileSystem.cacheDirectory) {
+      return { success: false, error: "Temporary storage is unavailable" };
+    }
+    const file = `${FileSystem.cacheDirectory}${name}`;
+    try {
+      const result = await FileSystem.downloadAsync(url, file, { headers });
+      const mime = result.headers?.["content-type"] || result.headers?.["Content-Type"];
+      if (result.status !== 200 || !mime?.includes("application/zip")) {
+        return { success: false, error: `Export failed (${result.status})` };
+      }
+      if (!await Sharing.isAvailableAsync()) {
+        return { success: false, error: "Sharing is unavailable on this device" };
+      }
+      await Sharing.shareAsync(result.uri, {
+        mimeType: "application/zip",
+        dialogTitle: "Pestify organization export"
+      });
+      return { success: true, missingImages: Number(result.headers?.["x-pestify-export-missing-images"] || result.headers?.["X-Pestify-Export-Missing-Images"]) || 0 };
+    } finally {
+      await FileSystem.deleteAsync(file, { idempotent: true }).catch(() => {});
+    }
+  },
+
+  async downloadOrganizationAudit(organizationId) {
+    await authStorageReady;
+    if (!authToken) return { success: false, error: "Session expired" };
+
+    const id = encodeURIComponent(String(organizationId));
+    const url = `${API_BASE_URL}/super-admin/organizations/${id}/audit?format=csv`;
+    const filename = `pestify-audit-${organizationId}.csv`;
+    const expectedType = "text/csv";
+    const headers = { Authorization: `Bearer ${authToken}` };
+
+    if (Platform.OS === "web") {
+      const response = await fetch(url, { headers, cache: "no-store" });
+      if (!response.ok || !response.headers.get("content-type")?.includes(expectedType)) {
+        return { success: false, error: `Audit export failed (${response.status})` };
+      }
+      const objectUrl = URL.createObjectURL(await response.blob());
+      try {
+        const link = document.createElement("a");
+        link.href = objectUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      } finally {
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+      }
+      return { success: true };
+    }
+
+    if (!FileSystem.cacheDirectory) {
+      return { success: false, error: "Temporary storage is unavailable" };
+    }
+    const file = `${FileSystem.cacheDirectory}${filename}`;
+    try {
+      const result = await FileSystem.downloadAsync(url, file, { headers });
+      const mime = result.headers?.["content-type"] || result.headers?.["Content-Type"];
+      if (result.status !== 200 || !mime?.includes(expectedType)) {
+        return { success: false, error: `Audit export failed (${result.status})` };
+      }
+      if (!await Sharing.isAvailableAsync()) {
+        return { success: false, error: "Sharing is unavailable on this device" };
+      }
+      await Sharing.shareAsync(result.uri, {
+        mimeType: expectedType,
+        dialogTitle: "Pestify organization audit"
+      });
+      return { success: true };
+    } finally {
+      await FileSystem.deleteAsync(file, { idempotent: true }).catch(() => {});
+    }
   },
 
   async getTimeZones() {

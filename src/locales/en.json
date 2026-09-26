@@ -1,4 +1,22 @@
 {
+  "organizationAudit": {
+    "title": "Super Admin activity",
+    "description": "Download the activity history as CSV with the organization's current name and UTC timestamps. The log records actions and results without passwords or request contents. A verified MFA session is required.",
+    "csvButton": "Download audit CSV",
+    "errorTitle": "Audit export failed",
+    "errorMessage": "The activity history could not be downloaded. Please try again."
+  },
+  "organizationExport": {
+    "title": "Organization export",
+    "description": "Download this organization's data, images, reports, certificates and revenue as a ZIP file. The file contains personal data.",
+    "confirmation": "Confirm the export. Store the file securely and remove unnecessary copies.",
+    "button": "Export all organization data",
+    "confirmButton": "Confirm and download ZIP",
+    "errorTitle": "Export failed",
+    "errorMessage": "The archive could not be created. Please try again.",
+    "warningTitle": "Incomplete export",
+    "missingImagesMessage": "{count} referenced images are missing from storage. Check manifest.json in the ZIP."
+  },
   "login": {
     "emailPlaceholder": "Email",
     "passwordPlaceholder": "Password",
