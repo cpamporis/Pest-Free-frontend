@@ -1,3 +1,4 @@
+import { CustomerBalanceBadge } from "../../components/CustomerBalancePanel";
 // CustomersScreen.js (Updated with ScrollView)
 import React, { useEffect, useState } from "react";
 import {
@@ -1294,6 +1295,9 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         throw new Error(i18n.t("admin.customers.loadingError") || "Invalid customers response");
       }
 
+      const balancesRes = await apiService.getCustomerBalances();
+      if (!balancesRes?.success) throw new Error(i18n.t("business.loadFailed"));
+      const balanceMap = new Map((balancesRes.balances || []).map(b => [String(b.customerId), b.balanceCents]));
       const statsRes = await apiService.getCustomerStats();
       const stats = statsRes?.stats || [];
 
@@ -1302,6 +1306,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         const stat = stats.find(s => s.customerId === c.customerId);
         return {
           ...c,
+          balanceCents: balanceMap.get(String(c.customerId)) || 0,
           mapsCount: stat ? Number(stat.mapsCount) : 0,
           stationsCount: stat ? Number(stat.stationsCount) : 0
         };
@@ -1788,6 +1793,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
                       </View>
                       <View style={styles.customerInfo}>
                         <Text style={styles.customerName}>{c.customerName}</Text>
+                        <CustomerBalanceBadge cents={c.balanceCents} />
                         <View style={styles.customerMeta}>
                           <View style={styles.customerMetaItem}>
                             <MaterialIcons name="fingerprint" size={12} color="#666" />
@@ -1977,7 +1983,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         <Modal animationType="slide" visible>
           <CustomerProfile
             customer={selectedCustomer}
-            onClose={() => setShowCustomerProfile(false)}
+            onClose={() => { setShowCustomerProfile(false); loadCustomers(); }}
             onOpenReport={handleOpenReportFromProfile} // Simple pass-through
           />
         </Modal>

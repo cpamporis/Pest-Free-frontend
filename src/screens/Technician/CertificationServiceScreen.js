@@ -1,3 +1,4 @@
+import useServiceSettlement from "../../components/useServiceSettlement";
 // CertificationServiceScreen.js - Test iOS
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -154,6 +155,8 @@ const markAppointmentCompleted = async (appointmentId, visitId, sessionRef) => {
 // ------------------ MAP SCREEN WITH TIMER ------------------
 
 function MapScreen({ customer, onBack, session, technician, onGenerateReport }) {
+  const { confirmPayment, finishPaymentAttempt, paymentDialog } = useServiceSettlement(session);
+
 
   const [sessionVisitId, setSessionVisitId] = useState(
     session?.visitId ?? null
@@ -676,6 +679,10 @@ useEffect(() => {
 // In CertificationServiceScreen.js - Update the handleSaveAll function
 
 const handleSaveAll = async () => {
+  const settlement = await confirmPayment();
+  if (!settlement) return;
+  try {
+
 
   // Transform stations to the format expected by the backend
   const stationsToSend = loggedStations.map(station => ({
@@ -705,7 +712,7 @@ const handleSaveAll = async () => {
     damaged: station.damaged
   }));
 
-  if (!effectiveCustomer?.tin || !effectiveCustomer?.ama) {
+  if (!effectiveCustomer?.tin || ((session?.customerType ?? session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type ?? effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type) !== "business" && !effectiveCustomer?.ama)) {
     Alert.alert(
       i18n.t("technician.certificate.missingCustomerData"),
       i18n.t("technician.certificate.missingCustomerDataMessage"),
@@ -765,6 +772,8 @@ const handleSaveAll = async () => {
 
   try {
     const formData = new FormData();
+    if (settlement.paymentReceived !== undefined) formData.append("paymentReceived", String(settlement.paymentReceived));
+    if (session?.appointmentId) formData.append("appointmentId", String(session.appointmentId));
 
     // Add the data with properly formatted stations
     formData.append(
@@ -868,6 +877,8 @@ const handleSaveAll = async () => {
   } finally {
     setSaving(false);
   }
+
+  } finally { finishPaymentAttempt(); }
 };
 
   const handleSaveResponse = async (result, isEdit = false) => {
@@ -1360,7 +1371,7 @@ const handleSaveAll = async () => {
       damaged: station.damaged
     }));
 
-    if (!effectiveCustomer?.tin || !effectiveCustomer?.ama) {
+    if (!effectiveCustomer?.tin || ((session?.customerType ?? session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type ?? effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type) !== "business" && !effectiveCustomer?.ama)) {
       Alert.alert(
         i18n.t("technician.certificate.missingCustomerData"),
         i18n.t("technician.certificate.missingCustomerDataMessage"),
@@ -1617,6 +1628,8 @@ const handleSaveAll = async () => {
       behavior={Platform.OS === "ios" ? "height" : undefined}
       keyboardVerticalOffset={0}
     >
+      {paymentDialog}
+
       <View
         style={styles.container}
         onTouchStart={dismissKeyboardWhenTouchingOutsideInput}
@@ -2005,7 +2018,7 @@ const handleSaveAll = async () => {
 
               <View style={styles.identityCard}>
                 <Text style={styles.identityText}>{i18n.t("customer.tin")}: {effectiveCustomer?.tin || "—"}</Text>
-                <Text style={styles.identityText}>{i18n.t("customer.ama")}: {effectiveCustomer?.ama || "—"}</Text>
+                {(session?.customerType ?? session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type ?? effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type) !== "business" && <Text style={styles.identityText}>{i18n.t("customer.ama")}: {effectiveCustomer?.ama || "—"}</Text>}
               </View>
 
               <ChemicalsDropdown

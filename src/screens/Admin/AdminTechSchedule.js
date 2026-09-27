@@ -1,3 +1,5 @@
+import AppointmentBusinessFields from "../../components/AppointmentBusinessFields";
+import { appointmentOptionsValid } from "../../utils/customerBilling";
 // AdminTechSchedule.js - iOS
 import React, { useEffect, useState } from "react";
 import {
@@ -91,6 +93,10 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const [servicePrice, setServicePrice] = useState("");
   const [serviceVatPercent, setServiceVatPercent] = useState("24");
   const [appointmentCategory, setAppointmentCategory] = useState("first_time");
+  const [customerType, setCustomerType] = useState("");
+  const [recurrenceDays, setRecurrenceDays] = useState(null);
+  const [editCustomerType, setEditCustomerType] = useState("");
+  const [editRecurrenceDays, setEditRecurrenceDays] = useState(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const appointmentCategories = [
     { id: "first_time", label: i18n.t("admin.schedule.appointmentCategory.first_time") },
@@ -124,6 +130,10 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   const MINUTES = Array.from({ length: 12 }, (_, i) => (i * 5).toString().padStart(2, '0'));
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedCustomerForAdd, setSelectedCustomerForAdd] = useState(null);
+  useEffect(() => {
+    const selected = customers.find(c => c.customerId === selectedCustomerForAdd);
+    setCustomerType(selected?.customerType || "");
+  }, [selectedCustomerForAdd, customers]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [appointmentDurationEstimates, setAppointmentDurationEstimates] =
     useState({});
@@ -263,6 +273,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
             address: c.address,
             email: c.email,
             telephone: c.telephone,
+            customerType: c.customerType ?? c.customer_type ?? null,
             tin: c.tin,
             ama: c.ama
           }))
@@ -389,6 +400,12 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   }
 
   async function addCustomerToSchedule(customerId) {
+    if (!appointmentOptionsValid(customerType, appointmentCategory, recurrenceDays)) {
+      if (Platform.OS === "web") window.alert(i18n.t("business.chooseOptions"));
+      else Alert.alert(i18n.t("common.error"), i18n.t("business.chooseOptions"));
+      return;
+    }
+
 
     customerId = String(customerId);
 
@@ -517,6 +534,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         appointmentTime: time.trim(),
         serviceType,
         appointmentCategory,
+        customerType,
+        recurrenceDays: appointmentCategory === "contract_service" ? recurrenceDays : null,
         ...pricePayload,
         status: "scheduled",
         ...(complianceValidUntil && {
@@ -751,6 +770,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   function handleEditAppointment(appointment) {
     
     setEditingAppointment(appointment);
+    setEditCustomerType(appointment.customerType ?? appointment.customer_type ?? "");
+    setEditRecurrenceDays(appointment.recurrenceDays ?? appointment.recurrence_days ?? null);
     
     // Populate all fields from the appointment
     setEditServiceType(appointment.serviceType || 'myocide');
@@ -889,6 +910,11 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   }
 
   async function saveEditedDetails() {
+    if (!appointmentOptionsValid(editCustomerType, editAppointmentCategory, editRecurrenceDays)) {
+      if (Platform.OS === "web") window.alert(i18n.t("business.chooseOptions"));
+      else Alert.alert(i18n.t("common.error"), i18n.t("business.chooseOptions"));
+      return;
+    }
     if (!editingAppointment || processing) return;
     
     setProcessing(true);
@@ -987,6 +1013,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
       const payload = {
         ...editPricePayload,
         appointmentCategory: editAppointmentCategory,
+        customerType: editCustomerType,
+        recurrenceDays: editAppointmentCategory === "contract_service" ? editRecurrenceDays : null,
         serviceType: editServiceType,
         specialServiceSubtype: editSpecialServiceSubtype,
         otherPestName: '',
@@ -1595,6 +1623,9 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           <MaterialIcons name="expand-more" size={24} color="#666" />
         </TouchableOpacity>
 
+        <AppointmentBusinessFields showCustomerType={false} customerType={customerType} onCustomerTypeChange={setCustomerType}
+          category={appointmentCategory} recurrenceDays={recurrenceDays} onRecurrenceChange={setRecurrenceDays} />
+
         {/* SERVICE PRICE */}
         <View style={styles.sectionHeader}>
           <View style={styles.sectionTitleContainer}>
@@ -1873,6 +1904,9 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
             </ScrollView>
           </View>
         )}
+
+        {selectedCustomerForAdd && <AppointmentBusinessFields customerType={customerType}
+          onCustomerTypeChange={setCustomerType} category="one_time" />}
 
         {/* Schedule Button */}
         {selectedCustomerForAdd && (
@@ -2193,7 +2227,9 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                 </View>
 
                 {/* APPOINTMENT CATEGORY */}
-                <View style={styles.formGroup}>
+                <AppointmentBusinessFields customerType={editCustomerType} onCustomerTypeChange={setEditCustomerType}
+                    category={editAppointmentCategory} recurrenceDays={editRecurrenceDays} onRecurrenceChange={setEditRecurrenceDays} />
+                  <View style={styles.formGroup}>
                   <Text style={styles.formLabel}>
                     {i18n.t("admin.schedule.editModal.appointmentCategory")} <Text style={styles.requiredStar}>*</Text>
                   </Text>
