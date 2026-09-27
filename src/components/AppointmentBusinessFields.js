@@ -41,12 +41,13 @@ function Dropdown({ label, value, options, onChange, disabled }) {
 }
 
 export default function AppointmentBusinessFields({
-  category, recurrenceDays, onRecurrenceChange, totalVisits, onTotalVisitsChange, disabled = false
+  category, recurrenceDays, onRecurrenceChange, totalVisits, onTotalVisitsChange,
+  containerStyle, disabled = false
 }) {
   if (category !== "contract_service") return null;
   const countRequired = [7, 14, 30].includes(Number(recurrenceDays));
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, containerStyle]}>
       <Dropdown
         label={i18n.t("business.frequency")}
         value={recurrenceDays || null}
@@ -74,7 +75,7 @@ export default function AppointmentBusinessFields({
 }
 
 const styles = StyleSheet.create({
-  card: { marginVertical: 12 },
+  card: {},
   field: { marginBottom: 12 },
   label: { fontSize: 15, fontWeight: "600", color: "#263c39", marginBottom: 8 },
   selector: { minHeight: 50, paddingHorizontal: 14, borderWidth: 1, borderColor: "#dce6e4",
@@ -87,4 +88,3 @@ const styles = StyleSheet.create({
   optionText: { fontSize: 15, color: "#2c3e50" },
   help: { color: "#52635f", fontSize: 13, lineHeight: 19 }
 });
-

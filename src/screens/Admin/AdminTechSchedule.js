@@ -1637,6 +1637,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         </TouchableOpacity>
 
         <AppointmentBusinessFields category={appointmentCategory} recurrenceDays={recurrenceDays}
+          containerStyle={[styles.serviceSelector, styles.businessFieldsCard]}
           onRecurrenceChange={setRecurrenceDays} totalVisits={totalVisits} onTotalVisitsChange={setTotalVisits} />
 
         {/* SERVICE PRICE */}
@@ -2238,6 +2239,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
 
                 {/* APPOINTMENT CATEGORY */}
                 <AppointmentBusinessFields category={editAppointmentCategory} recurrenceDays={editRecurrenceDays}
+                  containerStyle={styles.formGroup}
                   onRecurrenceChange={setEditRecurrenceDays} totalVisits={editTotalVisits}
                   onTotalVisitsChange={setEditTotalVisits}
                   disabled={Boolean(editingAppointment?.recurrenceTotalVisits || editingAppointment?.recurrence_total_visits)} />
@@ -3040,6 +3042,10 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: "#f0f0f0",
+  },
+  businessFieldsCard: {
+    flexDirection: "column",
+    alignItems: "stretch",
   },
   serviceIcon: {
     width: 56,
@@ -4123,4 +4129,3 @@ scheduleButtonText: {
   color: '#fff',
 },
 });
-
