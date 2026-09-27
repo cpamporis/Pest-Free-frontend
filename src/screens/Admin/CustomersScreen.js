@@ -1,3 +1,4 @@
+import { CustomerBalanceBadge } from "../../components/CustomerBalancePanel";
 // CustomersScreen.js (Updated with ScrollView)
 import React, { useEffect, useState } from "react";
 import {
@@ -297,9 +298,42 @@ function AmaNumbersFields({
   );
 }
 
+function CustomerTypeField({ value, onChange, disabled }) {
+  const [open, setOpen] = useState(false);
+  const options = [
+    { value: "private", label: i18n.t("business.private") },
+    { value: "business", label: i18n.t("business.business") }
+  ];
+  return (
+    <View style={styles.inputContainer}>
+      <Text style={styles.inputLabel}>{i18n.t("business.customerType")} <Text style={styles.requiredStar}>*</Text></Text>
+      <TouchableOpacity
+        style={[styles.input, { flexDirection: "row", justifyContent: "space-between", alignItems: "center" }]}
+        onPress={() => setOpen(!open)}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={i18n.t("business.customerType")}
+      >
+        <Text style={{ color: value ? "#2c3e50" : "#888" }}>
+          {options.find(option => option.value === value)?.label || i18n.t("business.choose")}
+        </Text>
+        <MaterialIcons name={open ? "expand-less" : "expand-more"} size={24} color="#666" />
+      </TouchableOpacity>
+      {open && !disabled && options.map(option => (
+        <TouchableOpacity key={option.value} style={styles.selectItem}
+          onPress={() => { onChange(option.value); setOpen(false); }}>
+          <Text style={styles.selectItemTitle}>{option.label}</Text>
+          {option.value === value && <MaterialIcons name="check" size={20} color="#1f9c8b" />}
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+}
+
 // UPDATED: AddCustomerModal with Image Upload (Gallery only)
 function AddCustomerModal({ onClose, onSave }) {
   const [customerName, setCustomerName] = useState("");
+  const [customerType, setCustomerType] = useState("");
   const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -343,6 +377,10 @@ function AddCustomerModal({ onClose, onSave }) {
       Alert.alert(i18n.t("common.error"), i18n.t("admin.customers.addModal.customerNameRequired") || "Customer name is required");
       return;
     }
+    if (!["private", "business"].includes(customerType)) {
+      Alert.alert(i18n.t("common.error"), i18n.t("business.chooseCustomerType"));
+      return;
+    }
 
     // 🔐 Validate login fields
     if ((loginEmail && !loginPassword) || (!loginEmail && loginPassword)) {
@@ -361,6 +399,7 @@ function AddCustomerModal({ onClose, onSave }) {
 
       const customerData = {
         customerName: customerName.trim(),
+        customerType,
         address: address.trim(),
         email: email.trim(),
         telephone: telephone.trim(),
@@ -491,6 +530,8 @@ function AddCustomerModal({ onClose, onSave }) {
                     editable={!loading}
                   />
                 </View>
+
+                <CustomerTypeField value={customerType} onChange={setCustomerType} disabled={loading} />
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>{i18n.t("admin.customers.addModal.address")}</Text>
@@ -722,6 +763,7 @@ function AddCustomerModal({ onClose, onSave }) {
 // UPDATED: EditCustomerModal with Image Upload (Gallery only)
 function EditCustomerModal({ customer, onClose, onSave }) {
   const [customerName, setCustomerName] = useState("");
+  const [customerType, setCustomerType] = useState("");
   const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -756,6 +798,7 @@ function EditCustomerModal({ customer, onClose, onSave }) {
         if (!isMounted) return;
 
         setCustomerName(fresh.customerName || "");
+        setCustomerType(fresh.customerType || fresh.customer_type || "");
         setAddress(fresh.address || "");
         setEmail(fresh.email || "");
         setTelephone(fresh.telephone || "");
@@ -891,6 +934,10 @@ function EditCustomerModal({ customer, onClose, onSave }) {
       Alert.alert(i18n.t("common.error"), i18n.t("admin.customers.addModal.customerNameRequired") || "Customer name is required");
       return;
     }
+    if (!["private", "business"].includes(customerType)) {
+      Alert.alert(i18n.t("common.error"), i18n.t("business.chooseCustomerType"));
+      return;
+    }
 
     setLoading(true);
     try {
@@ -900,6 +947,7 @@ function EditCustomerModal({ customer, onClose, onSave }) {
       const updateData = {
         customerId: customer.customerId,
         customerName: customerName.trim(),
+        customerType,
         address: address.trim(),
         email: email.trim(),
         telephone: telephone.trim(),
@@ -956,6 +1004,8 @@ function EditCustomerModal({ customer, onClose, onSave }) {
                     editable={!loading}
                   />
                 </View>
+
+                <CustomerTypeField value={customerType} onChange={setCustomerType} disabled={loading} />
 
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>{i18n.t("admin.customers.addModal.address")}</Text>
@@ -1294,6 +1344,9 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         throw new Error(i18n.t("admin.customers.loadingError") || "Invalid customers response");
       }
 
+      const balancesRes = await apiService.getCustomerBalances();
+      if (!balancesRes?.success) throw new Error(i18n.t("business.loadFailed"));
+      const balanceMap = new Map((balancesRes.balances || []).map(b => [String(b.customerId), b.balanceCents]));
       const statsRes = await apiService.getCustomerStats();
       const stats = statsRes?.stats || [];
 
@@ -1302,6 +1355,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         const stat = stats.find(s => s.customerId === c.customerId);
         return {
           ...c,
+          balanceCents: balanceMap.get(String(c.customerId)) || 0,
           mapsCount: stat ? Number(stat.mapsCount) : 0,
           stationsCount: stat ? Number(stat.stationsCount) : 0
         };
@@ -1788,6 +1842,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
                       </View>
                       <View style={styles.customerInfo}>
                         <Text style={styles.customerName}>{c.customerName}</Text>
+                        <CustomerBalanceBadge cents={c.balanceCents} />
                         <View style={styles.customerMeta}>
                           <View style={styles.customerMetaItem}>
                             <MaterialIcons name="fingerprint" size={12} color="#666" />
@@ -1977,7 +2032,7 @@ export default function CustomersScreen({ onClose, onOpenReport }) {
         <Modal animationType="slide" visible>
           <CustomerProfile
             customer={selectedCustomer}
-            onClose={() => setShowCustomerProfile(false)}
+            onClose={() => { setShowCustomerProfile(false); loadCustomers(); }}
             onOpenReport={handleOpenReportFromProfile} // Simple pass-through
           />
         </Modal>

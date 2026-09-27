@@ -1,3 +1,4 @@
+import useServiceSettlement from "../../components/useServiceSettlement";
 // SpecialServicesScreen.js - PROFESSIONAL STYLING
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -33,6 +34,8 @@ export default function SpecialServicesScreen({
   onNavigate,
   onGenerateReport 
 }) {
+  const { confirmPayment, finishPaymentAttempt, paymentDialog } = useServiceSettlement(session);
+
   /* =========================
      CORE STATE
   ========================= */
@@ -678,6 +681,10 @@ export default function SpecialServicesScreen({
     };
 
   const completeService = async () => {
+  const settlement = await confirmPayment();
+  if (!settlement) return;
+  try {
+
     try {
       if (!customer?.customerId || !technician?.id) {
         throw new Error(i18n.t("technician.specialServices.errors.missingInfo"));
@@ -767,6 +774,8 @@ export default function SpecialServicesScreen({
       };
 
       const formData = new FormData();
+    if (settlement.paymentReceived !== undefined) formData.append("paymentReceived", String(settlement.paymentReceived));
+    if (session?.appointmentId) formData.append("appointmentId", String(session.appointmentId));
 
       // 🔥 FIX: Properly stringify arrays/objects
       Object.keys(payload).forEach(key => {
@@ -822,7 +831,9 @@ export default function SpecialServicesScreen({
         e.message || i18n.t("technician.specialServices.errors.saveFailed")
       );
     }
-  };
+
+  } finally { finishPaymentAttempt(); }
+};
 
   const updateService = async () => {
     try {
@@ -1958,6 +1969,8 @@ export default function SpecialServicesScreen({
 
   return (
       <SafeAreaView style={styles.container}>
+      {paymentDialog}
+
         <KeyboardAvoidingView 
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}

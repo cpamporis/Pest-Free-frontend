@@ -1,3 +1,4 @@
+import useServiceSettlement from "../../components/useServiceSettlement";
 // CertificationServiceScreen.js - Test iOS
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
@@ -154,6 +155,8 @@ const markAppointmentCompleted = async (appointmentId, visitId, sessionRef) => {
 // ------------------ MAP SCREEN WITH TIMER ------------------
 
 function MapScreen({ customer, onBack, session, technician, onGenerateReport }) {
+  const { confirmPayment, finishPaymentAttempt, paymentDialog } = useServiceSettlement(session);
+
 
   const [sessionVisitId, setSessionVisitId] = useState(
     session?.visitId ?? null
@@ -299,6 +302,7 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
       email: customer.email ?? "",
       tin: customer.tin ?? "",
       ama: customer.ama ?? "",
+      customerType: customer.customerType ?? customer.customer_type ?? null,
       maps: Array.isArray(customer.maps) ? customer.maps : []
     };
   }, [customer]);
@@ -338,6 +342,10 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   const SERVER_BASE_URL = API_BASE_URL.replace("/api", ""); 
 
   const effectiveCustomer = customerWithMaps ?? normalizedCustomer;
+  const certificationCustomerType =
+    effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type ??
+    normalizedCustomer?.customerType ?? session?.customerType ??
+    session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type;
   
   // Log the first map details
   if (Array.isArray(customerMaps) && customerMaps.length > 0) {
@@ -676,6 +684,8 @@ useEffect(() => {
 // In CertificationServiceScreen.js - Update the handleSaveAll function
 
 const handleSaveAll = async () => {
+  try {
+
 
   // Transform stations to the format expected by the backend
   const stationsToSend = loggedStations.map(station => ({
@@ -705,15 +715,6 @@ const handleSaveAll = async () => {
     damaged: station.damaged
   }));
 
-  if (!effectiveCustomer?.tin || !effectiveCustomer?.ama) {
-    Alert.alert(
-      i18n.t("technician.certificate.missingCustomerData"),
-      i18n.t("technician.certificate.missingCustomerDataMessage"),
-      [{ text: i18n.t("technician.common.ok") }]
-    );
-    return;
-  }
-
   const hasCertificationData =
     stationsToSend.length > 0 ||
     selectedChemicals.length > 0 ||
@@ -730,7 +731,16 @@ const handleSaveAll = async () => {
     return;
   }
 
-  stopTimer();
+  if (!String(effectiveCustomer?.tin || "").trim()) {
+    Alert.alert(
+      i18n.t("technician.certificate.missingCustomerData"),
+      i18n.t("technician.certificate.missingCustomerDataMessage"),
+      [{ text: i18n.t("technician.common.ok") }]
+    );
+    return;
+  }
+
+
 
   // Generate a visitId if not exists
   const generatedVisitId = sessionVisitId || `certificate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -763,8 +773,14 @@ const handleSaveAll = async () => {
     return;
   }
 
+  const settlement = await confirmPayment();
+  if (!settlement) return;
+  stopTimer();
+
   try {
     const formData = new FormData();
+    if (settlement.paymentReceived !== undefined) formData.append("paymentReceived", String(settlement.paymentReceived));
+    if (session?.appointmentId) formData.append("appointmentId", String(session.appointmentId));
 
     // Add the data with properly formatted stations
     formData.append(
@@ -868,6 +884,8 @@ const handleSaveAll = async () => {
   } finally {
     setSaving(false);
   }
+
+  } finally { finishPaymentAttempt(); }
 };
 
   const handleSaveResponse = async (result, isEdit = false) => {
@@ -1360,7 +1378,7 @@ const handleSaveAll = async () => {
       damaged: station.damaged
     }));
 
-    if (!effectiveCustomer?.tin || !effectiveCustomer?.ama) {
+    if (!String(effectiveCustomer?.tin || "").trim()) {
       Alert.alert(
         i18n.t("technician.certificate.missingCustomerData"),
         i18n.t("technician.certificate.missingCustomerDataMessage"),
@@ -1617,6 +1635,8 @@ const handleSaveAll = async () => {
       behavior={Platform.OS === "ios" ? "height" : undefined}
       keyboardVerticalOffset={0}
     >
+      {paymentDialog}
+
       <View
         style={styles.container}
         onTouchStart={dismissKeyboardWhenTouchingOutsideInput}
@@ -2005,7 +2025,7 @@ const handleSaveAll = async () => {
 
               <View style={styles.identityCard}>
                 <Text style={styles.identityText}>{i18n.t("customer.tin")}: {effectiveCustomer?.tin || "—"}</Text>
-                <Text style={styles.identityText}>{i18n.t("customer.ama")}: {effectiveCustomer?.ama || "—"}</Text>
+                {certificationCustomerType === "private" && Boolean(String(effectiveCustomer?.ama ?? "").trim()) && <Text style={styles.identityText}>{i18n.t("customer.ama")}: {effectiveCustomer?.ama || "—"}</Text>}
               </View>
 
               <ChemicalsDropdown
