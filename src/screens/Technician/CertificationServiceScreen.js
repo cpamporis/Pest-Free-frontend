@@ -302,6 +302,7 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
       email: customer.email ?? "",
       tin: customer.tin ?? "",
       ama: customer.ama ?? "",
+      customerType: customer.customerType ?? customer.customer_type ?? null,
       maps: Array.isArray(customer.maps) ? customer.maps : []
     };
   }, [customer]);
@@ -341,6 +342,10 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   const SERVER_BASE_URL = API_BASE_URL.replace("/api", ""); 
 
   const effectiveCustomer = customerWithMaps ?? normalizedCustomer;
+  const certificationCustomerType =
+    effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type ??
+    normalizedCustomer?.customerType ?? session?.customerType ??
+    session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type;
   
   // Log the first map details
   if (Array.isArray(customerMaps) && customerMaps.length > 0) {
@@ -679,8 +684,6 @@ useEffect(() => {
 // In CertificationServiceScreen.js - Update the handleSaveAll function
 
 const handleSaveAll = async () => {
-  const settlement = await confirmPayment();
-  if (!settlement) return;
   try {
 
 
@@ -712,15 +715,6 @@ const handleSaveAll = async () => {
     damaged: station.damaged
   }));
 
-  if (!effectiveCustomer?.tin || ((session?.customerType ?? session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type ?? effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type) !== "business" && !effectiveCustomer?.ama)) {
-    Alert.alert(
-      i18n.t("technician.certificate.missingCustomerData"),
-      i18n.t("technician.certificate.missingCustomerDataMessage"),
-      [{ text: i18n.t("technician.common.ok") }]
-    );
-    return;
-  }
-
   const hasCertificationData =
     stationsToSend.length > 0 ||
     selectedChemicals.length > 0 ||
@@ -737,7 +731,16 @@ const handleSaveAll = async () => {
     return;
   }
 
-  stopTimer();
+  if (!String(effectiveCustomer?.tin || "").trim()) {
+    Alert.alert(
+      i18n.t("technician.certificate.missingCustomerData"),
+      i18n.t("technician.certificate.missingCustomerDataMessage"),
+      [{ text: i18n.t("technician.common.ok") }]
+    );
+    return;
+  }
+
+
 
   // Generate a visitId if not exists
   const generatedVisitId = sessionVisitId || `certificate_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -769,6 +772,10 @@ const handleSaveAll = async () => {
     Alert.alert(i18n.t("technician.common.error"), i18n.t("technician.specialServices.errors.missingInfo"));
     return;
   }
+
+  const settlement = await confirmPayment();
+  if (!settlement) return;
+  stopTimer();
 
   try {
     const formData = new FormData();
@@ -1371,7 +1378,7 @@ const handleSaveAll = async () => {
       damaged: station.damaged
     }));
 
-    if (!effectiveCustomer?.tin || ((session?.customerType ?? session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type ?? effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type) !== "business" && !effectiveCustomer?.ama)) {
+    if (!String(effectiveCustomer?.tin || "").trim()) {
       Alert.alert(
         i18n.t("technician.certificate.missingCustomerData"),
         i18n.t("technician.certificate.missingCustomerDataMessage"),
@@ -2018,7 +2025,7 @@ const handleSaveAll = async () => {
 
               <View style={styles.identityCard}>
                 <Text style={styles.identityText}>{i18n.t("customer.tin")}: {effectiveCustomer?.tin || "—"}</Text>
-                {(session?.customerType ?? session?.rawAppointment?.customerType ?? session?.rawAppointment?.customer_type ?? effectiveCustomer?.customerType ?? effectiveCustomer?.customer_type) !== "business" && <Text style={styles.identityText}>{i18n.t("customer.ama")}: {effectiveCustomer?.ama || "—"}</Text>}
+                {certificationCustomerType === "private" && Boolean(String(effectiveCustomer?.ama ?? "").trim()) && <Text style={styles.identityText}>{i18n.t("customer.ama")}: {effectiveCustomer?.ama || "—"}</Text>}
               </View>
 
               <ChemicalsDropdown

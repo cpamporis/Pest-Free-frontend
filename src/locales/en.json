@@ -2019,7 +2019,7 @@
       "certificationSection": "Certification Details",
       "noMapInspection": "No map inspection was performed",
       "missingCustomerData": "Missing customer information",
-      "missingCustomerDataMessage": "TIN and AMA must be added to the customer profile before completing certification.",
+      "missingCustomerDataMessage": "TIN must be added to the customer profile before completing certification.",
       "noData": "No certification data",
       "noDataMessage": "Add an inspection result, treated area, chemical, note, or photograph."
     },

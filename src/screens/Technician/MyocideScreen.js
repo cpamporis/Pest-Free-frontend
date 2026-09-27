@@ -584,8 +584,6 @@ useEffect(() => {
 // In MyocideScreen.js - Update the handleSaveAll function
 
 const handleSaveAll = async () => {
-  const settlement = await confirmPayment();
-  if (!settlement) return;
   try {
 
   // Transform stations to the format expected by the backend
@@ -625,7 +623,7 @@ const handleSaveAll = async () => {
     return;
   }
 
-  stopTimer();
+
 
   // Generate a visitId if not exists
   const generatedVisitId = sessionVisitId || `myocide_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -657,6 +655,10 @@ const handleSaveAll = async () => {
     Alert.alert(i18n.t("technician.common.error"), i18n.t("technician.specialServices.errors.missingInfo"));
     return;
   }
+
+  const settlement = await confirmPayment();
+  if (!settlement) return;
+  stopTimer();
 
   try {
     const formData = new FormData();
