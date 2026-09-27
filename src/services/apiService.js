@@ -1642,8 +1642,8 @@ const apiService = {
       specialServiceSubtype: payload.specialServiceSubtype || null,
       otherPestName: payload.otherPestName || null,
       appointmentCategory: payload.appointmentCategory || null,
-      customerType: payload.customerType,
       recurrenceDays: payload.appointmentCategory === "contract_service" ? payload.recurrenceDays : null,
+      totalVisits: payload.appointmentCategory === "contract_service" ? payload.totalVisits : null,
       insecticideDetails: payload.insecticideDetails || null,
       disinfection_details: payload.disinfection_details || null,
       serviceNetPrice: payload.serviceNetPrice ?? null,
@@ -1793,7 +1793,7 @@ const apiService = {
       return { success: false, error: "Appointment ID is required" };
     }
 
-    if (payload.customerType !== undefined || payload.recurrenceDays !== undefined) {
+    if (payload.recurrenceDays !== undefined || payload.totalVisits !== undefined) {
       const business = await request("GET", "/business/capabilities");
       if (!business?.enabled || business.version !== 1) return { success: false, status: 503, error: "Business features are not enabled on this server" };
     }

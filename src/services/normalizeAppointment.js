@@ -16,6 +16,8 @@ export function normalizeAppointment(a) {
     id: a.id,
     customerType: a.customerType ?? a.customer_type ?? null,
     recurrenceDays: a.recurrenceDays ?? a.recurrence_days ?? null,
+    recurrenceTotalVisits: a.recurrenceTotalVisits ?? a.recurrence_total_visits ?? null,
+    recurrenceVisitIndex: a.recurrenceVisitIndex ?? a.recurrence_visit_index ?? null,
 
     // 🔥 CRITICAL FIX
     technicianId:
