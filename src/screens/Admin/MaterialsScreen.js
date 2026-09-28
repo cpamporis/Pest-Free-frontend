@@ -1,3 +1,4 @@
+import MaterialCatalogPicker from "../../components/MaterialCatalogPicker";
 // MaterialsScreen.js - Updated version
 import React, { useEffect, useState } from "react";
 import {
@@ -30,6 +31,8 @@ function normalizeMaterialSearch(value) {
 }
 
 export default function MaterialsScreen({ onClose }) {
+  const [catalogVersions, setCatalogVersions] = useState({});
+  const [catalogSource, setCatalogSource] = useState(null);
   const [activeSection, setActiveSection] = useState("bait"); // "bait" or "chemicals"
   const [baitTypes, setBaitTypes] = useState([]);
   const [chemicals, setChemicals] = useState([]);
@@ -53,7 +56,7 @@ export default function MaterialsScreen({ onClose }) {
     bait: {
       title: i18n.t("admin.materials.categories.bait"),
       emptyText: i18n.t("admin.materials.content.emptyTitle", { plural: i18n.t("admin.materials.categories.bait").toLowerCase() }),
-      loadItems: apiService.getBaitTypes,
+      loadItems: () => apiService.getLocalMaterials("bait"),
       saveItems: apiService.postBaitTypes,
       singular: i18n.t("admin.materials.categories.baitSingular") || "bait type",
       plural: i18n.t("admin.materials.categories.bait").toLowerCase(),
@@ -65,7 +68,7 @@ export default function MaterialsScreen({ onClose }) {
     chemicals: {
       title: i18n.t("admin.materials.categories.chemicals"),
       emptyText: i18n.t("admin.materials.content.emptyTitle", { plural: i18n.t("admin.materials.categories.chemicals").toLowerCase() }),
-      loadItems: apiService.getChemicals,
+      loadItems: () => apiService.getLocalMaterials("chemicals"),
       saveItems: apiService.postChemicals,
       singular: i18n.t("admin.materials.categories.chemicalsSingular") || "chemical",
       plural: i18n.t("admin.materials.categories.chemicals").toLowerCase(),
@@ -132,6 +135,7 @@ export default function MaterialsScreen({ onClose }) {
             return { name: item, active_ingredient: null, antidote: null };
           }
           return {
+            ...item,
             name: item.name || item,
             active_ingredient: item.active_ingredient || null,
             antidote: item.antidote || null
@@ -139,7 +143,7 @@ export default function MaterialsScreen({ onClose }) {
         });
       };
       
-      const baitResult = await apiService.getBaitTypes();
+      const baitResult = await apiService.getLocalMaterials("bait");
       
       let baitArray = [];
       if (Array.isArray(baitResult)) {
@@ -150,7 +154,7 @@ export default function MaterialsScreen({ onClose }) {
 
       setBaitTypes(formatItems(baitArray));
 
-      const chemResult = await apiService.getChemicals();
+      const chemResult = await apiService.getLocalMaterials("chemicals");
       
       let chemArray = [];
       if (Array.isArray(chemResult)) {
@@ -160,6 +164,7 @@ export default function MaterialsScreen({ onClose }) {
       }
  
       setChemicals(formatItems(chemArray));
+      setCatalogVersions({ bait: baitResult?.catalogVersion, chemicals: chemResult?.catalogVersion });
       
     } catch (e) {
       console.error("Failed to load materials:", e);
@@ -174,6 +179,7 @@ export default function MaterialsScreen({ onClose }) {
     setLoading(true);
     try {
       const result = await currentSection.loadItems();
+      setCatalogVersions(previous => ({ ...previous, [activeSection]: result?.catalogVersion }));
       
       const formatItems = (items) => {
         if (!Array.isArray(items)) return [];
@@ -183,6 +189,7 @@ export default function MaterialsScreen({ onClose }) {
             return { name: item, active_ingredient: null, antidote: null };
           }
           return {
+            ...item,
             name: item.name || item,
             active_ingredient: item.active_ingredient || null,
             antidote: item.antidote || null
@@ -239,16 +246,17 @@ export default function MaterialsScreen({ onClose }) {
       let result;
       
       if (activeSection === "chemicals") {
-        result = await apiService.postChemicals(updated);
+        result = await apiService.postChemicals(updated, catalogVersions.chemicals);
       } else {
-        result = await apiService.postBaitTypes(updated);
+        result = await apiService.postBaitTypes(updated, catalogVersions.bait);
       }
       
       if (result?.success) {
+        setCatalogVersions(previous => ({ ...previous, [activeSection]: result.catalogVersion }));
         if (activeSection === "chemicals") {
-          setChemicals(updated);
+          setChemicals(result.items || updated);
         } else {
-          setBaitTypes(updated);
+          setBaitTypes(result.items || updated);
         }
         Alert.alert(
           i18n.t("common.success"), 
@@ -257,10 +265,11 @@ export default function MaterialsScreen({ onClose }) {
             plural: currentSection.plural 
           }) || `${currentSection.singular} updated successfully`
         );
+        return true;
       } else {
         Alert.alert(
           i18n.t("common.error"),
-          result?.error || i18n.t("admin.materials.saveFailed", { 
+          (result?.error === "MATERIALS_CHANGED_REFRESH" ? i18n.t("materialsCatalog.materialsChanged") : result?.error) || i18n.t("admin.materials.saveFailed", {
             singular: currentSection.singular,
             plural: currentSection.plural 
           }) || `Failed to save ${currentSection.singular}`
@@ -306,6 +315,7 @@ export default function MaterialsScreen({ onClose }) {
     }
 
     const newItem = {
+      ...(catalogSource ? { catalog_product_id: catalogSource.id, catalog_revision: catalogSource.revision } : {}),
       name: trimmedName,
       active_ingredient: trimmedActiveIngredient || null,
       antidote: trimmedAntidote || null
@@ -313,11 +323,12 @@ export default function MaterialsScreen({ onClose }) {
 
     const updated = [...items, newItem];
     
-    setNewValue("");
-    setNewActiveIngredient("");
-    setNewAntidote("");
-    
-    await persist(updated);
+    if (await persist(updated)) {
+      setNewValue("");
+      setNewActiveIngredient("");
+      setNewAntidote("");
+      setCatalogSource(null);
+    }
   };
 
   const confirmDelete = async () => {
@@ -382,6 +393,7 @@ export default function MaterialsScreen({ onClose }) {
   const handleSectionChange = (section) => {
     if (section !== activeSection) {
       setActiveSection(section);
+      setCatalogSource(null);
       setSelectedValue(null);
       setEditingValue("");
       setEditingActiveIngredient("");
@@ -503,6 +515,16 @@ export default function MaterialsScreen({ onClose }) {
               <Text style={styles.statTrend}>{i18n.t("admin.materials.stats.combined")}</Text>
             </View>
           </View>
+
+          <MaterialCatalogPicker disabled={saving} onSelect={(product, kind) => {
+            setActiveSection(kind);
+            setSelectedValue(null);
+            setShowDropdown(false);
+            setCatalogSource(product);
+            setNewValue(product.name);
+            setNewActiveIngredient(product.active_ingredient || "");
+            setNewAntidote(product.antidote || "");
+          }} />
 
           {/* SECTION SELECTION */}
           <View style={styles.sectionHeader}>
@@ -851,6 +873,11 @@ export default function MaterialsScreen({ onClose }) {
                 )}
               </>
             )}
+
+            {catalogSource && <Text style={{ paddingHorizontal: 20, paddingVertical: 10, color: "#426055", lineHeight: 21 }}>
+              {i18n.t(`materialsCatalog.${newValue === catalogSource.name && newActiveIngredient === catalogSource.active_ingredient ? "catalogCopy" : "localVariant"}`)}
+              {catalogSource.sds_state !== "verified" ? `\n${i18n.t("materialsCatalog.sdsPending")}` : ""}
+            </Text>}
 
             {/* ADD NEW ITEM SECTION */}
             <View style={styles.addSection}>

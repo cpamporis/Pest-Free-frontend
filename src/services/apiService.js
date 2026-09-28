@@ -1,3 +1,4 @@
+import { createMaterialsCatalogClient } from "./materialsCatalogClient";
 // apiService.js - Pestify Security Lab client
 import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -734,6 +735,7 @@ async function uploadOrganizationImage({
 }
 
 const apiService = {
+  ...createMaterialsCatalogClient({ request, ready: () => authStorageReady, token: () => authToken, baseUrl: API_BASE_URL }),
   // TOKEN MANAGEMENT
   setAuthToken,
   clearAuthToken,
@@ -1872,8 +1874,8 @@ const apiService = {
     }
   },
 
-  async postBaitTypes(types) {
-    return request("POST", "/materials/bait-types", { baitTypes: types });
+  async postBaitTypes(types, expectedCatalogVersion) {
+    return request("POST", "/materials/bait-types", { baitTypes: types, expectedCatalogVersion });
   },
 
   async getChemicals() {
@@ -1897,8 +1899,8 @@ const apiService = {
     return [];
   },
 
-  async postChemicals(chemicals) {
-    return request("POST", "/materials/chemicals", { chemicals: chemicals });
+  async postChemicals(chemicals, expectedCatalogVersion) {
+    return request("POST", "/materials/chemicals", { chemicals: chemicals, expectedCatalogVersion });
   },
 
   async deleteCustomerMap(customerId, mapId) {

@@ -2273,5 +2273,30 @@
     "chooseOptions": "Set the customer category in Customers and select a frequency and visit count for the contract.",
     "cashBasis": "Revenue from previously paid work and new receipts",
     "trackingHelp": "Historical work included in the previous revenue is shown as paid. Outstanding balances apply to the new payment tracking."
+  },
+  "materialsCatalog": {
+    "searchTitle": "Ministry product catalog",
+    "copyHelp": "Choose a product and category to fill the form, then save your own organization material.",
+    "searchHint": "Search a product, e.g. Dob",
+    "chooseKind": "How should this material be saved?",
+    "bait": "Bait",
+    "chemical": "Chemical",
+    "cancel": "Cancel",
+    "noResults": "No products found.",
+    "refineSearch": "Showing the first results. Refine your search for a closer match.",
+    "sdsVerified": "SDS reviewed",
+    "sdsPending": "The SDS and antidote / treatment are awaiting review.",
+    "unavailable": "Unavailable for new selection — authorization review needed.",
+    "loadError": "Selection failed. Refresh your search and try again.",
+    "sdsDownload": "Download SDS",
+    "legacySds": "No SDS versions were archived for this historical service.",
+    "noVerifiedSds": "No reviewed SDS files are available for the materials in this service.",
+    "noMaterials": "No materials were recorded for this service.",
+    "partialSds": "Reviewed SDS files are missing for the following materials. Download the available files?",
+    "downloadAvailable": "Download available files",
+    "downloadError": "SDS download failed. Check your connection and session.",
+    "catalogCopy": "A copy from the shared catalog. Your edits remain within your organization.",
+    "localVariant": "The name or formulation changed. This material will be saved as a local variant without the automatic SDS link.",
+    "materialsChanged": "The list changed. Refresh it and apply your change again."
   }
 }
