@@ -24,15 +24,17 @@ export function createMaterialsCatalogClient({ request, ready, token, baseUrl })
       return {success:true};
     }
     if (!FileSystem.cacheDirectory) return {success:false,error:"SDS_DOWNLOAD_FAILED"};
-    const file = `${FileSystem.cacheDirectory}${Date.now()}-${Math.random().toString(36).slice(2)}-${name}`;
+    const directory = `${FileSystem.cacheDirectory}materials-${Date.now()}-${Math.random().toString(36).slice(2)}/`;
+    const file = `${directory}${name}`;
     try {
+      await FileSystem.makeDirectoryAsync(directory,{intermediates:true});
       const response = await FileSystem.downloadAsync(url,file,{headers});
       const type = response.headers?.["content-type"] || response.headers?.["Content-Type"];
       if (response.status !== 200 || !type?.includes(mime)) return {success:false,error:"SDS_DOWNLOAD_FAILED"};
       if (!await Sharing.isAvailableAsync()) return {success:false,error:"SHARING_UNAVAILABLE"};
       await Sharing.shareAsync(response.uri,{mimeType:mime,dialogTitle:name});
       return {success:true};
-    } finally { await FileSystem.deleteAsync(file,{idempotent:true}).catch(() => {}); }
+    } finally { await FileSystem.deleteAsync(directory,{idempotent:true}).catch(() => {}); }
   }
   async function upload(endpoint,selected,fields) {
     await ready();
@@ -82,6 +84,6 @@ export function createMaterialsCatalogClient({ request, ready, token, baseUrl })
     extractCatalogSdsText: (id,sdsId) => request("GET",`${root}/products/${ref(id)}/sds/${ref(sdsId)}/text`),
     downloadCatalogSds: (id,sdsId) => download(`/products/${ref(id)}/sds/${ref(sdsId)}/pdf`,"sds.pdf","application/pdf"),
     getReportSdsManifest: id => request("GET",`${root}/reports/${ref(id)}/sds`),
-    downloadReportSds: id => download(`/reports/${ref(id)}/sds.zip`,"pestify-sds.zip","application/zip")
+    downloadReportSds: id => download(`/reports/${ref(id)}/sds.zip`,"Δελτία Δεδομένων Ασφαλείας (MSDS).zip","application/zip")
   };
 }

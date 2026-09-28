@@ -11,7 +11,7 @@ function client({os="web",fetchImpl=async()=>({ok:false,headers:{get:()=>"applic
   const source=fs.readFileSync(path.join(__dirname,"../src/services/materialsCatalogClient.js"),"utf8");
   const code=babel.transformSync(source,{babelrc:false,configFile:false,plugins:[require.resolve("@babel/plugin-transform-modules-commonjs")]}).code;
   const module={exports:{}};
-  const deps={"react-native":{Platform:{OS:os}},"expo-file-system/legacy":{cacheDirectory:"cache/",downloadAsync:async(url,file,options)=>{downloads.push({url,file,options});return {status:401,headers:{"content-type":"application/json"}};},deleteAsync:async file=>deleted.push(file)},"expo-file-system":{File:class{constructor(uri){this.uri=uri;}}},"expo-sharing":{isAvailableAsync:async()=>true,shareAsync:async()=>{throw Error("must not share a failed response");}},"expo/fetch":{fetch:fetchImpl}};
+  const deps={"react-native":{Platform:{OS:os}},"expo-file-system/legacy":{cacheDirectory:"cache/",makeDirectoryAsync:async()=>{},downloadAsync:async(url,file,options)=>{downloads.push({url,file,options});return {status:401,headers:{"content-type":"application/json"}};},deleteAsync:async file=>deleted.push(file)},"expo-file-system":{File:class{constructor(uri){this.uri=uri;}}},"expo-sharing":{isAvailableAsync:async()=>true,shareAsync:async()=>{throw Error("must not share a failed response");}},"expo/fetch":{fetch:fetchImpl}};
   vm.runInNewContext(code,{module,exports:module.exports,require:name=>{if(!deps[name])throw Error(name);return deps[name];},fetch:fetchImpl,FormData,URL,Date,Math,setTimeout});
   const api=module.exports.createMaterialsCatalogClient({request:async(...args)=>{calls.push(args);return {success:true,enabled:true};},ready:async()=>{},token:()=>token,baseUrl:"https://lab.example/api"});
   return {api,calls,downloads,deleted,setToken:value=>{token=value;}};
@@ -32,6 +32,7 @@ test("binary downloads use authorization headers and remove failed native files"
   const c=client({os:"ios"});const r=await c.api.downloadReportSds("private report");
   assert.equal(r.success,false);assert.equal(c.downloads[0].url,"https://lab.example/api/materials-catalog/reports/private%20report/sds.zip");
   assert.equal(c.downloads[0].options.headers.Authorization,"Bearer token-one");
+  assert.ok(c.downloads[0].file.endsWith("/Δελτία Δεδομένων Ασφαλείας (MSDS).zip"));
   assert.equal(c.deleted.length,1);
 });
 test("expired sessions do not start downloads and oversized uploads do not reach the network",async()=>{
