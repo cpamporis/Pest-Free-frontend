@@ -45,14 +45,19 @@ test("a successful JSON error response cannot be presented as an SDS zip",async(
   assert.equal((await c.api.downloadReportSds("report")).success,false);
 });
 test("pilot action uses its dedicated confirmed endpoint", async () => {
-  const c = client();
-
-  await c.api.publishCatalogPilotThree();
-
-  assert.equal(c.calls[0][0], "POST");
-  assert.equal(
-    c.calls[0][1],
-    "/materials-catalog/imports/pilot-three"
-  );
-  assert.equal(c.calls[0][2].confirm, true);
+  const c=client();await c.api.publishCatalogPilotThree();
+  assert.equal(c.calls[0][0],"POST");assert.equal(c.calls[0][1],"/materials-catalog/imports/pilot-three");assert.equal(c.calls[0][2].confirm,true);
+});
+test('manual upload sends only PDF, revision and treatment without source/evidence fields',async()=>{
+  let captured;
+  const c=client({fetchImpl:async(url,options)=>{captured={url,options};return {ok:true,json:async()=>({success:true})};}});
+  const pdf=new Blob(['%PDF-1.7 fixture %%EOF'],{type:'application/pdf'});
+  const r=await c.api.uploadSdsManual('product',{size:pdf.size,kind:'pdf',file:pdf},{expectedRevision:1,treatmentKind:'symptomatic',treatmentText:'Συμπτωματική θεραπεία'});
+  assert.equal(r.success,true);assert.equal(captured.url,'https://lab.example/api/materials-catalog/products/product/sds/manual');
+  assert.deepEqual([...captured.options.body.keys()].sort(),['expectedRevision','file','treatmentKind','treatmentText']);
+  assert.equal(captured.options.headers.Authorization,'Bearer token-one');
+});
+test('automation controls and candidate review use encoded references',async()=>{
+  const c=client();await c.api.startSdsAutomation();await c.api.getSdsAutomation(30);await c.api.rejectSdsTask('x/y');await c.api.approveSdsManual('p','s',{expectedRevision:2,treatmentKind:'symptomatic'});
+  assert.equal(c.calls[0][1],'/materials-catalog/automation/start');assert.equal(c.calls[1][1],'/materials-catalog/automation?offset=30');assert.equal(c.calls[2][1],'/materials-catalog/automation/tasks/x%2Fy/reject');assert.equal(c.calls[3][1],'/materials-catalog/products/p/sds/s/approve-manual');
 });
