@@ -13,12 +13,12 @@ export default function MaterialsSdsAutomationPanel({onSelect,refreshToken=0}) {
   return <View style={s.card}>
     <Text style={s.heading}>Αυτόματη συλλογή ΔΔΑ</Text>
     <Text>Τα εξακριβωμένα ΔΔΑ εισάγονται αυτόματα. Οι υπόλοιπες εγγραφές συγκεντρώνονται παρακάτω.</Text>
-    {!!data?.capabilities?.ready&&<Text style={s.help}>Όριο νέων κλήσεων ανά εκκίνηση: {data.capabilities.callsPerBatch}. Ημερήσιο όριο: {data.capabilities.dailyCallLimit}.</Text>}
+    {!!data?.capabilities?.ready&&<Text style={s.help}>Δεν υπάρχει όριο αριθμού κλήσεων. Το όριο χρέωσης ορίζεται στον λογαριασμό API.</Text>}
     <Button disabled={busy||running||!data?.capabilities?.ready} onPress={()=>action(()=>api.startSdsAutomation())}>{data?.batch?.state==='paused'?'Συνέχιση συλλογής ΔΔΑ':'Αυτόματη συλλογή και εισαγωγή ΔΔΑ'}</Button>
     {!data?.capabilities?.ready&&<Text style={s.help}>Η αυτόματη συλλογή χρειάζεται ενεργοποίηση και κλειδί API στο Security Lab. Η χειροκίνητη εισαγωγή είναι διαθέσιμη.</Text>}
     {running&&<><ActivityIndicator/><Text>Η εργασία συνεχίζεται στον server. Μπορείς να κλείσεις την οθόνη.</Text><Button disabled={busy} onPress={()=>action(()=>api.pauseSdsAutomation())}>Παύση μετά την τρέχουσα ενέργεια</Button></>}
     {!!data?.batch&&<Text style={s.help}>Εισήχθησαν: {counts.published||0} · Επιλύθηκαν: {counts.resolved||0} · Απομένουν: {(counts.queued||0)+(counts.running||0)} · Κλήσεις: {data.batch.calls}</Text>}
-    {data?.batch?.state==='paused'&&<Text style={s.help}>{data.batch.pause_reason==='CALL_LIMIT'?'Η εργασία σταμάτησε στο όριο κλήσεων. Η πρόοδος αποθηκεύτηκε.':data.batch.pause_reason==='USER_PAUSED'?'Η εργασία είναι σε παύση.':'Η αναζήτηση διακόπηκε. Χρειάζεται έλεγχος της σύνδεσης API.'}</Text>}
+    {data?.batch?.state==='paused'&&<Text style={s.help}>{data.batch.pause_reason==='CALL_LIMIT'?'Η εργασία είχε σταματήσει στο προηγούμενο όριο. Πάτησε Συνέχιση συλλογής ΔΔΑ.':data.batch.pause_reason==='USER_PAUSED'?'Η εργασία είναι σε παύση.':'Η αναζήτηση διακόπηκε. Χρειάζεται έλεγχος της σύνδεσης API.'}</Text>}
     <Pressable accessibilityRole="button" accessibilityState={{expanded:open}} onPress={()=>{setOpen(!open);if(!open)load().catch(e=>setError(e.message));}} style={s.dropdown}><Text style={s.heading}>Προς έλεγχο ({data?.total||0}) {open?'▴':'▾'}</Text></Pressable>
     {open&&(data?.items||[]).map(item=><View key={item.id} style={s.item}>
       <Text style={s.name}>{item.name}</Text>
