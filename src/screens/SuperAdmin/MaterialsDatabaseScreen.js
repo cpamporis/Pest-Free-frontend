@@ -74,6 +74,46 @@ export default function MaterialsDatabaseScreen({onClose}) {
             <Button disabled={busy} onPress={()=>action(async()=>{need(await api.cancelCatalogImport(preview.id));setPreview(null);})}>Ακύρωση εισαγωγής</Button>
           </View>}
         </View>
+        {caps.pilotThree && <View style={s.card}>
+          <Text style={s.heading}>Πιλοτική σύνδεση τριών ΔΔΑ</Text>
+          <Text style={s.help}>
+            SELONTRA, DOBOL OMICRON και DOBOL MICROCYP.
+            Έχεις ελέγξει οπτικά αυτά τα ΔΔΑ. Δεν έχει επιβεβαιωθεί
+            αν υπάρχουν νεότερες εκδόσεις· το Omicron και το Microcyp
+            έχουν έγγραφα του 2015. Η ενέργεια αφορά μόνο το Security Lab.
+          </Text>
+          <Button disabled={busy || !!preview} onPress={() => action(async () => {
+            const accepted = await confirm(
+              "Να συνδεθούν τα τρία ΔΔΑ που έλεγξες στο Security Lab; " +
+              "Οι τρέχουσες εκδόσεις των εγγράφων δεν έχουν επαληθευτεί."
+            );
+            if (!accepted) return;
+
+            const result = await api.publishCatalogPilotThree();
+            if (!result?.success) {
+              throw Error(
+                `Η σύνδεση σταμάτησε: ${result?.error || "UNKNOWN_ERROR"}`
+              );
+            }
+
+            await refresh();
+            if (selected?.id) await select(selected.id);
+
+            const published = result.items.filter(
+              x => x.status === "published"
+            ).length;
+            const existing = result.items.filter(
+              x => x.status === "already_current"
+            ).length;
+
+            notify(
+              `Συνδέθηκαν ${published} ΔΔΑ. ` +
+              `Ήδη συνδεδεμένα: ${existing}.`
+            );
+          })}>
+            Σύνδεση των 3 ελεγμένων ΔΔΑ στο Lab
+          </Button>
+        </View>}
         <View style={s.card}><Text style={s.heading}>Προϊόντα</Text><Field label="Αναζήτηση ονόματος ή αριθμού έγκρισης" value={q} onChangeText={setQ} maxLength={100}/>
           <Button disabled={busy} onPress={()=>{setSelected({});setForm({name:"",approval_id:"",ingredients:[],active:true});setMinistry({});setVersions([]);setReason("");resetReview();}}>Προσθήκη εγγραφής</Button>
           {items.map(v=><Pressable accessibilityRole="button" key={v.id} disabled={busy} onPress={()=>action(()=>select(v.id))} style={s.row}>

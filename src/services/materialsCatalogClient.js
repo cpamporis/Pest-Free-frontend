@@ -75,6 +75,7 @@ export function createMaterialsCatalogClient({ request, ready, token, baseUrl })
     previewCatalogSeed: () => request("POST",`${root}/imports/seed-preview`,{}),
     previewCatalogExcel: (file,sourceDate) => upload("/imports/preview",file,{sourceDate}),
     applyCatalogImport: id => request("POST",`${root}/imports/${ref(id)}/apply`,{confirm:true}),
+    publishCatalogPilotThree: () => request("POST",`${root}/imports/pilot-three`,{confirm:true}),
     cancelCatalogImport: id => request("DELETE",`${root}/imports/${ref(id)}`),
     getCatalogSdsResearch: id => request("GET",`${root}/products/${ref(id)}/research`),
     queueCatalogSdsResearch: (id,data) => request("POST",`${root}/products/${ref(id)}/research`,data),

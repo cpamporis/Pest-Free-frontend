@@ -44,3 +44,15 @@ test("a successful JSON error response cannot be presented as an SDS zip",async(
   const c=client({fetchImpl:async()=>({ok:true,headers:{get:()=>"application/json"}})});
   assert.equal((await c.api.downloadReportSds("report")).success,false);
 });
+test("pilot action uses its dedicated confirmed endpoint", async () => {
+  const c = client();
+
+  await c.api.publishCatalogPilotThree();
+
+  assert.equal(c.calls[0][0], "POST");
+  assert.equal(
+    c.calls[0][1],
+    "/materials-catalog/imports/pilot-three"
+  );
+  assert.equal(c.calls[0][2].confirm, true);
+});
