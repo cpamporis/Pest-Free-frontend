@@ -81,6 +81,7 @@ export function createMaterialsCatalogClient({ request, ready, token, baseUrl })
     startSdsAutomation: () => request("POST",`${root}/automation/start`,{}),
     pauseSdsAutomation: () => request("POST",`${root}/automation/pause`,{}),
     retrySdsTask: id => request("POST",`${root}/automation/tasks/${ref(id)}/retry`,{}),
+    acceptSdsCandidate: id => request("POST",`${root}/automation/tasks/${ref(id)}/accept`,{confirmed:true}),
     rejectSdsTask: id => request("POST",`${root}/automation/tasks/${ref(id)}/reject`,{}),
     uploadSdsManual: (id,file,data) => upload(`/products/${ref(id)}/sds/manual`,file,data),
     approveSdsManual: (id,sdsId,data) => request("POST",`${root}/products/${ref(id)}/sds/${ref(sdsId)}/approve-manual`,data),

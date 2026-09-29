@@ -62,7 +62,7 @@ export default function MaterialsDatabaseScreen({onClose}) {
             <Button disabled={busy} onPress={()=>action(async()=>{need(await api.cancelCatalogImport(preview.id));setPreview(null);})}>Ακύρωση εισαγωγής</Button>
           </View>}
         </View>
-        {caps.simpleSdsUpload && <MaterialsSdsAutomationPanel refreshToken={sdsRefresh} onSelect={item=>action(async()=>{await select(item.product_id);setReviewSdsId(item.sds_id);setSuggestion(item.extracted);requestAnimationFrame(()=>scrollRef.current?.scrollToEnd({animated:true}));})}/>}
+        {caps.simpleSdsUpload && <MaterialsSdsAutomationPanel onPublished={refresh} refreshToken={sdsRefresh} onSelect={item=>action(async()=>{await select(item.product_id);setReviewSdsId(item.sds_id);setSuggestion(item.extracted);requestAnimationFrame(()=>scrollRef.current?.scrollToEnd({animated:true}));})}/>}
         <View style={s.card}><Text style={s.heading}>Προϊόντα</Text><Field label="Αναζήτηση ονόματος ή αριθμού έγκρισης" value={q} onChangeText={setQ} maxLength={100}/>
           <Button disabled={busy} onPress={()=>{setSelected({});setForm({name:"",approval_id:"",ingredients:[],active:true});setMinistry({});setVersions([]);setReason("");resetReview();}}>Προσθήκη εγγραφής</Button>
           {items.map(v=><Pressable accessibilityRole="button" key={v.id} disabled={busy} onPress={()=>action(()=>select(v.id))} style={s.row}>

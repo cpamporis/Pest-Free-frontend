@@ -1,9 +1,9 @@
 import React,{useEffect,useState} from 'react';
 import {View,Text,Pressable,ActivityIndicator,StyleSheet,Linking} from 'react-native';
 import api from '../services/apiService';
-const reasons={SOURCE_UNVERIFIED:'Η πηγή δεν έχει επιβεβαιωθεί.',DOCUMENT_CHECKS_INCOMPLETE:'Χρειάζεται επιβεβαίωση στοιχείων του ΔΔΑ.',NOT_AN_SDS:'Το αρχείο φαίνεται να είναι άλλου τύπου έγγραφο.',CANDIDATE_REJECTED:'Απέρριψες το υποψήφιο αρχείο.',PRODUCT_CHANGED_REFRESH:'Τα στοιχεία του σκευάσματος άλλαξαν.'};
+const reasons={PRODUCT_PAGE_REQUIRED:'Η πηγή είναι αρχείο ή δεν διαβάστηκε ως σελίδα προϊόντος.',SDS_LINK_AMBIGUOUS_OR_MISSING:'Δεν εντοπίστηκε μοναδικός σύνδεσμος ΔΔΑ.',SOURCE_DOWNLOAD_FAILED:'Η λήψη από την πηγή απέτυχε.',SOURCE_UNVERIFIED:'Η πηγή δεν έχει επιβεβαιωθεί.',DOCUMENT_CHECKS_INCOMPLETE:'Χρειάζεται επιβεβαίωση στοιχείων του ΔΔΑ.',NOT_AN_SDS:'Το αρχείο φαίνεται να είναι άλλου τύπου έγγραφο.',CANDIDATE_REJECTED:'Απέρριψες το υποψήφιο αρχείο.',PRODUCT_CHANGED_REFRESH:'Τα στοιχεία του σκευάσματος άλλαξαν.'};
 function Button({children,onPress,disabled}){return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={[s.button,disabled&&{opacity:0.4}]}><Text style={s.buttonText}>{children}</Text></Pressable>;}
-export default function MaterialsSdsAutomationPanel({onSelect,refreshToken=0}) {
+export default function MaterialsSdsAutomationPanel({onSelect,onPublished,refreshToken=0}) {
   const [data,setData]=useState(null),[open,setOpen]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
   async function load(){const r=await api.getSdsAutomation();if(!r?.success)throw Error('Δεν ήταν δυνατή η φόρτωση των εκκρεμοτήτων.');setData(r);return r;}
   useEffect(()=>{let live=true;api.getSdsAutomation().then(r=>{if(live&&r?.success)setData(r);}).catch(()=>{});return()=>{live=false;};},[refreshToken]);
@@ -25,6 +25,18 @@ export default function MaterialsSdsAutomationPanel({onSelect,refreshToken=0}) {
       <Text>{item.state==='not_found'?'Δεν βρέθηκε ΔΔΑ':item.state==='failed'?'Δεν ολοκληρώθηκε η αναζήτηση':reasons[item.reason]||'Βρέθηκε ΔΔΑ προς έλεγχο'}</Text>
       {!!item.candidate?.page_url&&<Text selectable style={s.help}>{item.candidate.page_url}</Text>}
       {!!item.candidate?.page_url&&/^https:\/\//i.test(item.candidate.page_url)&&<Button disabled={busy} onPress={()=>Linking.openURL(item.candidate.page_url).catch(()=>setError('Δεν ήταν δυνατό να ανοίξει η πηγή.'))}>Άνοιγμα πηγής</Button>}
+      {(item.sds_id||item.candidate?.pdf_url||item.candidate?.page_url)&&item.reason!=='CANDIDATE_REJECTED'&&<>
+        {!!item.sds_id&&<Button disabled={busy} onPress={()=>action(()=>api.downloadCatalogSds(item.product_id,item.sds_id))}>Άνοιγμα αποθηκευμένου PDF</Button>}
+        {!!item.candidate?.pdf_url&&item.candidate.pdf_url!==item.candidate.page_url&&/^https:\/\//i.test(item.candidate.pdf_url)&&<Button disabled={busy} onPress={()=>Linking.openURL(item.candidate.pdf_url).catch(()=>setError('Δεν ήταν δυνατό να ανοίξει το PDF.'))}>Άνοιγμα υποψήφιου PDF</Button>}
+        <Text style={s.help}>Με το «Είναι σωστό» επιβεβαιώνεις ότι το PDF είναι το ΔΔΑ αυτού του σκευάσματος. Αν λείπει η θεραπεία, θα τη συμπληρώσεις στο επόμενο βήμα.</Text>
+        <Button disabled={busy} onPress={()=>action(async()=>{
+          const r=await api.acceptSdsCandidate(item.id);
+          if(!r?.success)throw Error('Δεν ολοκληρώθηκε η εισαγωγή. Αν η πηγή δεν επιτρέπει λήψη ή δεν είναι PDF, χρησιμοποίησε Εισαγωγή ΔΔΑ από εμένα.');
+          if(r.needsTreatment){setOpen(false);onSelect({...item,sds_id:r.sds_id,extracted:null});}
+          else if(onPublished)await onPublished();
+          return r;
+        })}>Είναι σωστό</Button>
+      </>}
       <Button disabled={busy} onPress={()=>{setOpen(false);onSelect(item);}}>{item.sds_id?'Έλεγχος PDF και θεραπείας':'Εισαγωγή ΔΔΑ από εμένα'}</Button>
       {item.state==='review'&&item.sds_id&&<Button disabled={busy} onPress={()=>action(()=>api.rejectSdsTask(item.id))}>Απόρριψη υποψήφιου PDF</Button>}
       <Button disabled={busy||running||!data?.capabilities?.ready} onPress={()=>action(async()=>{const r=await api.retrySdsTask(item.id);if(!r?.success)return r;return api.startSdsAutomation();})}>Νέα αναζήτηση</Button>

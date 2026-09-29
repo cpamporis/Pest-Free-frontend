@@ -61,3 +61,8 @@ test('automation controls and candidate review use encoded references',async()=>
   const c=client();await c.api.startSdsAutomation();await c.api.getSdsAutomation(30);await c.api.rejectSdsTask('x/y');await c.api.approveSdsManual('p','s',{expectedRevision:2,treatmentKind:'symptomatic'});
   assert.equal(c.calls[0][1],'/materials-catalog/automation/start');assert.equal(c.calls[1][1],'/materials-catalog/automation?offset=30');assert.equal(c.calls[2][1],'/materials-catalog/automation/tasks/x%2Fy/reject');assert.equal(c.calls[3][1],'/materials-catalog/products/p/sds/s/approve-manual');
 });
+test('candidate acceptance confirms a saved task without sending a user-controlled URL',async()=>{
+  const c=client();await c.api.acceptSdsCandidate('x/y');
+  assert.equal(c.calls[0][1],'/materials-catalog/automation/tasks/x%2Fy/accept');
+  assert.equal(c.calls[0][2].confirmed,true);assert.equal(Object.keys(c.calls[0][2]).join(','),'confirmed');
+});
