@@ -77,6 +77,7 @@ export function createMaterialsCatalogClient({ request, ready, token, baseUrl })
     applyCatalogImport: id => request("POST",`${root}/imports/${ref(id)}/apply`,{confirm:true}),
     publishCatalogPilotThree: () => request("POST",`${root}/imports/pilot-three`,{confirm:true}),
     cancelCatalogImport: id => request("DELETE",`${root}/imports/${ref(id)}`),
+    reprocessSavedSds: () => request("POST",`${root}/automation/reprocess-saved`,{}),
     getSdsAutomation: (offset=0) => request("GET",`${root}/automation?offset=${offset}`),
     startSdsAutomation: () => request("POST",`${root}/automation/start`,{}),
     pauseSdsAutomation: () => request("POST",`${root}/automation/pause`,{}),

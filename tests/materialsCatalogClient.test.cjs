@@ -66,3 +66,7 @@ test('candidate acceptance confirms a saved task without sending a user-controll
   assert.equal(c.calls[0][1],'/materials-catalog/automation/tasks/x%2Fy/accept');
   assert.equal(c.calls[0][2].confirmed,true);assert.equal(Object.keys(c.calls[0][2]).join(','),'confirmed');
 });
+
+test("saved source reprocessing uses its dedicated endpoint without starting a new search",async()=>{
+  const c=client();await c.api.reprocessSavedSds();assert.equal(c.calls.length,1);assert.equal(c.calls[0][0],"POST");assert.equal(c.calls[0][1],"/materials-catalog/automation/reprocess-saved");
+});
