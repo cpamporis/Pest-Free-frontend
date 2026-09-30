@@ -115,16 +115,16 @@ function LightTrapForm({
   };
 
   React.useEffect(() => {
-    if (access === "No") {
+    if (access === "No" || condition === "Damaged" || condition === "Missing") {
       setMosquitoes("");
       setLepidoptera("");
       setDrosophila("");
       setFlies("");
       setOthers([]);
+      setOtherInput("");
       setReplaceBulb(null);
-      setCondition(null);
     }
-  }, [access]);
+  }, [access, condition]);
 
 
   return (
@@ -135,7 +135,7 @@ function LightTrapForm({
             {i18n.t("components.stationForms.lightTrap.title", { id: stationId })}
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <StationConditionPicker value={condition} onChange={setCondition} />
             {[
               ["Mosquitoes", mosquitoes, setMosquitoes],
@@ -243,7 +243,7 @@ function LightTrapForm({
 
             {/* Access */}
             <Text style={styles.label}>{i18n.t("components.stationForms.common.access")}</Text>
-            <View style={styles.row}>
+            <View style={[styles.row, ["Damaged","Missing"].includes(condition) && {opacity:0.5}]}>
               {["Yes", "No"].map(v => (
                 <TouchableOpacity
                   key={v}
@@ -251,6 +251,7 @@ function LightTrapForm({
                     styles.toggle, 
                     access === v && styles.active
                   ]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess(v)}
                 >
                   <Text style={access === v && styles.activeText}>

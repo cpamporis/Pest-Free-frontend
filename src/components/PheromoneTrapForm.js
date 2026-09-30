@@ -61,14 +61,14 @@ function PheromoneTrapForm({
   }, []);
 
   useEffect(() => {
-    if (access === "No") {
+    if (access === "No" || condition === "Damaged" || condition === "Missing") {
       setPheromoneType("");
       setReplacedPheromone(null);
       setInsectsCaptured("");
       
       setShowDropdown(false);
     }
-  }, [access]);
+  }, [access, condition]);
 
   const saveData = async () => {
     if (access === "No" || condition === "Damaged" || condition === "Missing") {
@@ -151,7 +151,7 @@ function PheromoneTrapForm({
             {i18n.t("components.stationForms.pheromoneTrap.title", { id: stationId })}
           </Text>
 
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 10 }}
           >
@@ -264,9 +264,10 @@ function PheromoneTrapForm({
             {/* Access (same as BS) */}
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>{i18n.t("components.stationForms.common.access")}</Text>
-              <View style={styles.toggleButtonsContainer}>
+              <View style={[styles.toggleButtonsContainer, ["Damaged","Missing"].includes(condition) && {opacity:0.5}]}>
                 <TouchableOpacity
                   style={[styles.toggleButton, access === "Yes" && styles.toggleActive]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("Yes")}
                 >
                   <Text style={[styles.toggleText, access === "Yes" && styles.toggleTextActive]}>
@@ -276,6 +277,7 @@ function PheromoneTrapForm({
 
                 <TouchableOpacity
                   style={[styles.toggleButton, access === "No" && styles.toggleActive]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("No")}
                 >
                   <Text style={[styles.toggleText, access === "No" && styles.toggleTextActive]}>

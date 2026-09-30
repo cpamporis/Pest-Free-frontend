@@ -1646,7 +1646,6 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         </TouchableOpacity>
 
         <MaterialSelector value={selectedMaterials} onChange={setSelectedMaterials} onTotal={setMaterialTotal}/>
-        {commercialEnabled&&<Text style={{fontWeight:"700",marginVertical:10}}>Σύνολο υπηρεσίας + υλικών: {money(Math.round(buildVatPricePayload(servicePrice,serviceVatPercent).servicePrice*100)+materialTotal)}</Text>}
         <AppointmentBusinessFields category={appointmentCategory} recurrenceDays={recurrenceDays}
           containerStyle={[styles.serviceSelector, styles.businessFieldsCard]}
           onRecurrenceChange={setRecurrenceDays} totalVisits={totalVisits} onTotalVisitsChange={setTotalVisits} />
@@ -1691,7 +1690,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           />
 
           <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#2c3e50" }}>
-            {(i18n.t("admin.schedule.servicePrice.totalWithVat") || "Total with VAT")}: €
+            Κόστος Υπηρεσίας με ΦΠΑ: €
             {buildVatPricePayload(servicePrice, serviceVatPercent).servicePrice.toFixed(2)}
           </Text>
         </View>
@@ -1800,6 +1799,9 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                     </Text>
                   </View>
                   
+                  <Text style={{marginTop:12,fontWeight:'700',color:'#2c3e50'}}>
+                    Συνολικό κόστος με ΦΠΑ: {money(item.totalPriceCents ?? Math.round(Number(item.servicePrice ?? item.service_price ?? 0)*100))}
+                  </Text>
                   {item.status === 'completed' && (
                     <View style={styles.completedBadge}>
                       <MaterialIcons name="check-circle" size={12} color="#1f9c8b" />
@@ -2244,7 +2246,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                   </View>
 
                   <Text style={{ marginTop: 8, fontSize: 14, fontWeight: "600", color: "#2c3e50" }}>
-                    {(i18n.t("admin.schedule.servicePrice.totalWithVat") || "Total with VAT")}: €
+                    Κόστος Υπηρεσίας με ΦΠΑ: €
                     {buildVatPricePayload(editServicePrice, editServiceVatPercent).servicePrice.toFixed(2)}
                   </Text>
                 </View>

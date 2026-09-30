@@ -447,7 +447,6 @@ export default function MaterialsScreen({ onClose }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollViewContent}
         >
-          <MaterialSelector manage />
           {/* HEADER */}
           <View style={styles.header}>
             <View style={styles.headerTop}>
@@ -963,6 +962,8 @@ export default function MaterialsScreen({ onClose }) {
               </Text>
             </View>
           </View>
+
+          <MaterialSelector manage />
 
           {/* FOOTER */}
           <View style={styles.footer}>

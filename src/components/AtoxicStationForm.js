@@ -49,14 +49,13 @@ function AtoxicStationForm({
 
   // Add this effect to reset form when access changes to "No"
   React.useEffect(() => {
-    if (access === "No") {
+    if (access === "No" || condition === "Damaged" || condition === "Missing") {
       setCapture(null);
       setRodentsCaptured("");
-      setCondition(null);
       setTriggered(null);
       setReplacedSurface(null);
     }
-  }, [access]);
+  }, [access, condition]);
 
 
 
@@ -170,7 +169,7 @@ function AtoxicStationForm({
             })}
           </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Capture */}
             <Text style={styles.label}>{i18n.t("components.stationForms.atoxicStation.capture")}</Text>
@@ -278,6 +277,7 @@ function AtoxicStationForm({
                 <TouchableOpacity
                   key={v}
                   style={[styles.toggle, access === v && styles.active]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => {
                     setAccess(v);
                   }}

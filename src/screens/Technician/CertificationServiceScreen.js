@@ -1555,6 +1555,7 @@ const handleSaveAll = async () => {
         <View style={styles.container}>
           {/* Keep the top buttons for navigation */}
           <View style={styles.topButtons}>
+            <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} buttonStyle={styles.backBtn} textStyle={styles.backBtnText}/>
             <TouchableOpacity style={styles.backBtn} onPress={onBack}>
               <Text style={styles.backBtnText}>← {i18n.t("technician.common.back")}</Text>
             </TouchableOpacity>
@@ -1639,7 +1640,6 @@ const handleSaveAll = async () => {
       keyboardVerticalOffset={0}
     >
       {paymentDialog}
-      <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} />
 
       <View
         style={styles.container}
@@ -1647,6 +1647,7 @@ const handleSaveAll = async () => {
       >
           {/* Top Bar with Timer */}
           <View style={styles.topButtons}>
+            <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} buttonStyle={styles.backBtn} textStyle={styles.backBtnText}/>
             {editMode ? (
               <TouchableOpacity
                 style={styles.backBtn}
@@ -2541,6 +2542,7 @@ const styles = StyleSheet.create({
 
   topButtons: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 60 : 40,

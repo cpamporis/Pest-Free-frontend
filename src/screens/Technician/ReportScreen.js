@@ -166,6 +166,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
 
       chemicalsUsed: logData.chemicals_used || logData.chemicalsUsed || [],
       treatedAreas: logData.treated_areas || logData.treatedAreas || [],
+      chargeableMaterials: logData.chargeableMaterials || [],
       images: logData.images || [],
 
       start_time: logData.service_start_time || logData.serviceStartTime,
@@ -682,16 +683,8 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
 
   // Helper to render service details section
   const renderServiceDetails = () => {
-  if (
-    !report ||
-    (
-      report.serviceType !== "myocide" &&
-      report.serviceType !== "certificate"
-    )
-  ) {
-    return null;
-  }
-  
+  if (!report) return null;
+
   const serviceDetails = getServiceDetailsLabel(report);
   
   return (
@@ -823,7 +816,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
               {report.treatedAreas.flatMap((area, areaIndex) => {
                 const areaChemicals = area.chemicals || [];
                 
-                if (areaChemicals.length === 0 && (area.concentrationPercent || area.volumeMl)) {
+                if (areaChemicals.length === 0) {
                   return (
                     <View key={`area-${areaIndex}-0`} style={styles.tableRow}>
                       <Text style={[styles.tableCell, { flex: 2 }]}>
@@ -1841,6 +1834,16 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
           renderServiceDetails()}
         
         
+        {!!report.chargeableMaterials?.length && <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="inventory-2" size={20} color="#2c3e50"/>
+            <Text style={styles.sectionTitle}>Υλικά</Text>
+          </View>
+          {report.chargeableMaterials.map((material,index) => <View key={`${material.itemId}-${index}`} style={styles.tableRow}>
+            <Text style={[styles.tableCell,{flex:3}]}>{material.name}</Text>
+            <Text style={[styles.tableCell,{flex:1}]}>Ποσότητα: {material.quantity}</Text>
+          </View>)}
+        </View>}
         {renderTreatmentPhotos()}  
       
         {renderServiceNotes()}

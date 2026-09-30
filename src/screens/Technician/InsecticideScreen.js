@@ -1116,6 +1116,8 @@ export default function InsecticideScreen({
             </Text>
           </View>
 
+          <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} buttonStyle={styles.navigateButton} textStyle={styles.navigateText}/>
+
           <TouchableOpacity 
             style={styles.navigateButton}
             onPress={onNavigate}
@@ -1969,7 +1971,6 @@ export default function InsecticideScreen({
   return (
       <SafeAreaView style={styles.container}>
       {paymentDialog}
-      <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} />
 
         <KeyboardAvoidingView 
           style={{ flex: 1 }}

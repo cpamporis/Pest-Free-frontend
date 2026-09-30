@@ -84,6 +84,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
         access: access || "Yes",
         // Explicitly set other fields to null
         consumption: null,
+        dosage_g: null,
         baitType: null,
         condition,
         technicianId: technician?.id,
@@ -160,13 +161,15 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
   };
 
   React.useEffect(() => {
-    if (access === "No") {
+    if (access === "No" || condition === "Damaged" || condition === "Missing") {
       setConsumption("");
       setBaitType("");
-      setCondition(null);
       setDosageG(null);
+      setShowConsumptionDropdown(false);
+      setShowBaitTypeDropdown(false);
+      setShowDosageDropdown(false);
     }
-  }, [access]);
+  }, [access, condition]);
 
   return (
     <Modal
@@ -191,7 +194,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
             </View>
           )}
 
-          <ScrollView
+          <ScrollView keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 10 }}
           >
@@ -357,6 +360,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                     styles.toggleButton,
                     access === "Yes" && styles.toggleActive,
                   ]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("Yes")}
                 >
                   <Text
@@ -374,6 +378,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                     styles.toggleButton,
                     access === "No" && styles.toggleActive,
                   ]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("No")}
                 >
                   <Text
