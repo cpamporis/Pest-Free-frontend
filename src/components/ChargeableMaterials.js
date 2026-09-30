@@ -46,7 +46,7 @@ export function materialsTotal(lines, catalog) {
     return sum + net + Math.round(net * Number(item.vat_basis_points) / 10000);
   }, 0);
 }
-export function MaterialSelector({value = [], onChange, onTotal, manage = false, snapshotLines = []}) {
+export function MaterialSelector({value = [], onChange, onTotal, manage = false, snapshotLines = [], containerStyle}) {
   const [expanded,setExpanded] = useState(manage), [enabled,setEnabled] = useState(false);
   const [catalog,setCatalog] = useState({categories:[],items:[]}), [category,setCategory] = useState(null);
   const [form,setForm] = useState(null), [editing,setEditing] = useState(null);
@@ -94,7 +94,7 @@ export function MaterialSelector({value = [], onChange, onTotal, manage = false,
   if (!enabled) return null;
   const unitNet = Math.round(Number(net.replace(',','.')) * 100);
   const unitGross = unitNet + Math.round(unitNet * Number(vat.replace(',','.')) / 100);
-  return <View style={s.panel}>
+  return <View style={[s.panel,containerStyle]}>
     <View style={s.heading}><MaterialIcons name="inventory-2" size={20} color="#2c3e50"/><Text style={s.title}>Υλικά{!manage ? ' (προαιρετικά)' : ''}</Text></View>
     {!manage && <DropdownButton label={`Επιλογή υλικών${value.length ? ` · ${value.length}` : ''}`} open={expanded} onPress={() => setExpanded(!expanded)}/>}
     {expanded && <>
@@ -144,5 +144,5 @@ export const s = StyleSheet.create({
   stepper:{padding:10,borderWidth:1,borderColor:'#e0e0e0',borderRadius:10},
   total:{marginTop:12,fontWeight:'600',fontSize:14,color:'#2c3e50'},error:{color:'#b93838',marginVertical:8},
   button:{backgroundColor:'#1f9c8b',borderRadius:10,padding:13,marginVertical:6,alignItems:'center'},buttonText:{color:'#fff',fontWeight:'600'},
-  overlay:{flex:1,backgroundColor:'#0008',justifyContent:'center',padding:18},dialog:{flexGrow:0,maxHeight:'90%',backgroundColor:'#fff',padding:20,borderRadius:18}
+  overlay:{flex:1,backgroundColor:'#0008',justifyContent:'center',padding:24},dialog:{flexGrow:0,maxHeight:'90%',backgroundColor:'#fff',padding:20,borderRadius:18}
 });

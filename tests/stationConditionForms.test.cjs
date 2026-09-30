@@ -31,6 +31,11 @@ for(const [name,type,fields] of [
  let tree=runner.render();nodes(tree).find(n=>n.type==='ConditionPicker').props.onChange(condition);tree=runner.render();
  const inputs=nodes(tree).filter(n=>n.type==='TextInput');for(const input of inputs)assert.equal(input.props.editable,false);
  const buttons=nodes(tree).filter(n=>n.type==='TouchableOpacity');
+ // Locate the final Yes/No pair; earlier pairs belong to measurement fields.
+ const toggles=buttons.filter(n=>/common\.(yes|no)$/.test(content(n)));
+ assert.equal(toggles.length>=2,true);
+ for(const button of toggles.slice(-2))assert.equal(!!button.props.disabled,false,'access remains interactive');
+ const order=nodes(tree);assert.ok(order.findIndex(n=>n.type==='ConditionPicker')<order.findIndex(n=>n.type==='Text'&&content(n).endsWith('common.access')));
  const save=buttons.find(n=>/save/i.test(content(n)));assert.ok(save);assert.equal(!!save.props.disabled,false);
  await save.props.onPress();assert.equal(saved.condition,condition);assert.equal(closed,true);
  for(const field of fields)assert.equal(saved[field],null,field);

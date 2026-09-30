@@ -1645,7 +1645,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           <MaterialIcons name="expand-more" size={24} color="#666" />
         </TouchableOpacity>
 
-        <MaterialSelector value={selectedMaterials} onChange={setSelectedMaterials} onTotal={setMaterialTotal}/>
+        <MaterialSelector containerStyle={{marginHorizontal:24}} value={selectedMaterials} onChange={setSelectedMaterials} onTotal={setMaterialTotal}/>
         <AppointmentBusinessFields category={appointmentCategory} recurrenceDays={recurrenceDays}
           containerStyle={[styles.serviceSelector, styles.businessFieldsCard]}
           onRecurrenceChange={setRecurrenceDays} totalVisits={totalVisits} onTotalVisitsChange={setTotalVisits} />
@@ -3463,6 +3463,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     backgroundColor: "#0008",
     padding: 20,
+    paddingHorizontal: 24,
   },
   appointmentModalContainer: {
     backgroundColor: '#fff',

@@ -155,7 +155,6 @@ function PheromoneTrapForm({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 10 }}
           >
-            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Pheromone Type Dropdown */}
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, disabled && styles.disabledText]}>
@@ -261,13 +260,13 @@ function PheromoneTrapForm({
               />
             </View>
 
+            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Access (same as BS) */}
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>{i18n.t("components.stationForms.common.access")}</Text>
-              <View style={[styles.toggleButtonsContainer, ["Damaged","Missing"].includes(condition) && {opacity:0.5}]}>
+              <View style={styles.toggleButtonsContainer}>
                 <TouchableOpacity
                   style={[styles.toggleButton, access === "Yes" && styles.toggleActive]}
-                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("Yes")}
                 >
                   <Text style={[styles.toggleText, access === "Yes" && styles.toggleTextActive]}>
@@ -277,7 +276,6 @@ function PheromoneTrapForm({
 
                 <TouchableOpacity
                   style={[styles.toggleButton, access === "No" && styles.toggleActive]}
-                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("No")}
                 >
                   <Text style={[styles.toggleText, access === "No" && styles.toggleTextActive]}>

@@ -198,7 +198,6 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 10 }}
           >
-            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Bait Consumption */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>
@@ -351,6 +350,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
               )}
             </View>
 
+            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Access */}
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>{i18n.t("components.stationForms.common.access")}</Text>
@@ -360,7 +360,6 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                     styles.toggleButton,
                     access === "Yes" && styles.toggleActive,
                   ]}
-                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("Yes")}
                 >
                   <Text
@@ -378,7 +377,6 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                     styles.toggleButton,
                     access === "No" && styles.toggleActive,
                   ]}
-                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("No")}
                 >
                   <Text

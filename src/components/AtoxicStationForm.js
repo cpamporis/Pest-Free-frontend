@@ -170,7 +170,6 @@ function AtoxicStationForm({
           </Text>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Capture */}
             <Text style={styles.label}>{i18n.t("components.stationForms.atoxicStation.capture")}</Text>
             <View style={styles.row}>
@@ -270,6 +269,7 @@ function AtoxicStationForm({
               </>
             )}
 
+            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Access */}
             <Text style={styles.label}>{i18n.t("components.stationForms.common.access")}</Text>
             <View style={styles.row}>
@@ -277,7 +277,6 @@ function AtoxicStationForm({
                 <TouchableOpacity
                   key={v}
                   style={[styles.toggle, access === v && styles.active]}
-                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => {
                     setAccess(v);
                   }}

@@ -136,7 +136,6 @@ function LightTrapForm({
           </Text>
 
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <StationConditionPicker value={condition} onChange={setCondition} />
             {[
               ["Mosquitoes", mosquitoes, setMosquitoes],
               ["Lepidoptera", lepidoptera, setLepidoptera],
@@ -241,9 +240,10 @@ function LightTrapForm({
               ))}
             </View>
 
+            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Access */}
             <Text style={styles.label}>{i18n.t("components.stationForms.common.access")}</Text>
-            <View style={[styles.row, ["Damaged","Missing"].includes(condition) && {opacity:0.5}]}>
+            <View style={styles.row}>
               {["Yes", "No"].map(v => (
                 <TouchableOpacity
                   key={v}
@@ -251,7 +251,6 @@ function LightTrapForm({
                     styles.toggle, 
                     access === v && styles.active
                   ]}
-                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess(v)}
                 >
                   <Text style={access === v && styles.activeText}>
