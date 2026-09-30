@@ -1,3 +1,4 @@
+import StationConditionPicker from "./StationConditionPicker";
 //components/PheromoneTrapForm.js
 import React, { useEffect, useState } from "react";
 import {
@@ -26,7 +27,7 @@ function PheromoneTrapForm({
   const [pheromoneType, setPheromoneType] = useState(existingStationData?.pheromoneType || "");
   const [replacedPheromone, setReplacedPheromone] = useState(existingStationData?.replacedPheromone || null);
   const [insectsCaptured, setInsectsCaptured] = useState(existingStationData?.insectsCaptured || "");
-  const [damaged, setDamaged] = useState(existingStationData?.damaged || null);
+  const [condition, setCondition] = useState(existingStationData?.condition || (existingStationData?.damaged === "Yes" ? "Damaged" : existingStationData?.damaged === "No" ? "Functional" : null));
   const [access, setAccess] = useState(existingStationData?.access || null);
 
   const [loading, setLoading] = useState(false);
@@ -64,21 +65,22 @@ function PheromoneTrapForm({
       setPheromoneType("");
       setReplacedPheromone(null);
       setInsectsCaptured("");
-      setDamaged(null);
+      
       setShowDropdown(false);
     }
   }, [access]);
 
   const saveData = async () => {
-    if (access === "No") {
+    if (access === "No" || condition === "Damaged" || condition === "Missing") {
       onStationLogged({
         stationId,
         stationType: "PT",
-        access: "No",
+        access: access || "Yes",
         pheromoneType: null,
         replacedPheromone: null,
         insectsCaptured: null,
         damaged: null,
+        condition,
         technicianId: technician?.id,
         technicianName: technician?.name,
         visitId: timerData?.visitId,
@@ -105,7 +107,7 @@ function PheromoneTrapForm({
     }
 
     // insectsCaptured: allow empty, since user may want to leave blank.
-    if (!damaged) {
+    if (!condition) {
       Alert.alert(
         i18n.t("components.stationForms.common.incompleteForm"),
         i18n.t("components.stationForms.pheromoneTrap.error.damagedRequired")
@@ -127,7 +129,8 @@ function PheromoneTrapForm({
       pheromoneType,
       replacedPheromone,
       insectsCaptured,
-      damaged,
+      condition,
+      damaged: condition === "Damaged" ? "Yes" : "No",
       access,
       technicianId: technician?.id,
       technicianName: technician?.name,
@@ -138,7 +141,7 @@ function PheromoneTrapForm({
     onClose();
   };
 
-  const disabled = access === "No";
+  const disabled = access === "No" || condition === "Damaged" || condition === "Missing";
 
   return (
     <Modal transparent animationType="fade" visible statusBarTranslucent>
@@ -152,6 +155,7 @@ function PheromoneTrapForm({
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 10 }}
           >
+            <StationConditionPicker value={condition} onChange={setCondition} />
             {/* Pheromone Type Dropdown */}
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, disabled && styles.disabledText]}>
@@ -255,50 +259,6 @@ function PheromoneTrapForm({
                 editable={!disabled}
                 textAlignVertical="top"
               />
-            </View>
-
-            {/* Damaged */}
-            <View style={styles.toggleContainer}>
-              <Text style={[styles.toggleLabel, disabled && styles.disabledText]}>
-                {i18n.t("components.stationForms.pheromoneTrap.damaged")}
-              </Text>
-              <View style={styles.toggleButtonsContainer}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    damaged === "Yes" && styles.toggleActive,
-                    disabled && styles.disabledToggle
-                  ]}
-                  onPress={() => { if (!disabled) setDamaged("Yes"); }}
-                  disabled={disabled}
-                >
-                  <Text style={[
-                    styles.toggleText,
-                    damaged === "Yes" && styles.toggleTextActive,
-                    disabled && styles.disabledText
-                  ]}>
-                    {i18n.t("components.stationForms.common.yes")}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.toggleButton,
-                    damaged === "No" && styles.toggleActive,
-                    disabled && styles.disabledToggle
-                  ]}
-                  onPress={() => { if (!disabled) setDamaged("No"); }}
-                  disabled={disabled}
-                >
-                  <Text style={[
-                    styles.toggleText,
-                    damaged === "No" && styles.toggleTextActive,
-                    disabled && styles.disabledText
-                  ]}>
-                    {i18n.t("components.stationForms.common.no")}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
 
             {/* Access (same as BS) */}

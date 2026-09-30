@@ -1,3 +1,4 @@
+import CommercialServicePanel from "../../components/CommercialServicePanel";
 import useServiceSettlement from "../../components/useServiceSettlement";
 // DisinfectionScreen.js - PROFESSIONAL STYLING ONLY
 import React, { useEffect, useRef, useState } from 'react';
@@ -2153,6 +2154,7 @@ export default function DisinfectionScreen({
   return (
     <SafeAreaView style={styles.container}>
       {paymentDialog}
+      <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} />
 
       <KeyboardAvoidingView 
         style={{ flex: 1 }}

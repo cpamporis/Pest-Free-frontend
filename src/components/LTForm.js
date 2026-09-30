@@ -1,3 +1,4 @@
+import StationConditionPicker from "./StationConditionPicker";
 // LightTrapForm.js
 import React, { useState } from "react";
 import {
@@ -43,11 +44,11 @@ function LightTrapForm({
 
   const handleSave = () => {
     // ACCESS EXCEPTION
-    if (access === "No") {
+    if (access === "No" || condition === "Damaged" || condition === "Missing") {
       onStationLogged({
         stationType: "LT",
         stationId,
-        access: "No",
+        access: access || "Yes",
         // Explicitly set other fields to null
         mosquitoes: null,
         lepidoptera: null,
@@ -55,7 +56,7 @@ function LightTrapForm({
         flies: null,
         others: null,
         replaceBulb: null,
-        condition: null,
+        condition,
         technicianId: technician?.id,
         technicianName: technician?.name,
         visitId: timerData?.visitId,
@@ -135,6 +136,7 @@ function LightTrapForm({
           </Text>
 
           <ScrollView showsVerticalScrollIndicator={false}>
+            <StationConditionPicker value={condition} onChange={setCondition} />
             {[
               ["Mosquitoes", mosquitoes, setMosquitoes],
               ["Lepidoptera", lepidoptera, setLepidoptera],
@@ -144,7 +146,7 @@ function LightTrapForm({
               <View key={label}>
                 <Text style={[
                   styles.label,
-                  access === "No" && styles.disabledLabel
+                  (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledLabel
                 ]}>
                   {label === "Mosquitoes" ? i18n.t("components.stationForms.lightTrap.mosquitoes") :
                    label === "Lepidoptera" ? i18n.t("components.stationForms.lightTrap.lepidoptera") :
@@ -154,15 +156,15 @@ function LightTrapForm({
                 <TextInput
                   style={[
                     styles.input,
-                    access === "No" && styles.disabledInput
+                    (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledInput
                   ]}
                   keyboardType="numeric"
                   placeholder={i18n.t("components.stationForms.lightTrap.enterValue") || "Enter value"}
                   value={value}
                   onChangeText={(text) => {
-                    if (access !== "No") setter(text);
+                    if ((access !== "No" && condition !== "Damaged" && condition !== "Missing")) setter(text);
                   }}
-                  editable={access !== "No"}
+                  editable={(access !== "No" && condition !== "Damaged" && condition !== "Missing")}
                 />
               </View>
             ))}
@@ -170,35 +172,35 @@ function LightTrapForm({
             {/* Others */}
             <Text style={[
               styles.label,
-              access === "No" && styles.disabledLabel
+              (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledLabel
             ]}>{i18n.t("components.stationForms.lightTrap.others")} :</Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <TextInput
                 style={[
                   styles.input, 
                   { flex: 1 },
-                  access === "No" && styles.disabledInput
+                  (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledInput
                 ]}
                 placeholder={i18n.t("components.stationForms.lightTrap.otherPlaceholder")}
                 value={otherInput}
                 onChangeText={(text) => {
-                  if (access !== "No") setOtherInput(text);
+                  if ((access !== "No" && condition !== "Damaged" && condition !== "Missing")) setOtherInput(text);
                 }}
-                editable={access !== "No"}
+                editable={(access !== "No" && condition !== "Damaged" && condition !== "Missing")}
               />
               <TouchableOpacity 
                 style={[
                   styles.addBtn,
-                  access === "No" && styles.disabledAddBtn
+                  (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledAddBtn
                 ]} 
                 onPress={() => {
-                  if (access !== "No") addOther();
+                  if ((access !== "No" && condition !== "Damaged" && condition !== "Missing")) addOther();
                 }}
-                disabled={access === "No"}
+                disabled={(access === "No" || condition === "Damaged" || condition === "Missing")}
               >
                 <Text style={[
                   styles.addText,
-                  access === "No" && styles.disabledText
+                  (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledText
                 ]}>+</Text>
               </TouchableOpacity>
             </View>
@@ -206,14 +208,14 @@ function LightTrapForm({
             {others.map((o, i) => (
               <Text key={i} style={[
                 styles.otherItem,
-                access === "No" && styles.disabledText
+                (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledText
               ]}>• {o}</Text>
             ))}
 
             {/* Replace Bulb */}
             <Text style={[
               styles.label,
-              access === "No" && styles.disabledLabel
+              (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledLabel
             ]}>{i18n.t("components.stationForms.lightTrap.replaceBulb")}</Text>
             <View style={styles.row}>
               {["Yes", "No"].map(v => (
@@ -222,49 +224,18 @@ function LightTrapForm({
                   style={[
                     styles.toggle, 
                     replaceBulb === v && styles.active,
-                    access === "No" && styles.disabledToggle
+                    (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledToggle
                   ]}
                   onPress={() => {
-                    if (access !== "No") setReplaceBulb(v);
+                    if ((access !== "No" && condition !== "Damaged" && condition !== "Missing")) setReplaceBulb(v);
                   }}
-                  disabled={access === "No"}
+                  disabled={(access === "No" || condition === "Damaged" || condition === "Missing")}
                 >
                   <Text style={[
                     replaceBulb === v && styles.activeText,
-                    access === "No" && styles.disabledText
+                    (access === "No" || condition === "Damaged" || condition === "Missing") && styles.disabledText
                   ]}>
                     {v === "Yes" ? i18n.t("components.stationForms.common.yes") : i18n.t("components.stationForms.common.no")}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Condition */}
-            <Text style={[
-              styles.label,
-              access === "No" && styles.disabledLabel
-            ]}>{i18n.t("components.stationForms.common.condition")}</Text>
-            <View style={styles.row}>
-              {["Functional", "Damaged"].map(v => (
-                <TouchableOpacity
-                  key={v}
-                  style={[
-                    styles.toggle, 
-                    condition === v && styles.active,
-                    access === "No" && styles.disabledToggle
-                  ]}
-                  onPress={() => {
-                    if (access !== "No") setCondition(v);
-                  }}
-                  disabled={access === "No"}
-                >
-                  <Text style={[
-                    condition === v && styles.activeText,
-                    access === "No" && styles.disabledText
-                  ]}>
-                    {v === "Functional" 
-                      ? i18n.t("components.stationForms.common.functional") 
-                      : i18n.t("components.stationForms.common.damaged")}
                   </Text>
                 </TouchableOpacity>
               ))}

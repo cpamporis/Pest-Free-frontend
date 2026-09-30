@@ -1,3 +1,5 @@
+import { MaterialSelector, Action as CommercialAction, money } from "../../components/ChargeableMaterials";
+import CommercialEditor from "../../components/CommercialEditor";
 import AppointmentBusinessFields from "../../components/AppointmentBusinessFields";
 import { appointmentOptionsValid } from "../../utils/customerBilling";
 // AdminTechSchedule.js - iOS
@@ -94,6 +96,11 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
   });
   const [complianceValidUntil, setComplianceValidUntil] = useState("");
   const [showCompliancePicker, setShowCompliancePicker] = useState(false);
+  const [commercialEditing,setCommercialEditing]=useState(null);
+  const [commercialEnabled,setCommercialEnabled]=useState(false);
+  const [selectedMaterials,setSelectedMaterials]=useState([]);
+  const [materialTotal,setMaterialTotal]=useState(0);
+  useEffect(()=>{apiService.commercialCapabilities().then(r=>setCommercialEnabled(r.enabled===true));},[]);
   const [servicePrice, setServicePrice] = useState("");
   const [serviceVatPercent, setServiceVatPercent] = useState("24");
   const [appointmentCategory, setAppointmentCategory] = useState("first_time");
@@ -543,6 +550,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         recurrenceDays: appointmentCategory === "contract_service" ? recurrenceDays : null,
         totalVisits: appointmentCategory === "contract_service" ? totalVisits : null,
         ...pricePayload,
+        ...(commercialEnabled ? {materials:selectedMaterials} : {}),
         status: "scheduled",
         ...(complianceValidUntil && {
           compliance_valid_until: complianceValidUntil
@@ -580,6 +588,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
         return Alert.alert(i18n.t("common.error"), res.error || i18n.t("admin.schedule.addCustomer.createFailed") || "Failed to create appointment");
       }
 
+      setSelectedMaterials([]);
       await loadAppointments();
       Alert.alert(i18n.t("common.success"),
         res.scheduledVisits > 1
@@ -1636,6 +1645,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           <MaterialIcons name="expand-more" size={24} color="#666" />
         </TouchableOpacity>
 
+        <MaterialSelector value={selectedMaterials} onChange={setSelectedMaterials} onTotal={setMaterialTotal}/>
+        {commercialEnabled&&<Text style={{fontWeight:"700",marginVertical:10}}>Σύνολο υπηρεσίας + υλικών: {money(Math.round(buildVatPricePayload(servicePrice,serviceVatPercent).servicePrice*100)+materialTotal)}</Text>}
         <AppointmentBusinessFields category={appointmentCategory} recurrenceDays={recurrenceDays}
           containerStyle={[styles.serviceSelector, styles.businessFieldsCard]}
           onRecurrenceChange={setRecurrenceDays} totalVisits={totalVisits} onTotalVisitsChange={setTotalVisits} />
@@ -1735,6 +1746,7 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
                       </Text>
                     </View>
                     <View style={{ flexDirection: "row", gap: 8 }}>
+                      {commercialEnabled && item.status !== "cancelled" && <CommercialAction label="Χρέωση / Υλικά" onPress={()=>setCommercialEditing(item.id)} />}
                       {/* Edit Button - Only show for non-completed, non-cancelled appointments */}
                       {!isCompletedOrCancelled && (item.serviceType === 'insecticide' || item.serviceType === 'disinfection' || item.serviceType === 'special' || item.serviceType === 'myocide' || item.serviceType === 'certificate') && (
                         <TouchableOpacity
@@ -2647,7 +2659,8 @@ export default function AdminTechSchedule({ onClose, initialCustomerId, onAppoin
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    {commercialEditing&&<CommercialEditor appointmentId={commercialEditing} onClose={()=>setCommercialEditing(null)} onSaved={loadAppointments}/>}
+</SafeAreaView>
   );
 }
 

@@ -1,3 +1,5 @@
+import CommercialServicePanel from "../../components/CommercialServicePanel";
+import { normalizeStation } from "../../utils/stationCondition";
 import useServiceSettlement from "../../components/useServiceSettlement";
 // MyocideScreen.js - Production iOS
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -1013,7 +1015,7 @@ const handleSaveAll = async () => {
     }
     
     // When access is "No", explicitly set other fields to null
-    const normalized = {
+    const normalized = normalizeStation({
       ...stationData,
       stationId: fixedStationId,
       stationType: stationData.stationType || "BS",
@@ -1031,9 +1033,9 @@ const handleSaveAll = async () => {
         flies: null,
         others: null,
         replaceBulb: null,
-        condition: null
+        condition: stationData.condition
       } : {})
-    };
+    });
     setLoggedStations(prev => {
       const index = prev.findIndex(
         s =>
@@ -1488,6 +1490,7 @@ const handleSaveAll = async () => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 110 : 0}
     >
       {paymentDialog}
+      <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} />
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.container}>

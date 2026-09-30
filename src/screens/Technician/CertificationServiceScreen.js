@@ -1,3 +1,5 @@
+import CommercialServicePanel from "../../components/CommercialServicePanel";
+import { normalizeStation } from "../../utils/stationCondition";
 import useServiceSettlement from "../../components/useServiceSettlement";
 // CertificationServiceScreen.js - Test iOS
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -1141,7 +1143,7 @@ const handleSaveAll = async () => {
     }
     
     // When access is "No", explicitly set other fields to null
-    const normalized = {
+    const normalized = normalizeStation({
       ...stationData,
       stationId: fixedStationId,
       stationType: stationData.stationType || "BS",
@@ -1159,9 +1161,9 @@ const handleSaveAll = async () => {
         flies: null,
         others: null,
         replaceBulb: null,
-        condition: null
+        condition: stationData.condition
       } : {})
-    };
+    });
 
     setLoggedStations(prev => {
       const index = prev.findIndex(
@@ -1636,6 +1638,7 @@ const handleSaveAll = async () => {
       keyboardVerticalOffset={0}
     >
       {paymentDialog}
+      <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} />
 
       <View
         style={styles.container}

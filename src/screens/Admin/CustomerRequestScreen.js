@@ -1,3 +1,4 @@
+import TechnicianRequestsPanel from "../../components/TechnicianRequestsPanel";
 // CustomerRequestScreen.js - UPDATED MODAL STYLING
 import React, { useState, useEffect } from "react";
 import {
@@ -1011,6 +1012,7 @@ const MONTH_KEYS = [
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
+        <TechnicianRequestsPanel />
         {/* HEADER - Now part of the scrollable content */}
         <View style={styles.header}>
           <View style={styles.headerTop}>

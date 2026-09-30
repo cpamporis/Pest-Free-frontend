@@ -1,3 +1,4 @@
+import { MaterialSelector } from "../../components/ChargeableMaterials";
 import MaterialCatalogPicker from "../../components/MaterialCatalogPicker";
 // MaterialsScreen.js - Updated version
 import React, { useEffect, useState } from "react";
@@ -446,6 +447,7 @@ export default function MaterialsScreen({ onClose }) {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollViewContent}
         >
+          <MaterialSelector manage />
           {/* HEADER */}
           <View style={styles.header}>
             <View style={styles.headerTop}>

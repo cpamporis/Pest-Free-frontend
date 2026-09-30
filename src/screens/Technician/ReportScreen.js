@@ -154,6 +154,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
       serviceType: (logData.service_type || logData.serviceType || "").toLowerCase(),
       serviceSubtype: logData.service_subtype || logData.serviceSubtype,
       notes: logData.notes || "",
+      businessNotes: logData.businessNotes || [],
       visitId: logData.visit_id || logData.visitId || visitId,
 
       insecticideDetails: logData.insecticide_details || logData.insecticideDetails,
@@ -584,6 +585,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
       Yes: i18n.t("components.stationForms.common.yes"),
       No: i18n.t("components.stationForms.common.no"),
       Functional: i18n.t("components.stationForms.common.functional"),
+      Missing: "Λείπει",
       Damaged: i18n.t("components.stationForms.common.damaged"),
     };
 
@@ -591,7 +593,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
   };
 
   const renderServiceNotes = () => {
-    if (!report || !report.notes) return null;
+    if (!report || (!report.notes && !report.businessNotes?.length)) return null;
     
     return (
       <View style={styles.section}>
@@ -601,6 +603,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
         </View>
         <View style={styles.notesCard}>
           <Text style={styles.notesText}>{report.notes}</Text>
+          {report.businessNotes?.map((note,index)=><Text key={index} style={[styles.notesText,{marginTop:12}]}>Σχόλιο Επιχείρησης: {note}</Text>)}
         </View>
       </View>
     );
@@ -1388,7 +1391,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
                       : "—"}
                   </Text>
                   <Text style={[styles.tableCell, { flex: 0.8 }]}>{s.replace_bulb || "—"}</Text>
-                  <Text style={[styles.tableCell, { flex: 0.8 }]}>{s.condition || "—"}</Text>
+                  <Text style={[styles.tableCell, { flex: 0.8 }]}>{translateToggleValue(s.condition)}</Text>
                   <Text style={[styles.tableCell, { flex: 0.8 }]}>{s.access || "—"}</Text>
                   <Text style={[styles.tableCell, { flex: 0.8 }]}>{getStationStatus("LT", s)}</Text>
                 </View>
@@ -1412,7 +1415,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
                 <Text style={[styles.tableHeaderCell, { flex: 1.5 }]}>{i18n.t("technician.report.stationTables.pheromone")}</Text>
                 <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{i18n.t("technician.report.stationTables.replacedPheromone")}</Text>
                 <Text style={[styles.tableHeaderCell, { flex: 2 }]}>{i18n.t("technician.report.stationTables.insects")}</Text>
-                <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{i18n.t("technician.report.stationTables.damaged")}</Text>
+                <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{i18n.t("technician.report.stationTables.condition")}</Text>
                 <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{i18n.t("technician.report.stationTables.access")}</Text>
               </View>
 
@@ -1435,7 +1438,7 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
                   </Text>
 
                   <Text style={[styles.tableCell, { flex: 1 }]}>
-                    {translateToggleValue(s.damaged)}
+                    {translateToggleValue(s.condition || (s.damaged === "Yes" ? "Damaged" : s.damaged === "No" ? "Functional" : null))}
                   </Text>
 
                   <Text style={[styles.tableCell, { flex: 1 }]}>
@@ -2605,3 +2608,4 @@ debugBadgeText: {
   fontWeight: '600'
 },
 });
+

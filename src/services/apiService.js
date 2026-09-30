@@ -735,6 +735,21 @@ async function uploadOrganizationImage({
 }
 
 const apiService = {
+  commercialCapabilities: () => request("GET","/chargeable-materials/capabilities"),
+  commercialCatalog: () => request("GET","/chargeable-materials/catalog"),
+  commercialCreateCategory: body => request("POST","/chargeable-materials/categories",body),
+  commercialCreateItem: body => request("POST","/chargeable-materials/items",body),
+  commercialAppointment: id => request("GET",`/chargeable-materials/appointments/${encodeURIComponent(id)}`),
+  commercialSave: (id,body) => request("PUT",`/chargeable-materials/appointments/${encodeURIComponent(id)}`,body),
+  commercialRequests: () => request("GET","/chargeable-materials/requests"),
+  commercialReject: id => request("POST",`/chargeable-materials/requests/${encodeURIComponent(id)}/reject`,{}),
+  async commercialSendRequest(id, form) {
+    await authStorageReady;
+    const response = await fetch(`${API_BASE_URL}/chargeable-materials/appointments/${encodeURIComponent(id)}/requests`, {
+      method:"POST",headers:{Authorization:`Bearer ${authToken}`},body:normalizeNativeMultipartBody(form)
+    });
+    const data=await response.json();return response.ok?data:{success:false,error:data.error||"REQUEST_FAILED"};
+  },
   ...createMaterialsCatalogClient({ request, ready: () => authStorageReady, token: () => authToken, baseUrl: API_BASE_URL }),
   // TOKEN MANAGEMENT
   setAuthToken,
@@ -1634,6 +1649,7 @@ const apiService = {
     if (!business?.enabled || business.version !== 1) return { success: false, status: 503, error: "Business features are not enabled on this server" };
 
     const appointmentData = {
+      ...(payload.materials !== undefined ? {materials:payload.materials} : {}),
       technicianId: payload.technicianId,
       customerId: payload.customerId || null,
       legacyCustomerKey: payload.legacyCustomerKey || null,
