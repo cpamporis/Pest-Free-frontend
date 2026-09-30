@@ -881,6 +881,7 @@ export default function DisinfectionScreen({
     // Create FormData
     const formData = new FormData();
     if (settlement.paymentReceived !== undefined) formData.append("paymentReceived", String(settlement.paymentReceived));
+    if (settlement.commercialRevision !== undefined) formData.append("commercialRevision", String(settlement.commercialRevision));
     if (session?.appointmentId) formData.append("appointmentId", String(session.appointmentId));
 
     // Add all payload fields - stringify arrays/objects
