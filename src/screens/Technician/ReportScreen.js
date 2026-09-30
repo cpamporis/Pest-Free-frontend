@@ -1495,20 +1495,24 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
   const renderHealthSafetySection = () => {
     if (!report) return null;
 
-    // 🔹 SOURCE OF TRUTH
-    const materials =
-      report.serviceType === 'myocide'
-        ? report.baitsUsed || []
-        : report.chemicalsUsed || [];
+    // Certificates include both rodent bait and chemical treatments.
+    const materials = [
+      ...(['myocide', 'certificate'].includes(report.serviceType)
+        ? (report.baitsUsed || []).map(material => ({ material, type: 'bait' }))
+        : []),
+      ...(report.serviceType !== 'myocide'
+        ? (report.chemicalsUsed || []).map(material => ({ material, type: 'chemical' }))
+        : []),
+    ];
 
     if (materials.length === 0) return null;
 
-    const materialsWithSafety = materials.map(m => ({
+    const materialsWithSafety = materials.map(({ material, type }) => ({
       ...getMaterialSafetyInfo(
-        typeof m === 'string' ? m : m.name,
-        report.serviceType === 'myocide' ? 'bait' : 'chemical'
+        typeof material === 'string' ? material : material.name,
+        type
       ),
-      originalType: report.serviceType === 'myocide' ? 'bait' : 'chemical'
+      originalType: type
     }));
 
     return (
@@ -1528,9 +1532,11 @@ export default function ReportScreen({ route, navigation, context, onBack }) {
           </View>
 
           <Text style={styles.healthSafetySubtitle}>
-            {report.serviceType === 'myocide'
-              ? i18n.t("technician.report.healthSafety.baitsUsed")
-              : i18n.t("technician.report.healthSafety.chemicalsUsed")}
+            {report.serviceType === 'certificate'
+              ? i18n.t("technician.report.healthSafety.materialsUsed")
+              : report.serviceType === 'myocide'
+                ? i18n.t("technician.report.healthSafety.baitsUsed")
+                : i18n.t("technician.report.healthSafety.chemicalsUsed")}
           </Text>
 
           {materialsWithSafety.map((material, index) => (
