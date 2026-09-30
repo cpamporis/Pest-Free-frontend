@@ -1,3 +1,5 @@
+import CommercialServicePanel from "../../components/CommercialServicePanel";
+import { normalizeStation } from "../../utils/stationCondition";
 import useServiceSettlement from "../../components/useServiceSettlement";
 // MyocideScreen.js - Production iOS
 import React, { useState, useEffect, useRef, useMemo } from "react";
@@ -663,6 +665,7 @@ const handleSaveAll = async () => {
   try {
     const formData = new FormData();
     if (settlement.paymentReceived !== undefined) formData.append("paymentReceived", String(settlement.paymentReceived));
+    if (settlement.commercialRevision !== undefined) formData.append("commercialRevision", String(settlement.commercialRevision));
     if (session?.appointmentId) formData.append("appointmentId", String(session.appointmentId));
 
     // Add the data with properly formatted stations
@@ -1013,7 +1016,7 @@ const handleSaveAll = async () => {
     }
     
     // When access is "No", explicitly set other fields to null
-    const normalized = {
+    const normalized = normalizeStation({
       ...stationData,
       stationId: fixedStationId,
       stationType: stationData.stationType || "BS",
@@ -1031,9 +1034,9 @@ const handleSaveAll = async () => {
         flies: null,
         others: null,
         replaceBulb: null,
-        condition: null
+        condition: stationData.condition
       } : {})
-    };
+    });
     setLoggedStations(prev => {
       const index = prev.findIndex(
         s =>
@@ -1406,6 +1409,7 @@ const handleSaveAll = async () => {
         <View style={styles.container}>
           {/* Keep the top buttons for navigation */}
           <View style={styles.topButtons}>
+            <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} buttonStyle={styles.backBtn} textStyle={styles.backBtnText}/>
             <TouchableOpacity style={styles.backBtn} onPress={onBack}>
               <Text style={styles.backBtnText}>← {i18n.t("technician.common.back")}</Text>
             </TouchableOpacity>
@@ -1493,6 +1497,7 @@ const handleSaveAll = async () => {
         <View style={styles.container}>
           {/* Top Bar with Timer */}
           <View style={styles.topButtons}>
+            <CommercialServicePanel appointmentId={session?.appointmentId} started={serviceStarted} completed={serviceCompleted} buttonStyle={styles.backBtn} textStyle={styles.backBtnText}/>
             {editMode ? (
               <TouchableOpacity
                 style={styles.backBtn}
@@ -2134,6 +2139,7 @@ const styles = StyleSheet.create({
 
   topButtons: {
     flexDirection: "row",
+    flexWrap: "wrap",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "ios" ? 60 : 40,

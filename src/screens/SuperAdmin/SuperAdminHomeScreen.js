@@ -1,3 +1,4 @@
+import MaterialsDatabaseScreen from "./MaterialsDatabaseScreen";
 //SuperAdmin/SuperAdminHomeScreen.js
 import React, { useState } from "react";
 import {
@@ -19,6 +20,7 @@ import {
 } from "../../components/AdminSessionTimer";
 
 export default function SuperAdminHomeScreen({ onLogout }) {
+  const [showMaterials, setShowMaterials] = useState(false);
   const [showOrganizations, setShowOrganizations] = useState(false);
 
   return (
@@ -80,7 +82,16 @@ export default function SuperAdminHomeScreen({ onLogout }) {
               Manage organizations, plans and admins
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity style={styles.moduleCard} onPress={() => setShowMaterials(true)}>
+            <View style={styles.moduleIcon}><MaterialIcons name="science" size={26} color="#fff" /></View>
+            <Text style={styles.moduleTitle}>Materials Database</Text>
+            <Text style={styles.moduleDesc}>Ministry catalog, safety data sheets and monthly updates</Text>
+          </TouchableOpacity>
         </View>
+
+        {showMaterials && <Modal animationType="slide" visible onRequestClose={() => setShowMaterials(false)}>
+          <MaterialsDatabaseScreen onClose={() => setShowMaterials(false)} />
+        </Modal>}
 
         {/* MODAL */}
         {showOrganizations && (

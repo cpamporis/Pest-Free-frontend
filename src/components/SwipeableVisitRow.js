@@ -1,3 +1,4 @@
+import SdsDownloadButton from "./SdsDownloadButton";
 // components/SwipeableVisitRow.js - UPDATED
 import React, { useRef, useState } from 'react';
 import {
@@ -300,13 +301,16 @@ if (
     }
   };
 
+  const [sdsAvailable, setSdsAvailable] = useState(false);
+
   const renderRightActions = () => {
     return (
       <View
         style={[
           styles.rightActionContainer,
           canDownloadCertificate &&
-            styles.rightActionContainerWithCertificate
+            styles.rightActionContainerWithCertificate,
+          sdsAvailable && { width: canDownloadCertificate ? 274 : 184 }
         ]}
       >
         <TouchableOpacity 
@@ -329,6 +333,8 @@ if (
             </View>
           )}
         </TouchableOpacity>
+
+        <SdsDownloadButton reportId={visit.visitId || visit.logId || visit.id} onAvailabilityChange={setSdsAvailable} style={{ width: 76, height: "100%", margin: 0, borderRadius: 0 }} />
 
         {canDownloadCertificate && (
           <TouchableOpacity
