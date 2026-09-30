@@ -116,6 +116,7 @@ function LightTrapForm({
 
   React.useEffect(() => {
     if (access === "No" || condition === "Damaged" || condition === "Missing") {
+      if (access === "No") setCondition(null);
       setMosquitoes("");
       setLepidoptera("");
       setDrosophila("");
@@ -240,8 +241,10 @@ function LightTrapForm({
               ))}
             </View>
 
-            <StationConditionPicker value={condition} onChange={setCondition} />
+            <StationConditionPicker value={condition} onChange={setCondition} disabled={access === "No"} />
             {/* Access */}
+            <View style={{opacity:["Damaged","Missing"].includes(condition)?0.45:1}}>
+
             <Text style={styles.label}>{i18n.t("components.stationForms.common.access")}</Text>
             <View style={styles.row}>
               {["Yes", "No"].map(v => (
@@ -251,6 +254,7 @@ function LightTrapForm({
                     styles.toggle, 
                     access === v && styles.active
                   ]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess(v)}
                 >
                   <Text style={access === v && styles.activeText}>
@@ -258,6 +262,7 @@ function LightTrapForm({
                   </Text>
                 </TouchableOpacity>
               ))}
+            </View>
             </View>
           </ScrollView>
 

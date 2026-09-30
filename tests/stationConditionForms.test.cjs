@@ -34,9 +34,36 @@ for(const [name,type,fields] of [
  // Locate the final Yes/No pair; earlier pairs belong to measurement fields.
  const toggles=buttons.filter(n=>/common\.(yes|no)$/.test(content(n)));
  assert.equal(toggles.length>=2,true);
- for(const button of toggles.slice(-2))assert.equal(!!button.props.disabled,false,'access remains interactive');
+ for(const button of toggles.slice(-2))assert.equal(button.props.disabled,true,'unavailable condition locks access');
  const order=nodes(tree);assert.ok(order.findIndex(n=>n.type==='ConditionPicker')<order.findIndex(n=>n.type==='Text'&&content(n).endsWith('common.access')));
  const save=buttons.find(n=>/save/i.test(content(n)));assert.ok(save);assert.equal(!!save.props.disabled,false);
  await save.props.onPress();assert.equal(saved.condition,condition);assert.equal(closed,true);
  for(const field of fields)assert.equal(saved[field],null,field);
+ const picker=nodes(tree).find(n=>n.type==='ConditionPicker');
+ assert.equal(picker.props.disabled,false,'condition remains available to reverse the choice');
+ picker.props.onChange('Functional');tree=runner.render();
+ const restored=nodes(tree).filter(n=>n.type==='TouchableOpacity'&&/common\.(yes|no)$/.test(content(n))).slice(-2);
+ for(const button of restored)assert.equal(!!button.props.disabled,false,'functional condition unlocks access');
 });
+
+for(const [name,type] of [['BaitStationForm','BS'],['AtoxicStationForm','RM'],['AtoxicStationForm','ST'],['LTForm','LT'],['PheromoneTrapForm','PT']]) {
+ test(`${type}: Access No locks condition and Access Yes restores it`,()=>{
+  const runner=form(name,{stationId:'test',stationType:type,onClose(){},onStationLogged(){},existingStationData:{condition:'Functional',access:'Yes'}});
+  let tree=runner.render();
+  const access=()=>nodes(tree).filter(n=>n.type==='TouchableOpacity'&&/common\.(yes|no)$/.test(content(n))).slice(-2);
+  access()[1].props.onPress();tree=runner.render();
+  const picker=nodes(tree).find(n=>n.type==='ConditionPicker');
+  assert.equal(picker.props.disabled,true);assert.equal(picker.props.value,null);
+  for(const input of nodes(tree).filter(n=>n.type==='TextInput'))assert.equal(input.props.editable,false);
+  for(const button of access())assert.equal(!!button.props.disabled,false,'access must stay reversible');
+  access()[0].props.onPress();tree=runner.render();
+  assert.equal(nodes(tree).find(n=>n.type==='ConditionPicker').props.disabled,false);
+ });
+ test(`${type}: conflicting saved No/Missing cannot deadlock both controls`,()=>{
+  const runner=form(name,{stationId:'test',stationType:type,onClose(){},onStationLogged(){},existingStationData:{condition:'Missing',access:'No'}});
+  const tree=runner.render();
+  assert.equal(nodes(tree).find(n=>n.type==='ConditionPicker').props.value,null);
+  const access=nodes(tree).filter(n=>n.type==='TouchableOpacity'&&/common\.(yes|no)$/.test(content(n))).slice(-2);
+  assert.equal(access.length,2);for(const button of access)assert.equal(!!button.props.disabled,false);
+ });
+}

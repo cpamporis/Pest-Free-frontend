@@ -62,6 +62,7 @@ function PheromoneTrapForm({
 
   useEffect(() => {
     if (access === "No" || condition === "Damaged" || condition === "Missing") {
+      if (access === "No") setCondition(null);
       setPheromoneType("");
       setReplacedPheromone(null);
       setInsectsCaptured("");
@@ -260,13 +261,16 @@ function PheromoneTrapForm({
               />
             </View>
 
-            <StationConditionPicker value={condition} onChange={setCondition} />
+            <StationConditionPicker value={condition} onChange={setCondition} disabled={access === "No"} />
             {/* Access (same as BS) */}
+            <View style={{opacity:["Damaged","Missing"].includes(condition)?0.45:1}}>
+
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>{i18n.t("components.stationForms.common.access")}</Text>
               <View style={styles.toggleButtonsContainer}>
                 <TouchableOpacity
                   style={[styles.toggleButton, access === "Yes" && styles.toggleActive]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("Yes")}
                 >
                   <Text style={[styles.toggleText, access === "Yes" && styles.toggleTextActive]}>
@@ -276,6 +280,7 @@ function PheromoneTrapForm({
 
                 <TouchableOpacity
                   style={[styles.toggleButton, access === "No" && styles.toggleActive]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("No")}
                 >
                   <Text style={[styles.toggleText, access === "No" && styles.toggleTextActive]}>
@@ -283,6 +288,7 @@ function PheromoneTrapForm({
                   </Text>
                 </TouchableOpacity>
               </View>
+            </View>
             </View>
           </ScrollView>
 

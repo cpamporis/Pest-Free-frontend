@@ -162,6 +162,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
 
   React.useEffect(() => {
     if (access === "No" || condition === "Damaged" || condition === "Missing") {
+      if (access === "No") setCondition(null);
       setConsumption("");
       setBaitType("");
       setDosageG(null);
@@ -350,8 +351,10 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
               )}
             </View>
 
-            <StationConditionPicker value={condition} onChange={setCondition} />
+            <StationConditionPicker value={condition} onChange={setCondition} disabled={access === "No"} />
             {/* Access */}
+            <View style={{opacity:["Damaged","Missing"].includes(condition)?0.45:1}}>
+
             <View style={styles.toggleContainer}>
               <Text style={styles.toggleLabel}>{i18n.t("components.stationForms.common.access")}</Text>
               <View style={styles.toggleButtonsContainer}>
@@ -360,6 +363,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                     styles.toggleButton,
                     access === "Yes" && styles.toggleActive,
                   ]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("Yes")}
                 >
                   <Text
@@ -377,6 +381,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                     styles.toggleButton,
                     access === "No" && styles.toggleActive,
                   ]}
+                  disabled={condition === "Damaged" || condition === "Missing"}
                   onPress={() => setAccess("No")}
                 >
                   <Text
@@ -389,6 +394,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
                   </Text>
                 </TouchableOpacity>
               </View>
+            </View>
             </View>
           </ScrollView>
 
