@@ -1,5 +1,8 @@
 # Security iOS Lab — phase 2: scoped station entry and spoken confirmation
 
+For subsequent bait/dose defaults and immediate condition/access shortcuts, see
+`ios-voice-defaults-20261001.md`, which supersedes the restrictions below.
+
 Phase 1 user acceptance: the user installed the development build and confirmed
 Greek recognition with different consumption values, including while offline.
 This establishes recognition on that device, not background/wake-word support.

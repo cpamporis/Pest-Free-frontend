@@ -160,6 +160,7 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   );
   
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceDefaults, setVoiceDefaults] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
   const [stations, setStations] = useState([]);
   const [selectedStation, setSelectedStation] = useState(null); 
@@ -1405,6 +1406,13 @@ const handleSaveAll = async () => {
     setAddingStation(false);
   };
 
+  const voiceFormDefaults = useMemo(() => voiceDefaults ? {
+    baitType: voiceDefaults.baitType, dosage_g: voiceDefaults.dosageG,
+    condition: "Functional", access: "Yes"
+  } : null, [voiceDefaults]);
+
+  useEffect(() => { setVoiceDefaults(null); }, [session?.appointmentId, effectiveCustomer?.customerId, technician?.id, workStarted]);
+
   const voiceContext = {
     appointmentId: session?.appointmentId,
     customerId: effectiveCustomer?.customerId,
@@ -1416,6 +1424,7 @@ const handleSaveAll = async () => {
   };
   if (voiceOpen && voiceLabAvailable) return (
     <VoiceStationFlow context={voiceContext} loggedStations={loggedStations} technician={technician}
+      defaults={voiceDefaults} onDefaultsChange={setVoiceDefaults}
       onClose={() => setVoiceOpen(false)}
       onCommit={candidate => {
         if (!validateCandidate(voiceContext, candidate).ok) throw new Error("VOICE_CONTEXT_CHANGED");
@@ -2020,7 +2029,7 @@ const handleSaveAll = async () => {
                     loggedStations.find(
                       s => stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(selectedStation.id) && 
                       s.stationType === (selectedStation.type || "BS")
-                    ) || null
+                    ) || voiceFormDefaults
                   }
                   onClose={() => setSelectedStation(null)}
                 />

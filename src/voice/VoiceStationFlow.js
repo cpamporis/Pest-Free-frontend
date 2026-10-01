@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, Button, NativeEventEmitter, NativeModules, Platform, ScrollView, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import apiService from '../services/apiService';
+import { Picker } from '@react-native-picker/picker';
+const { stationDraft } = require('./parseStationFields');
 import BaitStationForm from '../components/BaitStationForm';
 const { contextKey, resolveStation, confirmation, validateCandidate } = require('./stationVoiceSession');
 const native = Platform.OS === 'ios' ? NativeModules.PestifyVoiceProbe : null;
@@ -10,12 +13,20 @@ const errors = {
   AMBIGUOUS_STATION: 'Ο αριθμός δεν προσδιορίζει μοναδικό σταθμό. Ελέγξτε την κάτοψη.',
   CONTEXT_CHANGED: 'Άλλαξε η εργασία ή ο σταθμός. Η εντολή ακυρώθηκε.',
   INACTIVE_CONTEXT: 'Ξεκινήστε εργασία σε συγκεκριμένο ραντεβού και επιλέξτε κάτοψη.',
-  INCOMPLETE_DATA: 'Για αυτή τη φάση απαιτείται λειτουργικός, προσβάσιμος σταθμός, δόλωμα, ποσότητα και κατανάλωση 0, 25, 50, 75 ή 100%. Για άλλη κατάσταση χρησιμοποιήστε την κανονική φόρμα.',
+  INCOMPLETE_DATA: 'Ελέγξτε δόλωμα, δοσολογία και κατανάλωση (0, 25, 50, 75 ή 100%).',
+  INVALID_CONDITION: 'Πείτε κατάσταση λειτουργικό, λείπει ή κατεστραμμένο.',
+  INVALID_ACCESS: 'Πείτε πρόσβαση ναι ή όχι.',
   EXPIRED: 'Έληξε η επιβεβαίωση. Επαναλάβετε την εντολή.',
 };
-export default function VoiceStationFlow({ context, loggedStations, technician, onCommit, onClose }) {
-  const current = useRef({ context, loggedStations, onCommit });
-  current.current = { context, loggedStations, onCommit };
+export default function VoiceStationFlow({ context, loggedStations, technician, onCommit, onClose, defaults, onDefaultsChange }) {
+  const current = useRef({ context, loggedStations, onCommit, defaults });
+  current.current = { context, loggedStations, onCommit, defaults };
+  const [baitTypes, setBaitTypes] = useState([]);
+  const [catalogStatus, setCatalogStatus] = useState('Φόρτωση δολωμάτων…');
+  const [catalogReload, setCatalogReload] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(!defaults?.baitType || !defaults?.dosageG);
+  const [baitChoice, setBaitChoice] = useState(defaults?.baitType || '');
+  const [doseChoice, setDoseChoice] = useState(defaults?.dosageG || 0);
   const [phase, setPhase] = useState('idle');
   const stage = useRef('idle');
   const requestTag = useRef(null);
@@ -34,6 +45,16 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     sequence.current++; requestTag.current = null; native?.stop(); clearTimeout(expiry.current);
     candidate.current = null; setPending(null); setForm(null); change('idle'); setStatus(message);
   }
+  useEffect(() => {
+    let active = true;
+    setCatalogStatus('Φόρτωση δολωμάτων…');
+    apiService.getBaitTypes().then(items => {
+      if (!active) return;
+      const names = [...new Set((Array.isArray(items) ? items : []).map(item => typeof item === 'string' ? item : item?.name).filter(name => typeof name === 'string' && name.trim()))];
+      setBaitTypes(names); setCatalogStatus(names.length ? '' : 'Δεν υπάρχουν διαθέσιμα δολώματα.');
+    }).catch(() => { if (active) { setBaitTypes([]); setCatalogStatus('Δεν φορτώθηκαν τα δολώματα. Ελέγξτε τη σύνδεση και επαναλάβετε.'); } });
+    return () => { active = false; };
+  }, [catalogReload]);
   useEffect(() => {
     alive.current = true;
     const sub = new NativeEventEmitter(native).addListener('PestifyVoiceProbeResult', event => {
@@ -70,6 +91,7 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     catch { if (alive.current && sequence.current === token) reset('Δεν ξεκίνησε η τοπική αναγνώριση. Ελέγξτε τις άδειες και τη διαθεσιμότητα.'); }
   }
   async function start() {
+    if (!current.current.defaults?.baitType || !current.current.defaults?.dosageG || settingsOpen) return;
     reset('Έλεγχος αδειών…'); change('permissions');
     const token = sequence.current;
     try {
@@ -86,10 +108,16 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     const c = current.current.context;
     const target = resolveStation(c, text);
     if (!target.ok) { setStatus(errors[target.code] || 'Δεν αναγνωρίστηκε έγκυρη εντολή σταθμού.'); return; }
-    if (!['0%','25%','50%','75%','100%'].includes(target.consumption)) { setStatus(errors.INCOMPLETE_DATA); return; }
+    if (!target.terminal && target.consumption !== null && !['0%','25%','50%','75%','100%'].includes(target.consumption)) { setStatus(errors.INCOMPLETE_DATA); return; }
     const existing = current.current.loggedStations.filter(s => String(s.mapId ?? s.map_id ?? '') === String(c.map.mapId ?? c.map.map_id) && String(s.stationId) === String(target.stationId) && s.stationType === 'BS');
     if (existing.length > 1) { setStatus(errors.AMBIGUOUS_STATION); return; }
-    setForm({ target, data: { ...(existing[0] || {}), consumption: target.consumption } });
+    const data = stationDraft(target, current.current.defaults);
+    if (target.terminal) {
+      const value = { ...target, expiresAt: Date.now()+60000, data: { ...data, mapId: String(c.map.mapId ?? c.map.map_id), mapName:c.map.name || null, visitId:c.visitId,
+        technicianId:technician?.id, technicianName:technician?.name, customerId:c.customerId, timestamp:new Date().toISOString() } };
+      candidate.current = value; commit(); return;
+    }
+    setForm({ target, data });
     change('form');
   }
   async function prepare(data, target) {
@@ -99,7 +127,8 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     setForm(null);
     if (!valid.ok) { reset(errors[valid.code] || 'Μη έγκυρα στοιχεία.'); return; }
     candidate.current = value; setPending(value); change('speaking');
-    const message = `Κάτοψη ${c.map.name || value.data.mapId}. Σταθμός ${value.stationId}. Κατανάλωση ${value.data.consumption}. Δόλωμα ${value.data.baitType}, ${value.data.dosage_g} γραμμάρια. Λειτουργικός και προσβάσιμος. Μετά το τέλος της εκφώνησης πείτε Αποθήκευση για καταχώριση στην τρέχουσα εργασία, ή Ακύρωση.`;
+    const details = value.data.access === 'No' ? 'Πρόσβαση όχι.' : value.data.condition === 'Missing' ? 'Κατάσταση λείπει.' : value.data.condition === 'Damaged' ? 'Κατάσταση κατεστραμμένο.' : `Κατανάλωση ${value.data.consumption}. Δόλωμα ${value.data.baitType}, ${value.data.dosage_g} γραμμάρια. Λειτουργικός και προσβάσιμος.`;
+    const message = `Κάτοψη ${c.map.name || value.data.mapId}. Σταθμός ${value.stationId}. ${details} Μετά το τέλος της εκφώνησης πείτε Αποθήκευση για καταχώριση στην τρέχουσα εργασία, ή Ακύρωση.`;
     setStatus(message);
     expiry.current = setTimeout(() => { if (alive.current) reset(errors.EXPIRED); }, 60000);
     const token = sequence.current;
@@ -120,7 +149,9 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
       current.current.onCommit(value);
       setPending(null); change('idle');
       setStatus('Καταχωρίστηκε στην τρέχουσα εργασία. Η τελική αποθήκευση στον server γίνεται με την ολοκλήρωση της εργασίας.');
-      native.speak('Καταχωρίστηκε στην τρέχουσα εργασία.').catch(() => {});
+      const outcome = value.data.access === 'No' ? 'Πρόσβαση όχι.' : value.data.condition === 'Missing' ? 'Λείπει.' : value.data.condition === 'Damaged' ? 'Κατεστραμμένο.' : `Κατανάλωση ${value.data.consumption}.`;
+      setStatus(`Σταθμός ${value.stationId}. ${outcome} Καταχωρίστηκε στην τρέχουσα εργασία.`);
+      native.speak(`Σταθμός ${value.stationId}. ${outcome} Καταχωρίστηκε στην τρέχουσα εργασία.`).catch(() => {});
     } catch { reset('Η καταχώριση δεν έγινε. Ελέγξτε την εργασία και επαναλάβετε.'); }
   }
   const compatible = native?.phase >= 2 && typeof native?.speak === 'function' && typeof native?.setRequestTag === 'function';
@@ -128,9 +159,27 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     <Text style={{fontSize:22,fontWeight:'700'}}>Φωνητική καταχώριση — Lab</Text>
     <Text>Ραντεβού: {context.appointmentId}{'\n'}Κάτοψη: {context.map?.name || 'Χωρίς όνομα'} ({context.map?.mapId ?? context.map?.map_id}){'\n'}Συσκευές: δολωματικοί σταθμοί (BS)</Text>
     <Text>Επιλέξτε άλλη κάτοψη από την οθόνη μυοκτονίας. Η εντολή αναζητά σταθμό μόνο εδώ. Η οθόνη παραμένει ανοικτή.</Text>
+    <Text>Χωρίς σχετική εντολή ισχύει Πρόσβαση: Ναι και Κατάσταση: Λειτουργικός. Οι εντολές «λείπει», «κατεστραμμένο» και «πρόσβαση όχι» καταχωρίζονται αμέσως, χωρίς άλλα πεδία.</Text>
+    {settingsOpen ? <View>
+      <Text style={{fontWeight:'700'}}>Προεπιλογές για αυτή την εργασία</Text>
+      <Text>{catalogStatus}</Text>
+      <Picker accessibilityLabel="Προεπιλεγμένο δόλωμα" selectedValue={baitChoice} onValueChange={setBaitChoice}>
+        <Picker.Item label="Επιλέξτε διαθέσιμο δόλωμα" value="" />
+        {baitTypes.map(name => <Picker.Item key={name} label={name} value={name} />)}
+      </Picker>
+      <Picker accessibilityLabel="Προεπιλεγμένη δοσολογία" selectedValue={doseChoice} onValueChange={setDoseChoice}>
+        <Picker.Item label="Επιλέξτε δοσολογία" value={0} />
+        {[10,20,30,40,50,60,70,80,90,100].map(g => <Picker.Item key={g} label={`${g} g`} value={g} />)}
+      </Picker>
+      <Button title="Χρήση προεπιλογών" disabled={!baitTypes.includes(baitChoice) || !doseChoice || phase !== 'idle'} onPress={() => { onDefaultsChange({baitType:baitChoice,dosageG:doseChoice}); setSettingsOpen(false); }} />
+      {!!catalogStatus && <Button title="Επαναφόρτωση δολωμάτων" onPress={() => setCatalogReload(n => n+1)} />}
+    </View> : <View>
+      <Text>Προεπιλογές: {defaults?.baitType} — {defaults?.dosageG}g</Text>
+      <Button title="Αλλαγή προεπιλογών" disabled={phase !== 'idle'} onPress={() => setSettingsOpen(true)} />
+    </View>}
     <Text>{compatible ? status : 'Απαιτείται το νέο Dev build της φάσης 2 για φωνητική εκφώνηση και επιβεβαίωση.'}</Text>
     {pending && <Text>Προς καταχώριση: σταθμός {pending.stationId}, κατανάλωση {pending.data.consumption}, {pending.data.baitType}, {pending.data.dosage_g}g.</Text>}
-    <Button title="Νέα φωνητική εντολή" onPress={start} disabled={!compatible || phase !== 'idle'} />
+    <Button title="Νέα φωνητική εντολή" onPress={start} disabled={!compatible || phase !== 'idle' || settingsOpen || !defaults?.baitType || !defaults?.dosageG} />
     {['command','confirm'].includes(phase) && <Button title="Τέλος ομιλίας" onPress={() => native.finishInput()} />}
     {phase !== 'idle' && <Button title="Ακύρωση εντολής" onPress={() => reset('Ακυρώθηκε.')} />}
     <Button title="Επιστροφή στην κάτοψη" onPress={() => { reset(''); onClose(); }} />
