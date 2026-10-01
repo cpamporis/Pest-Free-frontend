@@ -1,12 +1,12 @@
 'use strict';
 // Native owns wake detection, timeouts, audio and rearming, including while locked.
 // JS only resolves a complete command to the existing active-work data path.
-function createFieldVoiceSession({native,prepare,validate,commit,onState,onActive,
+function createFieldVoiceSession({native,prepare,validate,commit,onState,onActive,onWakePreview=()=>{},
   newId=()=>`${Date.now()}-${Math.random()}`}) {
   let session=null,epoch=0,busy=null;
   const consumed=new Set();
   function stop(message='Η λειτουργία πεδίου σταμάτησε.') {
-    epoch++;session=null;busy=null;consumed.clear();native.stopField();onActive(false);onState('idle',message);
+    onWakePreview(null);epoch++;session=null;busy=null;consumed.clear();native.stopField();onActive(false);onState('idle',message);
   }
   async function start() {
     stop('');const ticket=epoch;session=newId();onActive(true);onState('starting','Εκκίνηση λειτουργίας πεδίου…');
@@ -15,11 +15,12 @@ function createFieldVoiceSession({native,prepare,validate,commit,onState,onActiv
       if(ticket!==epoch)return;
       if(!started)stop('Δεν ξεκίνησε η λειτουργία πεδίου.');
     } catch(error) {
-      if(ticket===epoch)stop(error.code==='LOCAL_LANGUAGES_REQUIRED' ? 'Χρειάζεται διαθέσιμη τοπική αναγνώριση ελληνικών και αγγλικών (ΗΠΑ).' : 'Δεν ξεκίνησε η λειτουργία πεδίου. Ελέγξτε άδειες και ήχο.');
+      if(ticket===epoch)stop(error.code==='LOCAL_LANGUAGES_REQUIRED' ? 'Χρειάζεται διαθέσιμη τοπική αναγνώριση ελληνικών.' : 'Δεν ξεκίνησε η λειτουργία πεδίου. Ελέγξτε άδειες και ήχο.');
     }
   }
   async function handleEvent(event) {
     if(!session || event.sessionId!==session)return;
+    if(event.code==='WAKE_PREVIEW') {onWakePreview({stage:String(event.stage||''),text:String(event.text||'').slice(0,160)});return;}
     if(event.code==='STOPPED') {stop(`Η λειτουργία πεδίου σταμάτησε (${event.reason || 'διακοπή ήχου'}). Ξεκινήστε την ξανά με ανοικτή οθόνη.`);return;}
     if(event.code==='WAITING_WAKE') {onState('wake','Αναμονή για «Pestify Alert». Το μικρόφωνο παραμένει ενεργό.');return;}
     if(event.code==='LISTENING') {onState('listening','Έτοιμος — πείτε τον επόμενο σταθμό.');return;}

@@ -10,7 +10,7 @@ module remain available unchanged.
 `PestifyFieldSession` starts only from the visible Lab app, after explicit user
 activation, with an active appointment/map and selected bait/dose. The native
 module requires the Dev bundle, a dedicated Info.plist flag, both microphone and
-Speech permission, and AVAILABLE ON-DEVICE recognizers for `en-US` and `el-GR`.
+Speech permission, and AVAILABLE ON-DEVICE recognizer for `el-GR`.
 Every recognition request sets `requiresOnDeviceRecognition=YES`. No cloud
 fallback, external speech SDK or npm dependency is added.
 
@@ -19,8 +19,9 @@ session active with `UIBackgroundModes: audio`. This is real microphone use,
 not silent audio playback to keep arbitrary work alive. The input engine remains
 active during wake waiting and TTS; during TTS and JS processing its buffers are
 discarded and no recognition request receives them. No audio files are written.
-While waiting, an English on-device recognizer accepts ONLY a complete final
-utterance normalizing to `pestify alert`, with that contextual hint. It does not
+While waiting, the Greek on-device recognizer accepts ONLY a complete final
+utterance normalizing to `pestify alert` or `πεστιφαι αλερτ` (case, accents and
+punctuation ignored), with English and Greek contextual hints. It does not
 accept substrings, fuzzy variants or partial hypotheses. Actual recognition of
 the brand phrase MUST be tested on the device; the hint is not a guarantee.
 
@@ -33,7 +34,7 @@ review acceptance has not been established by this internal experiment.
 ## State flow
 
 - Start in wake waiting; lock the phone only after testing the phrase visibly.
-- Exact `Pestify Alert` -> native Greek TTS **Έτοιμος** -> Greek command capture.
+- Exact `Pestify Alert` / `Πέστιφαϊ Αλέρτ` -> native Greek TTS **Έτοιμος** -> Greek command capture.
 - Native recognition, endpointing, timeout and capture rearming use native timers,
   not JS timers. Endpointing uses the same 1.4-second quiet/transcript threshold
   as the foreground prototype. Twenty-second boundaries discard unfinished
@@ -66,7 +67,7 @@ backup changes, production changes or dependency changes are included.
 ## New build profile and installation
 
 `security-lab-field` extends `security-lab-voice`, uses the Dev bundle, disables
-OTA and selects runtime `pestify-field-lab-1`. Only this profile includes the new
+OTA and selects runtime `pestify-field-lab-2`. Only this profile includes the new
 module, background audio mode and its explicit microphone usage text. The normal
 voice profile still selects runtime `pestify-voice-probe-3` and its original
 foreground native module. Build from the managed checkout (generated /ios is not
@@ -91,6 +92,27 @@ Inside active myocide work, choose a map, open voice entry, set bait/dose, enabl
 **Δοκιμαστική λειτουργία πεδίου — Pestify Alert**, and press **Έναρξη συνεδρίας
 Pestify Alert**. Enabling the switch alone does not open the microphone.
 
+## Wake pronunciation correction — version 2
+
+The first device trial did not answer to “Πέστιφαϊ Αλέρτ”. Version 1 used an
+English recognizer and exact English spelling. That constraint is confirmed in
+source; the actual rejected transcription was unavailable, so it is not proven
+to be the sole cause. Version 2 uses the already device-tested Greek recognizer
+and accepts the exact Greek transliteration as well. No fuzzy/substring matching
+or partial-result activation is introduced.
+
+A default-off **Προσωρινός έλεγχος φράσης ενεργοποίησης** switch shows at most 160
+characters of wake recognition and its stage: partial, accepted/rejected final,
+no text, capture timeout or final-result timeout. This is a separate diagnostic
+event, never station data. It is visible only in the foreground; the preview is
+cleared after 15 seconds or session stop, and disables/clears on leaving the app.
+Nothing is logged, saved or sent to a server. Enable it AFTER starting the session
+and say only the test phrase in a quiet room first. Record the displayed result
+if activation fails, then test ambient noise separately. Sustained noise may
+prevent the quiet endpoint from being reached; the timeout exposes this case.
+The native change requires a new `security-lab-field` build. The UI refuses to
+start the new field flow on a version-1 binary; the foreground flow stays usable.
+
 ## Device acceptance gate (not yet completed)
 
 1. Visible screen: say `Pestify Alert`, wait for **Έτοιμος**, then enter a Lab
@@ -109,9 +131,9 @@ Pestify Alert**. Enabling the switch alone does not open the microphone.
 7. Only after correctness, run an endurance trial with a charged phone and record
    device/iOS, starting and ending battery, duration, wake misses and false wakes.
 
-Validation here: 187 automated tests passed, including stale/duplicate field
+Validation here: 189 automated tests passed, including stale/duplicate field
 commands, stop/interruption/context changes during read-back, pause/termination,
-and build-profile opt-in isolation. iOS prebuild and JS export passed; verified
+wake diagnostic isolation/bounds, and build-profile opt-in isolation. iOS prebuild and JS export passed; verified
 new source in Sources and the field flag/audio mode in Info.plist. Physical native
 compilation, signed installation, lock-screen recognition, exact wake accuracy
 and endurance remain pending because this workspace has no Apple SDK/device.

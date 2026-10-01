@@ -2,11 +2,11 @@ const {test}=require('node:test');const assert=require('node:assert/strict');
 const {createFieldVoiceSession}=require('../src/voice/fieldVoiceSession');
 function setup(options={}) {
  let id,answer,valid=true,commits=0,continued=0,waits=0,active=false;
- const states=[];
+ const states=[],previews=[];
  const native={stopField(){},async startField(key){id=key;return true;},reply(){return new Promise(resolve=>{answer=resolve;});},continueAfterCommit(){continued++;},waitForWake(){waits++;}};
  const controller=createFieldVoiceSession({native,newId:()=>String(Math.random()),prepare:()=>options.invalid?{ok:false}:{ok:true,candidate:{},readback:'Σταθμός 2, κατανάλωση 25%.'},validate:()=>valid,
-  commit(){commits++;},onActive:x=>{active=x;},onState:(...x)=>states.push(x)});
- return {controller,states,get id(){return id;},get commits(){return commits;},get continued(){return continued;},get waits(){return waits;},get active(){return active;},answer:x=>answer(x),invalidate:()=>{valid=false;},
+  onWakePreview:x=>previews.push(x),commit(){commits++;},onActive:x=>{active=x;},onState:(...x)=>states.push(x)});
+ return {controller,states,previews,get id(){return id;},get commits(){return commits;},get continued(){return continued;},get waits(){return waits;},get active(){return active;},answer:x=>answer(x),invalidate:()=>{valid=false;},
   event:(text='Σταθμός 2 κατανάλωση 25',commandId='cmd')=>controller.handleEvent({code:'COMMAND',sessionId:id,commandId,text})};
 }
 test('field command commits only after readback and resumes natively',async()=>{
@@ -43,8 +43,24 @@ test('field configuration requires opt-in Lab build and leaves ordinary voice pr
   process.env.APP_VARIANT='development';process.env.PESTIFY_VOICE_LAB='1';delete process.env.PESTIFY_VOICE_FIELD_LAB;
   const base={name:'Pestify',ios:{bundleIdentifier:'com.cpamporis.pestfree'}};
   const normal=factory({config:base});assert.equal(normal.runtimeVersion,'pestify-voice-probe-3');assert.equal(normal.plugins.includes('./plugins/withPestifyFieldSession'),false);
-  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-1');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
+  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-2');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
   delete process.env.PESTIFY_VOICE_LAB;assert.throws(()=>factory({config:base}),/requires/);
   process.env.PESTIFY_VOICE_LAB='1';delete process.env.APP_VARIANT;assert.throws(()=>factory({config:base}),/restricted/);
  }finally{for(const k of ['APP_VARIANT','PESTIFY_VOICE_LAB','PESTIFY_VOICE_FIELD_LAB']){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}
+});
+
+test('wake diagnostics never become commands and ignore old sessions',async()=>{
+ const f=setup();await f.controller.start();
+ await f.controller.handleEvent({code:'WAKE_PREVIEW',sessionId:f.id,stage:'rejected',text:'Σταθμός 2 κατανάλωση 25'});
+ assert.deepEqual(f.previews.at(-1),{stage:'rejected',text:'Σταθμός 2 κατανάλωση 25'});
+ assert.equal(f.commits,0);assert.equal(f.continued,0);
+ const count=f.previews.length;
+ await f.controller.handleEvent({code:'WAKE_PREVIEW',sessionId:'stale',text:'old'});
+ assert.equal(f.previews.length,count);
+ f.controller.stop();assert.equal(f.previews.at(-1),null);
+});
+test('wake preview is bounded and never advances the session',async()=>{
+ const f=setup();await f.controller.start();
+ await f.controller.handleEvent({code:'WAKE_PREVIEW',sessionId:f.id,stage:'accepted',text:'x'.repeat(500)});
+ assert.equal(f.previews.at(-1).text.length,160);assert.equal(f.commits,0);assert.equal(f.continued,0);
 });

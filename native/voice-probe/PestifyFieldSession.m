@@ -27,6 +27,7 @@
 @property(nonatomic, assign) BOOL heardSpeech;
 @property(nonatomic, assign) BOOL ending;
 @property(nonatomic, assign) BOOL acceptedReply;
+@property(nonatomic, assign) BOOL wakePreviewEnabled;
 @property(nonatomic, assign) NSUInteger revision;
 @property(nonatomic, assign) NSTimeInterval lastVoice;
 @property(nonatomic, assign) NSTimeInterval lastText;
@@ -40,12 +41,14 @@ RCT_EXPORT_MODULE(PestifyFieldSession)
   return [[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.cpamporis.pestfree.dev"] &&
     [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"PestifyFieldSessionEnabled"] boolValue];
 }
-- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab])}; }
+- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"wakeVersion": @2}; }
 - (NSArray<NSString *> *)supportedEvents { return @[@"PestifyFieldEvent"]; }
 - (void)startObserving { self.observes = YES; }
 - (void)stopObserving { self.observes = NO; [self shutdown:@"LISTENER_REMOVED"]; }
 - (instancetype)init {
   if ((self = [super init])) {
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(hideWakePreview:)
+      name:UIApplicationWillResignActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(interrupted:)
       name:AVAudioSessionInterruptionNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(routeChanged:)
@@ -60,6 +63,18 @@ RCT_EXPORT_MODULE(PestifyFieldSession)
   NSMutableDictionary *payload = [@{@"code":code, @"sessionId":self.sessionKey ?: @""} mutableCopy];
   if (extra) [payload addEntriesFromDictionary:extra];
   [self sendEventWithName:@"PestifyFieldEvent" body:payload];
+}
+// Explicit opt-in, visible Lab screen only; never persisted or sent to a server.
+RCT_EXPORT_METHOD(configureWakePreview:(BOOL)enabled) {
+  self.wakePreviewEnabled = enabled && [self isLab] &&
+    [UIApplication sharedApplication].applicationState == UIApplicationStateActive;
+}
+- (void)hideWakePreview:(NSNotification *)note { self.wakePreviewEnabled = NO; }
+- (void)previewWake:(NSString *)stage text:(NSString *)text {
+  if (!self.wakePreviewEnabled || [UIApplication sharedApplication].applicationState != UIApplicationStateActive) return;
+  NSString *bounded = text ?: @"";
+  if (bounded.length > 160) bounded = [bounded substringToIndex:160];
+  [self emit:@"WAKE_PREVIEW" extra:@{@"stage":stage, @"text":bounded}];
 }
 - (void)clearRecognition {
   self.revision++;
@@ -103,8 +118,8 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   if (![self isLab] || [UIApplication sharedApplication].applicationState != UIApplicationStateActive || !self.observes || identifier.length == 0) {
     reject(@"FOREGROUND_REQUIRED", @"Start the Lab session from its visible screen", nil); return;
   }
-  if (![self localeReady:@"el-GR"] || ![self localeReady:@"en-US"]) {
-    reject(@"LOCAL_LANGUAGES_REQUIRED", @"Both Greek and English on-device recognition must be available", nil); return;
+  if (![self localeReady:@"el-GR"]) {
+    reject(@"LOCAL_LANGUAGES_REQUIRED", @"Greek on-device recognition must be available", nil); return;
   }
   if ([SFSpeechRecognizer authorizationStatus] != SFSpeechRecognizerAuthorizationStatusAuthorized ||
       [AVAudioSession sharedInstance].recordPermission != AVAudioSessionRecordPermissionGranted) {
@@ -149,23 +164,24 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   [self beginRecognition:@"wake"]; resolve(@YES);
 }
 - (BOOL)isWakePhrase:(NSString *)text {
-  NSString *lower = [text lowercaseString];
+  NSString *lower = [[text stringByFoldingWithOptions:NSDiacriticInsensitiveSearch locale:[NSLocale localeWithLocaleIdentifier:@"el-GR"]] lowercaseString];
   NSArray *words = [lower componentsSeparatedByCharactersInSet:[[NSCharacterSet alphanumericCharacterSet] invertedSet]];
   NSMutableArray *tokens = [NSMutableArray array];
   for (NSString *word in words) if (word.length) [tokens addObject:word];
   // Entire final utterance only, no substring/fuzzy matching of conversations.
-  return [[tokens componentsJoinedByString:@" "] isEqualToString:@"pestify alert"];
+  NSString *phrase = [tokens componentsJoinedByString:@" "];
+  return [phrase isEqualToString:@"pestify alert"] || [phrase isEqualToString:@"πεστιφαι αλερτ"];
 }
 - (void)beginRecognition:(NSString *)mode {
   if (!self.sessionKey) return;
   [self clearRecognition]; self.mode = mode; self.commandKey = nil;
-  NSString *locale = [mode isEqualToString:@"wake"] ? @"en-US" : @"el-GR";
+  NSString *locale = @"el-GR"; // Same on-device language as the technician's commands.
   if (![self localeReady:locale]) { [self shutdown:@"LOCAL_RECOGNIZER_UNAVAILABLE"]; return; }
   self.recognizer = [[SFSpeechRecognizer alloc] initWithLocale:[NSLocale localeWithLocaleIdentifier:locale]];
   SFSpeechAudioBufferRecognitionRequest *request = [SFSpeechAudioBufferRecognitionRequest new];
   request.requiresOnDeviceRecognition = YES; request.shouldReportPartialResults = YES;
   request.taskHint = SFSpeechRecognitionTaskHintConfirmation;
-  if ([mode isEqualToString:@"wake"]) request.contextualStrings = @[@"Pestify Alert"];
+  if ([mode isEqualToString:@"wake"]) request.contextualStrings = @[@"Πέστιφαϊ Αλέρτ", @"Pestify Alert"];
   @synchronized (self) { self.audioRequest = request; }
   self.lastText = self.lastVoice = [NSProcessInfo processInfo].systemUptime;
   NSUInteger revision = self.revision; __weak PestifyFieldSession *weakSelf = self;
@@ -176,7 +192,8 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
       NSString *text = result.bestTranscription.formattedString ?: @"";
       if (text.length) {
         owner.heardSpeech = YES;
-        if (![text isEqualToString:owner.partial]) { owner.partial = text; owner.lastText = [NSProcessInfo processInfo].systemUptime; }
+        if (![text isEqualToString:owner.partial]) { owner.partial = text; owner.lastText = [NSProcessInfo processInfo].systemUptime;
+          if ([mode isEqualToString:@"wake"]) [owner previewWake:@"partial" text:text]; }
       }
       if (result.isFinal) { [owner finalText:text mode:mode]; }
       else if (error) [owner shutdown:@"RECOGNITION_FAILED"];
@@ -184,7 +201,10 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   }];
   self.captureTimer = [NSTimer scheduledTimerWithTimeInterval:20 repeats:NO block:^(NSTimer *timer) {
     PestifyFieldSession *owner = weakSelf;
-    if (owner.sessionKey && owner.revision == revision) [owner beginRecognition:mode]; // discard unfinished speech
+    if (owner.sessionKey && owner.revision == revision) {
+      if ([mode isEqualToString:@"wake"]) [owner previewWake:owner.heardSpeech ? @"capture_timeout" : @"no_text" text:owner.partial];
+      [owner beginRecognition:mode]; // discard unfinished speech
+    }
   }];
   self.endpointTimer = [NSTimer scheduledTimerWithTimeInterval:0.15 repeats:YES block:^(NSTimer *timer) {
     PestifyFieldSession *owner = weakSelf;
@@ -194,7 +214,10 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
       [owner.captureTimer invalidate];
       @synchronized (owner) { [owner.audioRequest endAudio]; owner.audioRequest=nil; }
       owner.captureTimer = [NSTimer scheduledTimerWithTimeInterval:3 repeats:NO block:^(NSTimer *deadline) {
-        if (weakSelf.sessionKey && weakSelf.revision == revision) [weakSelf beginRecognition:mode];
+        if (weakSelf.sessionKey && weakSelf.revision == revision) {
+          if ([mode isEqualToString:@"wake"]) [weakSelf previewWake:@"final_timeout" text:weakSelf.partial];
+          [weakSelf beginRecognition:mode];
+        }
       }];
     }
   }];
@@ -203,7 +226,9 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
 - (void)finalText:(NSString *)text mode:(NSString *)mode {
   [self clearRecognition];
   if ([mode isEqualToString:@"wake"]) {
-    if ([self isWakePhrase:text]) {
+    BOOL accepted = [self isWakePhrase:text];
+    [self previewWake:accepted ? @"accepted" : @"rejected" text:text];
+    if (accepted) {
       self.lastCommand = [NSProcessInfo processInfo].systemUptime;
       self.mode = @"ready"; [self say:@"Έτοιμος"];
     } else [self beginRecognition:@"wake"];
