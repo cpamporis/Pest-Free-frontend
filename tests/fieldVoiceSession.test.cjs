@@ -1,0 +1,50 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');
+const {createFieldVoiceSession}=require('../src/voice/fieldVoiceSession');
+function setup(options={}) {
+ let id,answer,valid=true,commits=0,continued=0,waits=0,active=false;
+ const states=[];
+ const native={stopField(){},async startField(key){id=key;return true;},reply(){return new Promise(resolve=>{answer=resolve;});},continueAfterCommit(){continued++;},waitForWake(){waits++;}};
+ const controller=createFieldVoiceSession({native,newId:()=>String(Math.random()),prepare:()=>options.invalid?{ok:false}:{ok:true,candidate:{},readback:'Σταθμός 2, κατανάλωση 25%.'},validate:()=>valid,
+  commit(){commits++;},onActive:x=>{active=x;},onState:(...x)=>states.push(x)});
+ return {controller,states,get id(){return id;},get commits(){return commits;},get continued(){return continued;},get waits(){return waits;},get active(){return active;},answer:x=>answer(x),invalidate:()=>{valid=false;},
+  event:(text='Σταθμός 2 κατανάλωση 25',commandId='cmd')=>controller.handleEvent({code:'COMMAND',sessionId:id,commandId,text})};
+}
+test('field command commits only after readback and resumes natively',async()=>{
+ const f=setup();await f.controller.start();const result=f.event();assert.equal(f.commits,0);f.answer(true);await result;assert.equal(f.commits,1);assert.equal(f.continued,1);
+ await f.event();assert.equal(f.commits,1);assert.equal(f.continued,1);
+});
+test('pending and completed duplicates are ignored',async()=>{
+ const f=setup();await f.controller.start();const result=f.event();await f.event();f.answer(true);await result;await f.event();assert.equal(f.commits,1);
+});
+test('stop while native speaks invalidates pending commit',async()=>{
+ const f=setup();await f.controller.start();const result=f.event();f.controller.stop();f.answer(true);await result;assert.equal(f.commits,0);assert.equal(f.active,false);
+});
+test('native interruption prevents pending commit',async()=>{
+ const f=setup();await f.controller.start();const result=f.event();await f.controller.handleEvent({code:'STOPPED',sessionId:f.id,reason:'AUDIO_INTERRUPTED'});f.answer(false);await result;assert.equal(f.commits,0);assert.equal(f.continued,0);
+});
+test('context change during native readback prevents commit',async()=>{
+ const f=setup();await f.controller.start();const result=f.event();f.invalidate();f.answer(true);await result;assert.equal(f.commits,0);assert.equal(f.active,false);
+});
+test('wake and listening states cannot store a station',async()=>{
+ const f=setup();await f.controller.start();for(const code of ['WAITING_WAKE','LISTENING'])await f.controller.handleEvent({code,sessionId:f.id});assert.equal(f.commits,0);
+});
+test('events from a previous session cannot affect the current one',async()=>{
+ const f=setup();await f.controller.start();const old=f.id;await f.controller.start();await f.controller.handleEvent({code:'STOPPED',sessionId:old});assert.equal(f.active,true);
+});
+test('invalid command resumes without committing',async()=>{
+ const f=setup({invalid:true});await f.controller.start();const result=f.event();f.answer(true);await result;assert.equal(f.commits,0);assert.equal(f.continued,1);
+});
+test('pause returns to wake while termination closes the session',async()=>{
+ const f=setup();await f.controller.start();await f.event('Παύση.');assert.equal(f.waits,1);assert.equal(f.active,true);await f.event('Τερματισμός.','cmd2');assert.equal(f.active,false);assert.equal(f.commits,0);
+});
+test('field configuration requires opt-in Lab build and leaves ordinary voice profile unchanged',()=>{
+ const factory=require('../app.config');const old={...process.env};
+ try {
+  process.env.APP_VARIANT='development';process.env.PESTIFY_VOICE_LAB='1';delete process.env.PESTIFY_VOICE_FIELD_LAB;
+  const base={name:'Pestify',ios:{bundleIdentifier:'com.cpamporis.pestfree'}};
+  const normal=factory({config:base});assert.equal(normal.runtimeVersion,'pestify-voice-probe-3');assert.equal(normal.plugins.includes('./plugins/withPestifyFieldSession'),false);
+  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-1');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
+  delete process.env.PESTIFY_VOICE_LAB;assert.throws(()=>factory({config:base}),/requires/);
+  process.env.PESTIFY_VOICE_LAB='1';delete process.env.APP_VARIANT;assert.throws(()=>factory({config:base}),/restricted/);
+ }finally{for(const k of ['APP_VARIANT','PESTIFY_VOICE_LAB','PESTIFY_VOICE_FIELD_LAB']){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}
+});

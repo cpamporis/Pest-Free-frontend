@@ -1,0 +1,49 @@
+'use strict';
+// Native owns wake detection, timeouts, audio and rearming, including while locked.
+// JS only resolves a complete command to the existing active-work data path.
+function createFieldVoiceSession({native,prepare,validate,commit,onState,onActive,
+  newId=()=>`${Date.now()}-${Math.random()}`}) {
+  let session=null,epoch=0,busy=null;
+  const consumed=new Set();
+  function stop(message='Η λειτουργία πεδίου σταμάτησε.') {
+    epoch++;session=null;busy=null;consumed.clear();native.stopField();onActive(false);onState('idle',message);
+  }
+  async function start() {
+    stop('');const ticket=epoch;session=newId();onActive(true);onState('starting','Εκκίνηση λειτουργίας πεδίου…');
+    try {
+      const started=await native.startField(session);
+      if(ticket!==epoch)return;
+      if(!started)stop('Δεν ξεκίνησε η λειτουργία πεδίου.');
+    } catch(error) {
+      if(ticket===epoch)stop(error.code==='LOCAL_LANGUAGES_REQUIRED' ? 'Χρειάζεται διαθέσιμη τοπική αναγνώριση ελληνικών και αγγλικών (ΗΠΑ).' : 'Δεν ξεκίνησε η λειτουργία πεδίου. Ελέγξτε άδειες και ήχο.');
+    }
+  }
+  async function handleEvent(event) {
+    if(!session || event.sessionId!==session)return;
+    if(event.code==='STOPPED') {stop(`Η λειτουργία πεδίου σταμάτησε (${event.reason || 'διακοπή ήχου'}). Ξεκινήστε την ξανά με ανοικτή οθόνη.`);return;}
+    if(event.code==='WAITING_WAKE') {onState('wake','Αναμονή για «Pestify Alert». Το μικρόφωνο παραμένει ενεργό.');return;}
+    if(event.code==='LISTENING') {onState('listening','Έτοιμος — πείτε τον επόμενο σταθμό.');return;}
+    if(event.code!=='COMMAND'||!event.commandId||busy||consumed.has(event.commandId))return;
+    consumed.add(event.commandId);
+    const ticket=epoch;busy=event.commandId;onState('processing','Επεξεργασία στη συσκευή…');
+    const phrase=String(event.text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[.!;]+$/,'').trim();
+    if(['τερματισμος','σταματημα'].includes(phrase)){stop();return;}
+    if(['παυση','ακυρωση'].includes(phrase)){busy=null;native.waitForWake();return;}
+    try {
+      const result=prepare(event.text);
+      if(result.ok && !validate(result.candidate)){stop('Άλλαξε η εργασία. Δεν έγινε καταχώριση.');return;}
+      onState('speaking',result.ok?result.readback:'Επαναλάβετε την εντολή.');
+      const replied=await native.reply(event.commandId,result.ok?result.readback:(result.message||'Επαναλάβετε την εντολή.'),result.ok);
+      if(ticket!==epoch||!session)return;
+      if(!replied){stop('Διακόπηκε η επανάληψη. Δεν έγινε νέα καταχώριση.');return;}
+      if(result.ok){
+        if(!validate(result.candidate)){stop('Άλλαξε η εργασία ή έληξε η εντολή. Δεν έγινε καταχώριση.');return;}
+        commit(result.candidate);
+      }
+      busy=null;onState('settling','Ετοιμάζομαι για τον επόμενο σταθμό…');
+      native.continueAfterCommit(event.commandId);
+    } catch {if(ticket===epoch)stop('Δεν ολοκληρώθηκε η εντολή. Η λειτουργία πεδίου σταμάτησε.');}
+  }
+  return {start,stop,handleEvent};
+}
+module.exports={createFieldVoiceSession};

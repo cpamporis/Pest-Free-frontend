@@ -28,6 +28,15 @@
     "production": {
       "autoIncrement": true,
       "channel": "production"
+    },
+    "security-lab-field": {
+      "extends": "security-lab-voice",
+      "channel": "security-lab-field",
+      "env": {
+        "APP_VARIANT": "development",
+        "PESTIFY_VOICE_LAB": "1",
+        "PESTIFY_VOICE_FIELD_LAB": "1"
+      }
     }
   },
   "submit": {

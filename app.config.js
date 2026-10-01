@@ -5,16 +5,18 @@ const DEVELOPMENT_SCHEME = "pestify-dev";
 module.exports = ({ config }) => {
   const isDevelopment =
     process.env.APP_VARIANT === DEVELOPMENT_VARIANT;
+  const fieldSession = process.env.PESTIFY_VOICE_FIELD_LAB === "1";
   const voiceProbe = process.env.PESTIFY_VOICE_LAB === "1";
+  if (fieldSession && !voiceProbe) throw new Error("Field session requires the voice Lab build");
   if (voiceProbe && !isDevelopment) throw new Error("Voice probe is restricted to the development variant");
 
   return {
     ...config,
     name: isDevelopment ? "Pestify Dev" : config.name,
     ...(voiceProbe ? {
-      plugins: [...(config.plugins || []), "./plugins/withPestifyVoiceProbe"],
+      plugins: [...(config.plugins || []), ...(fieldSession ? ["./plugins/withPestifyFieldSession"] : []), "./plugins/withPestifyVoiceProbe"],
       updates: { ...config.updates, enabled: false },
-      runtimeVersion: "pestify-voice-probe-3"
+      runtimeVersion: fieldSession ? "pestify-field-lab-1" : "pestify-voice-probe-3"
     } : {}),
     ...(isDevelopment ? { scheme: DEVELOPMENT_SCHEME } : {}),
     ios: {
