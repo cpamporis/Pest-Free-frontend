@@ -16,7 +16,7 @@ module.exports = ({ config }) => {
     ...(voiceProbe ? {
       plugins: [...(config.plugins || []), ...(fieldSession ? ["./plugins/withPestifyFieldSession"] : []), "./plugins/withPestifyVoiceProbe"],
       updates: { ...config.updates, enabled: false },
-      runtimeVersion: fieldSession ? "pestify-field-lab-4" : "pestify-voice-probe-3"
+      runtimeVersion: fieldSession ? "pestify-field-lab-5" : "pestify-voice-probe-3"
     } : {}),
     ...(isDevelopment ? { scheme: DEVELOPMENT_SCHEME } : {}),
     ios: {

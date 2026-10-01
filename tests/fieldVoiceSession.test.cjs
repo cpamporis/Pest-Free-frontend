@@ -43,7 +43,7 @@ test('field configuration requires opt-in Lab build and leaves ordinary voice pr
   process.env.APP_VARIANT='development';process.env.PESTIFY_VOICE_LAB='1';delete process.env.PESTIFY_VOICE_FIELD_LAB;
   const base={name:'Pestify',ios:{bundleIdentifier:'com.cpamporis.pestfree'}};
   const normal=factory({config:base});assert.equal(normal.runtimeVersion,'pestify-voice-probe-3');assert.equal(normal.plugins.includes('./plugins/withPestifyFieldSession'),false);
-  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-4');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
+  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-5');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
   delete process.env.PESTIFY_VOICE_LAB;assert.throws(()=>factory({config:base}),/requires/);
   process.env.PESTIFY_VOICE_LAB='1';delete process.env.APP_VARIANT;assert.throws(()=>factory({config:base}),/restricted/);
  }finally{for(const k of ['APP_VARIANT','PESTIFY_VOICE_LAB','PESTIFY_VOICE_FIELD_LAB']){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}
@@ -78,4 +78,24 @@ test('stop during configuration prevents delayed native start',async()=>{
  let resolve,started=false;
  const native={stopField(){},configureField(){return new Promise(r=>{resolve=r;});},async startField(){started=true;}};
  const flow=createFieldVoiceSession({native,onActive(){},onState(){}});const pending=flow.start();flow.stop();resolve(true);await pending;assert.equal(started,false);
+});
+test('successful start reports readiness to dismiss settings without stopping session',async()=>{
+ const f=setup();assert.equal(await f.controller.start(),true);assert.equal(f.active,true);
+ const pending=f.event();f.answer(true);await pending;assert.equal(f.commits,1);assert.equal(f.active,true);
+});
+test('Άκυρο stops listening and preserves all earlier committed station entries',async()=>{
+ const f=setup();await f.controller.start();const pending=f.event();f.answer(true);await pending;
+ await f.event('ΑΚΥΡΟ!','cancel');assert.equal(f.active,false);assert.equal(f.commits,1);
+ await f.event('Σταθμός 3 κατανάλωση 50','later');assert.equal(f.commits,1);
+});
+test('native stop phrase in wake waiting preserves earlier entries and leaves no live session',async()=>{
+ const f=setup();await f.controller.start();const pending=f.event();f.answer(true);await pending;
+ await f.controller.handleEvent({sessionId:f.id,code:'WAITING_WAKE'});
+ await f.controller.handleEvent({sessionId:f.id,code:'STOPPED',reason:'VOICE_CANCELLED'});
+ assert.equal(f.active,false);assert.equal(f.commits,1);assert.match(f.states.at(-1)[1],/διατηρήθηκαν/);
+});
+test('native cancellation during pending readback cannot commit the unfinished command',async()=>{
+ const f=setup();await f.controller.start();const pending=f.event();
+ await f.controller.handleEvent({sessionId:f.id,code:'STOPPED',reason:'VOICE_CANCELLED'});f.answer(false);await pending;
+ assert.equal(f.commits,0);assert.equal(f.continued,0);
 });

@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState, Button, Modal, NativeEventEmitter, NativeModules, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { AppState, Button, Modal, NativeEventEmitter, NativeModules, Platform, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 const { parseGreekStationCommand } = require("./parseGreekStationCommand");
 const probe = Platform.OS === "ios" ? NativeModules.PestifyVoiceProbe : null;
+export const voiceProbeAvailable = Boolean(probe?.labEnabled);
 const messages = {
   EMPTY_TRANSCRIPT: "Η αναγνώριση επέστρεψε κενό κείμενο. Δοκιμάστε ξανά.",
   INVALID_COMMAND: "Το κείμενο δεν έχει τη μορφή «Σταθμός … κατανάλωση …». Ενεργοποιήστε την προσωρινή εμφάνιση κειμένου και επαναλάβετε.",
@@ -107,10 +109,10 @@ function Diagnostic({ onClose }) {
 export default function VoiceLabEntry() {
   const [open, setOpen] = useState(false);
   if (!probe?.labEnabled) return null;
-  return <View><Button title="Lab: δοκιμή ελληνικής φωνής" onPress={() => setOpen(true)} />
+  return <View><TouchableOpacity accessibilityRole="button" accessibilityLabel="Lab: δοκιμή ελληνικής φωνής" style={styles.entryButton} onPress={() => setOpen(true)}><MaterialIcons name="mic" size={17} color="#1f9c8b" /><Text style={styles.entryText}>Lab · Δοκιμή ελληνικής φωνής</Text></TouchableOpacity>
     <Modal visible={open} onRequestClose={() => setOpen(false)} animationType="slide">
       {open && <SafeAreaProvider><Diagnostic onClose={() => setOpen(false)} /></SafeAreaProvider>}
     </Modal>
   </View>;
 }
-const styles = StyleSheet.create({ screen: { flex:1, backgroundColor:"#fff" }, content: { padding:24, gap:18 }, title: { fontSize:22, fontWeight:"700" }, example: { fontSize:18, fontWeight:"600" } });
+const styles = StyleSheet.create({ entryButton:{flexDirection:"row",alignItems:"center",gap:6,paddingHorizontal:12,paddingVertical:10,borderRadius:10,backgroundColor:"#edf8f5",borderWidth:1,borderColor:"#cbe9e2"},entryText:{fontSize:12,fontWeight:"600",color:"#167d6f"}, screen: { flex:1, backgroundColor:"#fff" }, content: { padding:24, gap:18 }, title: { fontSize:22, fontWeight:"700" }, example: { fontSize:18, fontWeight:"600" } });

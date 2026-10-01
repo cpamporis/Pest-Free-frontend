@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AppState, Button, NativeEventEmitter, NativeModules, Platform, ScrollView, Switch, Text, View } from 'react-native';
+import { AppState, Modal, NativeEventEmitter, NativeModules, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import apiService from '../services/apiService';
-import { Picker } from '@react-native-picker/picker';
+import { MaterialIcons } from '@expo/vector-icons';
 const fieldConfiguration = require('./fieldVoiceConfig');
 const { stationDraft } = require('./parseStationFields');
 const { createFieldVoiceSession } = require('./fieldVoiceSession');
-const { createContinuousVoiceSession } = require('./continuousVoiceSession');
 const { resolveVoiceRoute, validateVoiceCandidate, candidateContext } = require('./voiceMapRouting');
 const { contextKey, validateCandidate } = require('./stationVoiceSession');
 const native = Platform.OS === 'ios' ? NativeModules.PestifyVoiceProbe : null;
@@ -25,34 +24,25 @@ const errors = {
   INVALID_ACCESS: 'Πείτε πρόσβαση ναι ή όχι.',
   EXPIRED: 'Έληξε η επιβεβαίωση. Επαναλάβετε την εντολή.',
 };
-export default function VoiceStationFlow({ context, loggedStations, technician, onCommit, onClose, defaults, onDefaultsChange }) {
-  const current = useRef({ context, loggedStations, onCommit, defaults, technician });
-  current.current = { context, loggedStations, onCommit, defaults, technician };
+export default function VoiceStationFlow({ context, loggedStations, technician, onCommit, onClose, defaults, onDefaultsChange, visible, onSessionState }) {
+  const current = useRef({ context, loggedStations, onCommit, defaults, technician, onClose, onSessionState });
+  current.current = { context, loggedStations, onCommit, defaults, technician, onClose, onSessionState };
   const [baitTypes, setBaitTypes] = useState([]);
   const [catalogStatus, setCatalogStatus] = useState('Φόρτωση δολωμάτων…');
   const [catalogReload, setCatalogReload] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(!defaults?.baitType || !defaults?.dosageG);
   const [baitChoice, setBaitChoice] = useState(defaults?.baitType || '');
   const [doseChoice, setDoseChoice] = useState(defaults?.dosageG || 0);
-  const [fieldMode, setFieldMode] = useState(false);
   const fieldActive = useRef(false);
-  const [wakePreviewEnabled, setWakePreviewEnabled] = useState(false);
-  const [wakePreview, setWakePreview] = useState(null);
-  const wakePreviewOptIn = useRef(false);
-  useEffect(() => {
-    if (!wakePreview) return;
-    const timer = setTimeout(() => setWakePreview(null), 15000);
-    return () => clearTimeout(timer);
-  }, [wakePreview]);
+  const [dropdown, setDropdown] = useState(null);
   const [phase, setPhase] = useState('idle');
-  const [status, setStatus] = useState('Πατήστε έναρξη μία φορά και πείτε κάθε εντολή με μια σύντομη παύση στο τέλος.');
+  const [status, setStatus] = useState('Επιλέξτε δόλωμα και δοσολογία για αυτή την εργασία.');
   const alive = useRef(true);
   const permissionAttempt = useRef(0);
   const permissionPrompt = useRef(false);
   const mountedKey = useRef(contextKey(context));
-  const controller = useRef(null);
   const callbacks = {
-    onState: (next,message) => { if (alive.current) { setPhase(next); setStatus(message); } },
+    onState: (next,message) => { if (alive.current) { setPhase(next); setStatus(message); current.current.onSessionState?.({phase:next,status:message}); } },
     prepare: text => {
       const { context:source, defaults:d, loggedStations:logs, technician:tech } = current.current;
       const target = resolveVoiceRoute(source,text);
@@ -79,15 +69,12 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
       current.current={...current.current,context:target};
     },
   };
-  if (!controller.current) controller.current = createContinuousVoiceSession({native,...callbacks});
   const fieldController = useRef(null);
   if (!fieldController.current && fieldNative?.labEnabled) fieldController.current=createFieldVoiceSession({
-    native:fieldNative,...callbacks,onActive:value=>{fieldActive.current=value;},
-    onWakePreview:value=>{if(alive.current) setWakePreview(wakePreviewOptIn.current && AppState.currentState === 'active' ? value : null);}
+    native:fieldNative,...callbacks,onActive:value=>{fieldActive.current=value;}
   });
   function pause(message) {
     permissionAttempt.current++;
-    controller.current.stop(message);
     fieldController.current?.stop(message);
   }
   useEffect(() => {
@@ -99,20 +86,24 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
       setBaitTypes(names); setCatalogStatus(names.length ? '' : 'Δεν υπάρχουν διαθέσιμα δολώματα.');
     }).catch(() => { if (active) { setBaitTypes([]); setCatalogStatus('Δεν φορτώθηκαν τα δολώματα. Ελέγξτε τη σύνδεση και επαναλάβετε.'); } });
     return () => { active = false; };
-  }, [catalogReload]);
+  }, [catalogReload, context.customerId]);
   useEffect(() => {
     alive.current = true;
-    const sub = new NativeEventEmitter(native).addListener('PestifyVoiceProbeResult', event => { void controller.current.handleEvent(event); });
+    current.current.onSessionState?.({phase:'idle',status:''});
+    fieldNative?.configureWakePreview?.(false);
     const app = AppState.addEventListener('change', value => {
-      if(value !== 'active') {wakePreviewOptIn.current=false;setWakePreviewEnabled(false);setWakePreview(null);fieldNative?.configureWakePreview?.(false);}
       if (!fieldActive.current && (value === 'background' || (value !== 'active' && !permissionPrompt.current))) pause('Η φωνητική λειτουργία σταμάτησε επειδή η εφαρμογή δεν είναι ενεργή.');
     });
     const fieldSub=fieldNative?.labEnabled ? new NativeEventEmitter(fieldNative).addListener('PestifyFieldEvent',event=>{void fieldController.current.handleEvent(event);}) : null;
-    return () => { alive.current = false; permissionAttempt.current++; controller.current.stop(); fieldController.current?.stop(); sub.remove(); fieldSub?.remove(); app.remove(); };
+    return () => { alive.current = false; permissionAttempt.current++; fieldController.current?.stop(); fieldSub?.remove(); app.remove(); };
   }, []);
   useEffect(() => {
-    if (contextKey(context) !== mountedKey.current || !context.active) { pause(errors.CONTEXT_CHANGED); onClose(); }
+    if (contextKey(context) !== mountedKey.current || !context.active) { pause(errors.CONTEXT_CHANGED); mountedKey.current=contextKey(context); current.current.onClose(); }
   }, [contextKey(context), context.active]);
+  useEffect(() => {
+    setBaitChoice(defaults?.baitType || ''); setDoseChoice(defaults?.dosageG || 0);
+    setSettingsOpen(!defaults?.baitType || !defaults?.dosageG); setDropdown(null);
+  }, [defaults?.baitType, defaults?.dosageG]);
   async function start() {
     if (!current.current.defaults?.baitType || !current.current.defaults?.dosageG || settingsOpen) return;
     pause('Έλεγχος αδειών…'); setPhase('permissions');
@@ -124,52 +115,83 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
       if (!caps.onDevice || !caps.available || !caps.speechAuthorized || !caps.microphoneAuthorized || AppState.currentState !== 'active') {
         pause('Η τοπική αναγνώριση ή οι άδειες δεν είναι διαθέσιμες.'); return;
       }
-      if (fieldMode) await fieldController.current.start();
-      else controller.current.start();
+      const started=await fieldController.current.start();
+      if(started && alive.current && token===permissionAttempt.current)current.current.onClose();
     } catch { if (alive.current && token === permissionAttempt.current) pause('Δεν ολοκληρώθηκε ο έλεγχος αδειών.'); }
     finally { permissionPrompt.current = false; }
   }
-  const compatible = fieldMode ? Boolean(fieldNative?.labEnabled && fieldNative?.wakeVersion >= 4) : native?.phase >= 3 && typeof native?.startAutomatic === 'function';
-  return <SafeAreaProvider><SafeAreaView style={{flex:1,backgroundColor:'#fff'}}><ScrollView contentContainerStyle={{padding:22,gap:18}}>
-    <Text style={{fontSize:22,fontWeight:'700'}}>Φωνητική καταχώριση — Lab</Text>
-    <Text>Ραντεβού: {context.appointmentId}{'\n'}Κάτοψη: {context.map?.name || 'Χωρίς όνομα'} ({context.map?.mapId ?? context.map?.map_id}){'\n'}Συσκευές: δολωματικοί σταθμοί (BS)</Text>
-    <Text>Πείτε «Κάτοψη δύο» για αλλαγή. Κοινοί αριθμοί σταθμών αφορούν την ενεργή κάτοψη. Αν ο σταθμός δεν υπάρχει εδώ, γίνεται μετάβαση μόνο όταν βρίσκεται σε μία άλλη κάτοψη. {fieldMode ? "Η συνεδρία ξεκινά εδώ και μπορεί να δοκιμαστεί με κλειδωμένη οθόνη." : "Η οθόνη παραμένει ανοικτή."}</Text>
-    <View>{(context.maps || [context.map]).map((map,index)=><Text key={String(map.mapId ?? map.map_id)}>Κάτοψη {index+1}: {map.name || 'Χωρίς όνομα'}</Text>)}</View>
-    <Text>Χωρίς σχετική εντολή ισχύει Πρόσβαση: Ναι και Κατάσταση: Λειτουργικός. Μετά τη σύντομη επανάληψη καταχωρίζεται ο έλεγχος στην τρέχουσα εργασία και ακούω τον επόμενο. Η τελική αποθήκευση στον server γίνεται με την ολοκλήρωση εργασίας.</Text>
-    {settingsOpen ? <View>
-      <Text style={{fontWeight:'700'}}>Προεπιλογές για αυτή την εργασία</Text>
-      <Text>{catalogStatus}</Text>
-      <Picker accessibilityLabel="Προεπιλεγμένο δόλωμα" selectedValue={baitChoice} onValueChange={setBaitChoice}>
-        <Picker.Item label="Επιλέξτε διαθέσιμο δόλωμα" value="" />
-        {baitTypes.map(name => <Picker.Item key={name} label={name} value={name} />)}
-      </Picker>
-      <Picker accessibilityLabel="Προεπιλεγμένη δοσολογία" selectedValue={doseChoice} onValueChange={setDoseChoice}>
-        <Picker.Item label="Επιλέξτε δοσολογία" value={0} />
-        {[10,20,30,40,50,60,70,80,90,100].map(g => <Picker.Item key={g} label={`${g} g`} value={g} />)}
-      </Picker>
-      <Button title="Χρήση προεπιλογών" disabled={!baitTypes.includes(baitChoice) || !doseChoice || phase !== 'idle'} onPress={() => { onDefaultsChange({baitType:baitChoice,dosageG:doseChoice}); setSettingsOpen(false); }} />
-      {!!catalogStatus && <Button title="Επαναφόρτωση δολωμάτων" onPress={() => setCatalogReload(n => n+1)} />}
-    </View> : <View>
-      <Text>Προεπιλογές: {defaults?.baitType} — {defaults?.dosageG}g</Text>
-      <Button title="Αλλαγή προεπιλογών" disabled={phase !== 'idle'} onPress={() => setSettingsOpen(true)} />
-    </View>}
-    <View>
-      <Text style={{fontWeight:'700'}}>Δοκιμαστική λειτουργία πεδίου — {fieldConfiguration.wakePhrases[0]}</Text>
-      <Switch accessibilityLabel="Λειτουργία πεδίου με ενεργό μικρόφωνο στην κλειδωμένη οθόνη" value={fieldMode} disabled={phase !== 'idle' || !fieldNative?.labEnabled} onValueChange={setFieldMode} />
-      {!fieldNative?.labEnabled && <Text>Απαιτείται το νέο build security-lab-field.</Text>}
-      {fieldMode && <Text>Το μικρόφωνο παραμένει ενεργό ακόμη και στην αναμονή και με κλειδωμένη οθόνη. Πείτε «{fieldConfiguration.wakePhrases[0]}», περιμένετε «{fieldConfiguration.readyMessage}» και δώστε εντολές. Μετά από {fieldConfiguration.idleSeconds} δευτερόλεπτα αδράνειας επιστρέφει στην αναμονή. Όσο ακούει εντολές, «Παύση» επιστρέφει στην αναμονή και «Τερματισμός» κλείνει το μικρόφωνο. Στην αναμονή πείτε πρώτα «{fieldConfiguration.wakePhrases[0]}». Δοκιμάστε πρώτα με την οθόνη ανοικτή.</Text>}
-    </View>
-    {fieldMode && fieldNative?.wakeVersion >= 4 && <View style={{gap:8}}>
-      <Text>Προσωρινός έλεγχος φράσης ενεργοποίησης</Text>
-      <Switch accessibilityLabel="Προσωρινή εμφάνιση όσων ακούει στην αναμονή" value={wakePreviewEnabled} onValueChange={value=>{wakePreviewOptIn.current=value;setWakePreviewEnabled(value);setWakePreview(null);fieldNative.configureWakePreview(value);}} />
-      <Text>Αν τον ενεργοποιήσετε, εμφανίζεται προσωρινά τι άκουσε στην αναμονή. Μόνο στη μνήμη, για 15 δευτερόλεπτα· κλείνει όταν φύγετε από την εφαρμογή. Δοκιμάστε μόνο τη φράση «{fieldConfiguration.wakePhrases[0]}».</Text>
-      {wakePreview && <Text selectable>Άκουσα: {wakePreview.text || '(χωρίς κείμενο)'}{'\n'}Αποτέλεσμα: {({partial:'Αναγνώριση σε εξέλιξη',accepted:'Η φράση έγινε δεκτή',rejected:'Το τελικό κείμενο δεν ταιριάζει',no_text:'Δεν αναγνωρίστηκε κείμενο',capture_timeout:`Δεν ολοκληρώθηκε η φράση σε ${fieldConfiguration.captureSeconds} δευτερόλεπτα`,final_timeout:'Δεν επέστρεψε τελικό αποτέλεσμα'})[wakePreview.stage] || wakePreview.stage}</Text>}
-    </View>}
-    <Text>{compatible ? status : (fieldMode ? 'Απαιτείται νέο build security-lab-field με παραμετρικές ρυθμίσεις (έκδοση 4).' : 'Απαιτείται το νέο Dev build της φάσης 3 για αυτόματο τέλος ομιλίας.')}</Text>
-    <Text>{fieldMode ? "Περιμένετε να ολοκληρωθεί η εκφώνηση πριν πείτε την επόμενη εντολή." : "Μιλήστε όταν εμφανίζεται «Ακούω τον επόμενο σταθμό». Για παύση πείτε «Παύση» ή πατήστε το κουμπί."}</Text>
-    <Button title={fieldMode ? `Έναρξη συνεδρίας ${fieldConfiguration.wakePhrases[0]}` : "Έναρξη συνεχόμενης ακρόασης"} onPress={start} disabled={!compatible || phase !== 'idle' || settingsOpen || !defaults?.baitType || !defaults?.dosageG} />
-    {phase !== 'idle' && <Button title={fieldMode ? "Τερματισμός και κλείσιμο μικροφώνου" : "Παύση ακρόασης"} onPress={() => pause('Η ακρόαση σταμάτησε.')} />}
-    <Button title="Επιστροφή στην κάτοψη" onPress={() => { pause(''); onClose(); }} />
-  </ScrollView>
-  </SafeAreaView></SafeAreaProvider>;
+  const compatible = Boolean(fieldNative?.labEnabled && fieldNative?.wakeVersion >= 5);
+  const running = phase !== 'idle';
+  function action(label, onPress, disabled=false, danger=false) {
+    return <TouchableOpacity accessibilityRole="button" accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={[styles.button,danger && styles.danger,disabled && styles.disabled]}><Text style={styles.buttonText}>{label}</Text></TouchableOpacity>;
+  }
+  function select(label, key, value, options, choose) {
+    return <View style={styles.field}>
+      <Text style={styles.label}>{label}</Text>
+      <TouchableOpacity accessibilityRole="button" accessibilityState={{expanded:dropdown===key,disabled:running}} disabled={running} style={styles.dropdown} onPress={()=>setDropdown(dropdown===key?null:key)}>
+        <Text style={[styles.dropdownText,!value && styles.placeholder]}>{value || 'Επιλέξτε'}</Text><MaterialIcons name={dropdown===key?'keyboard-arrow-up':'keyboard-arrow-down'} size={24} color="#1f9c8b" />
+      </TouchableOpacity>
+      {dropdown===key && <View style={styles.dropdownMenu}><ScrollView nestedScrollEnabled style={{maxHeight:220}} keyboardShouldPersistTaps="handled">
+        {options.map(option=><TouchableOpacity accessibilityRole="button" key={String(option.value)} style={styles.dropdownItem} onPress={()=>{choose(option.value);setDropdown(null);}}><Text style={styles.dropdownItemText}>{option.label}</Text></TouchableOpacity>)}
+        {!options.length && <Text style={styles.helper}>Δεν υπάρχουν διαθέσιμες επιλογές.</Text>}
+      </ScrollView></View>}
+    </View>;
+  }
+  return <Modal visible={visible} animationType="slide" presentationStyle="fullScreen" onRequestClose={onClose}>
+    <SafeAreaProvider><SafeAreaView style={styles.screen}>
+      <View style={styles.header}><TouchableOpacity accessibilityRole="button" accessibilityLabel="Επιστροφή στην κάτοψη" style={styles.back} onPress={onClose}><MaterialIcons name="arrow-back" size={24} color="#1f9c8b" /></TouchableOpacity><Text style={styles.title}>Ηχογράφηση</Text><View style={styles.headerIcon}><MaterialIcons name="mic" size={24} color="#1f9c8b" /></View></View>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Κατόψεις</Text>
+          {(context.maps || [context.map]).filter(Boolean).map((map,index)=>{
+            const selected=String(map.mapId ?? map.map_id)===String(context.map?.mapId ?? context.map?.map_id);
+            return <View key={String(map.mapId ?? map.map_id)} style={[styles.mapRow,selected && styles.selectedMap]}><MaterialIcons name="layers" size={20} color={selected?'#1f9c8b':'#88949c'} /><Text style={[styles.mapText,selected && styles.selectedText]}>Κάτοψη {index+1}: {map.name || 'Χωρίς όνομα'}</Text>{selected && <MaterialIcons name="check-circle" size={20} color="#1f9c8b" />}</View>;
+          })}
+          <Text style={styles.helper}>Πείτε «Κάτοψη δύο» για αλλαγή κάτοψης.</Text>
+        </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Προεπιλογές εργασίας</Text>
+          {settingsOpen ? <>
+            {select('Τύπος δολώματος','bait',baitChoice,baitTypes.map(name=>({label:name,value:name})),setBaitChoice)}
+            {select('Δοσολογία','dose',doseChoice?`${doseChoice} g`:'',[10,20,30,40,50,60,70,80,90,100].map(g=>({label:`${g} g`,value:g})),setDoseChoice)}
+            {!!catalogStatus && <Text style={styles.helper}>{catalogStatus}</Text>}
+            {action('Χρήση προεπιλογών',()=>{onDefaultsChange({baitType:baitChoice,dosageG:doseChoice});setSettingsOpen(false);setDropdown(null);},running || !baitTypes.includes(baitChoice) || !doseChoice)}
+            {!!catalogStatus && <TouchableOpacity accessibilityRole="button" style={styles.textButton} onPress={()=>setCatalogReload(n=>n+1)}><Text style={styles.link}>Επαναφόρτωση δολωμάτων</Text></TouchableOpacity>}
+          </> : <>
+            <Text style={styles.defaults}>{defaults?.baitType}</Text><Text style={styles.helper}>Δοσολογία: {defaults?.dosageG} g</Text>
+            {!running && <TouchableOpacity accessibilityRole="button" style={styles.textButton} onPress={()=>setSettingsOpen(true)}><Text style={styles.link}>Αλλαγή προεπιλογών</Text></TouchableOpacity>}
+          </>}
+        </View>
+        <View style={styles.card}>
+          <View style={styles.statusHeading}><View style={[styles.dot,running && styles.dotActive]} /><Text style={styles.sectionTitle}>{running?'Ακρόαση ενεργή':'Έτοιμο για έναρξη'}</Text></View>
+          <Text accessibilityLiveRegion="polite" style={styles.helper}>{compatible?status:'Απαιτείται η νέα έκδοση της εφαρμογής για φωνητική διακοπή.'}</Text>
+          <Text style={styles.helper}>Πείτε «{fieldConfiguration.wakePhrases[0]}», περιμένετε «{fieldConfiguration.readyMessage}» και δώστε τον σταθμό και την κατανάλωση. Η ακρόαση συνεχίζεται στην κάτοψη και με κλειδωμένη οθόνη.</Text>
+          <Text style={styles.helper}>Για διακοπή πείτε «Άκυρο» όταν ακούει ή πατήστε «Διακοπή». Οι καταχωρισμένες εγγραφές διατηρούνται. Η τελική αποθήκευση γίνεται με την ολοκλήρωση της εργασίας.</Text>
+          {running ? action('Διακοπή',()=>pause('Η ακρόαση σταμάτησε. Οι καταχωρίσεις διατηρήθηκαν.'),false,true) : action('Έναρξη ακρόασης',start,!compatible || settingsOpen || !defaults?.baitType || !defaults?.dosageG || !context.active)}
+        </View>
+        <TouchableOpacity accessibilityRole="button" style={styles.textButton} onPress={onClose}><Text style={styles.link}>Επιστροφή στην κάτοψη</Text></TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView></SafeAreaProvider>
+  </Modal>;
 }
+const styles=StyleSheet.create({
+  screen:{flex:1,backgroundColor:'#f5f7f9'},
+  header:{flexDirection:'row',alignItems:'center',gap:12,paddingHorizontal:20,paddingVertical:16,backgroundColor:'#fff',borderBottomWidth:1,borderBottomColor:'#e9eef0'},
+  back:{padding:8,borderRadius:10,backgroundColor:'#edf8f5'},
+  title:{flex:1,fontSize:23,fontWeight:'700',color:'#2c3e50'},
+  headerIcon:{padding:10,borderRadius:12,backgroundColor:'#edf8f5'},
+  content:{padding:20,gap:16,paddingBottom:32},
+  card:{backgroundColor:'#fff',borderRadius:16,padding:18,gap:12,borderWidth:1,borderColor:'#e9eef0',shadowColor:'#000',shadowOffset:{width:0,height:2},shadowOpacity:0.04,shadowRadius:6,elevation:2},
+  sectionTitle:{fontSize:17,fontWeight:'700',color:'#2c3e50'},
+  helper:{fontSize:14,lineHeight:21,color:'#64737d'},
+  mapRow:{flexDirection:'row',alignItems:'center',gap:10,padding:12,borderRadius:10,backgroundColor:'#f6f8f9'},
+  selectedMap:{backgroundColor:'#eaf7f3'},mapText:{flex:1,fontSize:15,color:'#52616c'},selectedText:{fontWeight:'600',color:'#167d6f'},
+  field:{gap:8},label:{fontSize:15,fontWeight:'600',color:'#2c3e50'},
+  dropdown:{flexDirection:'row',alignItems:'center',gap:8,borderWidth:1,borderColor:'#1f9c8b',borderRadius:10,paddingVertical:12,paddingHorizontal:12,backgroundColor:'#fff'},
+  dropdownText:{flex:1,fontSize:15,fontWeight:'600',color:'#333'},placeholder:{color:'#999'},
+  dropdownMenu:{marginTop:6,borderWidth:1,borderColor:'#1f9c8b',borderRadius:10,backgroundColor:'#fff',overflow:'hidden'},
+  dropdownItem:{paddingVertical:12,paddingHorizontal:12,borderBottomWidth:1,borderBottomColor:'#eee'},dropdownItemText:{fontSize:15,color:'#333',fontWeight:'500'},
+  button:{backgroundColor:'#1f9c8b',paddingVertical:14,paddingHorizontal:18,borderRadius:10,alignItems:'center'},buttonText:{color:'#fff',fontSize:16,fontWeight:'700'},danger:{backgroundColor:'#d54d4d'},disabled:{opacity:0.45},
+  defaults:{fontSize:16,fontWeight:'600',color:'#2c3e50'},textButton:{paddingVertical:10,alignItems:'center'},link:{color:'#1f9c8b',fontSize:15,fontWeight:'600'},
+  statusHeading:{flexDirection:'row',alignItems:'center',gap:8},dot:{width:9,height:9,borderRadius:5,backgroundColor:'#a8b4ba'},dotActive:{backgroundColor:'#1f9c8b'},
+});

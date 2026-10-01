@@ -1,5 +1,8 @@
 # iOS Security Lab: voice floor plans and configurable field engine (v4)
 
+Current controls/build instructions: [ios-voice-recording-ui-20261001.md](ios-voice-recording-ui-20261001.md).
+The user confirmed this v4 functionality on iPhone.
+
 ## Confirmed baseline
 
 The user verified v3 “Αλέρτ” activation and station entry in the background,

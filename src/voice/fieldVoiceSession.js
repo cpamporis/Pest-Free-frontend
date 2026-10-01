@@ -20,7 +20,8 @@ function createFieldVoiceSession({native,prepare,validate,commit,onState,onActiv
       }
       const started=await native.startField(session);
       if(ticket!==epoch)return;
-      if(!started)stop('Δεν ξεκίνησε η λειτουργία πεδίου.');
+      if(!started){stop('Δεν ξεκίνησε η λειτουργία πεδίου.');return false;}
+      return true;
     } catch(error) {
       if(ticket===epoch)stop(error.code==='INVALID_CONFIGURATION' || error.code==='CONFIGURATION_IDLE_REQUIRED' ? 'Δεν εφαρμόστηκαν οι ρυθμίσεις φωνής. Ελέγξτε τη διαμόρφωση.' : error.code==='LOCAL_LANGUAGES_REQUIRED' ? 'Χρειάζεται διαθέσιμη τοπική αναγνώριση ελληνικών.' : 'Δεν ξεκίνησε η λειτουργία πεδίου. Ελέγξτε άδειες και ήχο.');
     }
@@ -28,14 +29,14 @@ function createFieldVoiceSession({native,prepare,validate,commit,onState,onActiv
   async function handleEvent(event) {
     if(!session || event.sessionId!==session)return;
     if(event.code==='WAKE_PREVIEW') {onWakePreview({stage:String(event.stage||''),text:String(event.text||'').slice(0,160)});return;}
-    if(event.code==='STOPPED') {stop(`Η λειτουργία πεδίου σταμάτησε (${event.reason || 'διακοπή ήχου'}). Ξεκινήστε την ξανά με ανοικτή οθόνη.`);return;}
+    if(event.code==='STOPPED') {stop(event.reason==='VOICE_CANCELLED' ? 'Η ακρόαση σταμάτησε. Οι καταχωρίσεις διατηρήθηκαν.' : `Η ακρόαση σταμάτησε (${event.reason || 'διακοπή ήχου'}). Ξεκινήστε την ξανά.`);return;}
     if(event.code==='WAITING_WAKE') {onState('wake',`Αναμονή για «${configuration.wakePhrases[0]}». Το μικρόφωνο παραμένει ενεργό.`);return;}
     if(event.code==='LISTENING') {onState('listening',`${configuration.readyMessage} — πείτε τον επόμενο σταθμό ή κάτοψη.`);return;}
     if(event.code!=='COMMAND'||!event.commandId||busy||consumed.has(event.commandId))return;
     consumed.add(event.commandId);
     const ticket=epoch;busy=event.commandId;onState('processing','Επεξεργασία στη συσκευή…');
     const phrase=String(event.text||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim().replace(/[.!;]+$/,'').trim();
-    if(['τερματισμος','σταματημα'].includes(phrase)){stop();return;}
+    if(['τερματισμος','σταματημα','ακυρο'].includes(phrase)){stop();return;}
     if(['παυση','ακυρωση'].includes(phrase)){busy=null;native.waitForWake();return;}
     try {
       const result=prepare(event.text);

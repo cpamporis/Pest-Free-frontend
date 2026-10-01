@@ -15,7 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import apiService from "../../services/apiService";
-import VoiceLabEntry from "../../voice/VoiceLabEntry";
+import VoiceLabEntry, { voiceProbeAvailable } from "../../voice/VoiceLabEntry";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import { useFocusEffect } from '@react-navigation/native';
 import { Modal, TextInput } from 'react-native';
@@ -705,10 +705,10 @@ export default function TechnicianHomeScreen({
           </TouchableOpacity>
         </View>
 
-        <VoiceLabEntry />
-
         {/* Welcome Section */}
         <View style={styles.welcomeCard}>
+          {voiceProbeAvailable && <View style={styles.voiceLabRow}><VoiceLabEntry /></View>}
+          <View style={styles.welcomeIdentity}>
           <View style={styles.avatarContainer}>
             <Text style={styles.avatarText}>
               {technician.firstName?.charAt(0) || 'T'}
@@ -722,6 +722,7 @@ export default function TechnicianHomeScreen({
             <Text style={styles.techInfo}>
               {technician.username} • {todayAppointments.length} {i18n.t("technician.home.appointments.todayCount", { count: todayAppointments.length })}
             </Text>
+          </View>
           </View>
         </View>
 
@@ -1228,8 +1229,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 16,
     padding: 24,
-    flexDirection: "row",
-    alignItems: "center",
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -1241,6 +1240,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#f0f0f0",
   },
+  voiceLabRow:{alignItems:"flex-end",marginBottom:12},
+  welcomeIdentity:{flexDirection:"row",alignItems:"center"},
   avatarContainer: {
     width: 60,
     height: 60,

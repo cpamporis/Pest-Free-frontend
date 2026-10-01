@@ -160,6 +160,8 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
   );
   
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [voiceMounted, setVoiceMounted] = useState(false);
+  const [voiceSessionState, setVoiceSessionState] = useState({phase:'idle',status:''});
   const [voiceDefaults, setVoiceDefaults] = useState(null);
   const [selectedMap, setSelectedMap] = useState(null);
   const [stations, setStations] = useState([]);
@@ -1423,8 +1425,8 @@ const handleSaveAll = async () => {
     stations,
     active: workStarted && !editMode && !saving && !loadingCustomer && !serviceCompleted && !isEditCompletedVisit
   };
-  if (voiceOpen && voiceLabAvailable) return (
-    <VoiceStationFlow context={voiceContext} loggedStations={loggedStations} technician={technician}
+  const voiceSessionView = voiceMounted && voiceLabAvailable ? (
+    <VoiceStationFlow visible={voiceOpen} onSessionState={setVoiceSessionState} context={voiceContext} loggedStations={loggedStations} technician={technician}
       defaults={voiceDefaults} onDefaultsChange={setVoiceDefaults}
       onClose={() => setVoiceOpen(false)}
       onCommit={candidate => {
@@ -1433,7 +1435,7 @@ const handleSaveAll = async () => {
         if(candidate.kind==='station')upsertLoggedStation(candidate.data, true, target.map);
         if(mapIdOf(target.map)!==mapIdOf(selectedMap))handleMapSelect(target.map);
       }} />
-  );
+  ) : null;
 
   if (loadingCustomer) {
     return (
@@ -1538,6 +1540,7 @@ const handleSaveAll = async () => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 110 : 0}
     >
       {paymentDialog}
+      {voiceSessionView}
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
         <View style={styles.container}>
@@ -1558,6 +1561,12 @@ const handleSaveAll = async () => {
             ) : (
               <TouchableOpacity style={styles.backBtn} onPress={onBack}>
                 <Text style={styles.backBtnText}>← {i18n.t("technician.common.back")}</Text>
+              </TouchableOpacity>
+            )}
+
+            {voiceLabAvailable && (voiceContext.active || voiceSessionState.phase !== 'idle') && !selectedStation && (
+              <TouchableOpacity accessibilityRole="button" accessibilityLabel="Ηχογράφηση" style={[styles.backBtn,voiceSessionState.phase !== 'idle' && styles.recordingButton]} onPress={()=>{setVoiceMounted(true);setVoiceOpen(true);}}>
+                <Text style={styles.backBtnText}>{voiceSessionState.phase !== 'idle' ? '● ' : ''}Ηχογράφηση</Text>
               </TouchableOpacity>
             )}
 
@@ -1588,6 +1597,7 @@ const handleSaveAll = async () => {
             </TouchableOpacity>
           </View>
 
+          {voiceMounted && !!voiceSessionState.status && <Text accessibilityLiveRegion="polite" style={styles.voiceStatus}>{voiceSessionState.status}</Text>}
           {showMapDropdown && (
             <View style={styles.mapDropdown}>
               {customerMaps.map((map, index) => (
@@ -2002,11 +2012,6 @@ const handleSaveAll = async () => {
             )}
           </View>
 
-          {voiceLabAvailable && voiceContext.active && !selectedStation && (
-            <TouchableOpacity style={styles.backBtn} onPress={() => setVoiceOpen(true)}>
-              <Text style={styles.backBtnText}>Lab: Φωνητική καταχώριση στην ενεργή κάτοψη</Text>
-            </TouchableOpacity>
-          )}
           {numbering.prompt}
           {selectedStation && (workStarted || isEditCompletedVisit) && (
             <View style={styles.stationOverlay}>
@@ -2204,6 +2209,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 8,
   },
+  recordingButton:{backgroundColor:'#167d6f',borderWidth:1,borderColor:'#0e6256'},
+  voiceStatus:{marginHorizontal:20,marginTop:8,fontSize:13,lineHeight:18,color:'#64737d'},
   backBtnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
 
   chooseMapBtn: {
