@@ -1,5 +1,8 @@
 # iOS Lab — bait defaults, condition and access commands
 
+For the subsequent automatic read-back/commit loop and native build requirements,
+see `ios-voice-continuous-20261001.md`, which supersedes the form/confirmation steps.
+
 Supersedes the functional/access-only restrictions in the phase-2 notes.
 JS-only update; compatible with the corrected phase-2 native build (1485fe8).
 No native, dependency, backend, production or backup changes.

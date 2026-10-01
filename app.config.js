@@ -14,7 +14,7 @@ module.exports = ({ config }) => {
     ...(voiceProbe ? {
       plugins: [...(config.plugins || []), "./plugins/withPestifyVoiceProbe"],
       updates: { ...config.updates, enabled: false },
-      runtimeVersion: "pestify-voice-probe-2"
+      runtimeVersion: "pestify-voice-probe-3"
     } : {}),
     ...(isDevelopment ? { scheme: DEVELOPMENT_SCHEME } : {}),
     ios: {

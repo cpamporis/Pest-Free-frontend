@@ -3,6 +3,7 @@
 #import <AVFoundation/AVFoundation.h>
 #import <Speech/Speech.h>
 #import <UIKit/UIKit.h>
+#import <math.h>
 
 // Bounded foreground-only on-device recognition and read-back. Never writes files.
 @interface PestifyVoiceProbe : RCTEventEmitter <RCTBridgeModule, AVSpeechSynthesizerDelegate>
@@ -14,6 +15,13 @@
 @property(nonatomic, strong) SFSpeechAudioBufferRecognitionRequest *request;
 @property(nonatomic, strong) SFSpeechRecognitionTask *task;
 @property(nonatomic, strong) NSTimer *deadline;
+@property(nonatomic, strong) NSTimer *endpointTimer;
+@property(nonatomic, assign) BOOL automaticCapture;
+@property(nonatomic, assign) BOOL endingCapture;
+@property(nonatomic, assign) BOOL receivedSpeech;
+@property(nonatomic, assign) NSTimeInterval lastVoiceTime;
+@property(nonatomic, assign) NSTimeInterval lastTextTime;
+@property(nonatomic, copy) NSString *lastPartialText;
 @property(nonatomic, assign) BOOL tapped;
 @property(nonatomic, assign) BOOL listening;
 @property(nonatomic, assign) NSUInteger generation;
@@ -37,7 +45,7 @@ RCT_EXPORT_MODULE(PestifyVoiceProbe)
   }
   return self;
 }
-- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"phase": @2}; }
+- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"phase": @3}; }
 - (void)startObserving { self.listening = YES; }
 - (void)stopObserving { self.listening = NO; [self cleanup]; }
 - (void)cleanup {
@@ -46,6 +54,8 @@ RCT_EXPORT_MODULE(PestifyVoiceProbe)
   [self.synthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate]; self.synthesizer = nil;
   if (completion) completion(@NO);
   self.generation++;
+  [self.endpointTimer invalidate]; self.endpointTimer = nil;
+  self.lastPartialText = nil; self.receivedSpeech = NO; self.endingCapture = NO;
   [self.deadline invalidate]; self.deadline = nil;
   [self.engine stop];
   if (self.tapped) { [self.engine.inputNode removeTapOnBus:0]; self.tapped = NO; }
@@ -92,6 +102,12 @@ RCT_REMAP_METHOD(requestPermissions, permissionResolver:(RCTPromiseResolveBlock)
   }];
 }
 RCT_REMAP_METHOD(start, startResolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+  [self beginCaptureAutomatic:NO resolver:resolve rejecter:reject];
+}
+RCT_REMAP_METHOD(startAutomatic, automaticResolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+  [self beginCaptureAutomatic:YES resolver:resolve rejecter:reject];
+}
+- (void)beginCaptureAutomatic:(BOOL)automatic resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject {
   if (![self isLab]) { reject(@"LAB_ONLY", @"Lab build required", nil); return; }
   if ([UIApplication sharedApplication].applicationState != UIApplicationStateActive) {
     reject(@"FOREGROUND_REQUIRED", @"Open the diagnostic screen", nil); return;
@@ -103,11 +119,13 @@ RCT_REMAP_METHOD(start, startResolver:(RCTPromiseResolveBlock)resolve rejecter:(
     reject(@"PERMISSION_REQUIRED", @"Explicit permissions required", nil); return;
   }
   [self cleanup];
+  self.automaticCapture = automatic;
+  self.lastVoiceTime = self.lastTextTime = [NSProcessInfo processInfo].systemUptime;
   self.engine = [AVAudioEngine new];
   self.recognizer = [[SFSpeechRecognizer alloc] initWithLocale:[NSLocale localeWithLocaleIdentifier:@"el-GR"]];
   self.request = [SFSpeechAudioBufferRecognitionRequest new];
   self.request.requiresOnDeviceRecognition = YES;
-  self.request.shouldReportPartialResults = NO;
+  self.request.shouldReportPartialResults = automatic;
   self.request.taskHint = SFSpeechRecognitionTaskHintConfirmation;
   NSError *error = nil;
   AVAudioSession *session = [AVAudioSession sharedInstance];
@@ -122,16 +140,41 @@ RCT_REMAP_METHOD(start, startResolver:(RCTPromiseResolveBlock)resolve rejecter:(
   }
   // Capture the request, not mutable self, on the audio realtime callback.
   SFSpeechAudioBufferRecognitionRequest *request = self.request;
-  [input installTapOnBus:0 bufferSize:1024 format:format block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
-    [request appendAudioPCMBuffer:buffer];
-  }];
-  self.tapped = YES;
   NSUInteger generation = self.generation;
   __weak PestifyVoiceProbe *weakSelf = self;
+  __block NSTimeInterval lastMeterTick = 0;
+  [input installTapOnBus:0 bufferSize:1024 format:format block:^(AVAudioPCMBuffer *buffer, AVAudioTime *when) {
+    [request appendAudioPCMBuffer:buffer];
+    if (!automatic) return;
+    NSTimeInterval now = [NSProcessInfo processInfo].systemUptime;
+    if (now - lastMeterTick < 0.1) return;
+    lastMeterTick = now;
+    // Meter only; raw audio never leaves the recognition buffer or goes to disk.
+    float * const *channels = buffer.floatChannelData;
+    if (!channels || buffer.frameLength == 0) return;
+    double energy = 0;
+    for (AVAudioFrameCount i = 0; i < buffer.frameLength; i++) {
+      double sample = channels[0][i]; energy += sample * sample;
+    }
+    BOOL voiceActivity = sqrt(energy / buffer.frameLength) > 0.01; // about -40 dBFS
+    if (voiceActivity) dispatch_async(dispatch_get_main_queue(), ^{
+      PestifyVoiceProbe *owner = weakSelf;
+      if (owner && owner.generation == generation && !owner.endingCapture) owner.lastVoiceTime = now;
+    });
+  }];
+  self.tapped = YES;
   self.task = [self.recognizer recognitionTaskWithRequest:self.request resultHandler:^(SFSpeechRecognitionResult *result, NSError *recognitionError) {
     dispatch_async(dispatch_get_main_queue(), ^{
       PestifyVoiceProbe *owner = weakSelf;
       if (!owner || owner.generation != generation) return;
+      if (automatic && result.bestTranscription.formattedString.length > 0) {
+        owner.receivedSpeech = YES;
+        NSString *partial = result.bestTranscription.formattedString;
+        if (![partial isEqualToString:owner.lastPartialText]) {
+          owner.lastPartialText = partial;
+          owner.lastTextTime = [NSProcessInfo processInfo].systemUptime;
+        }
+      }
       if (result.isFinal) {
         // Transient transport to the parser only. No logging or persistent transcript.
         [owner finish:@{@"code": @"RESULT", @"text": result.bestTranscription.formattedString ?: @""}];
@@ -144,12 +187,25 @@ RCT_REMAP_METHOD(start, startResolver:(RCTPromiseResolveBlock)resolve rejecter:(
   }
   self.deadline = [NSTimer scheduledTimerWithTimeInterval:20 repeats:NO block:^(NSTimer *timer) {
     PestifyVoiceProbe *owner = weakSelf;
-    if (owner && owner.generation == generation) [owner endCapture];
+    if (owner && owner.generation == generation) {
+      if (automatic) [owner finish:@{@"code": owner.receivedSpeech ? @"CAPTURE_LIMIT" : @"NO_SPEECH"}];
+      else [owner endCapture];
+    }
   }];
+  if (automatic) {
+    self.endpointTimer = [NSTimer scheduledTimerWithTimeInterval:0.15 repeats:YES block:^(NSTimer *timer) {
+      PestifyVoiceProbe *owner = weakSelf;
+      if (!owner || owner.generation != generation || owner.endingCapture || !owner.receivedSpeech) return;
+      NSTimeInterval quietSince = MAX(owner.lastVoiceTime, owner.lastTextTime);
+      if ([NSProcessInfo processInfo].systemUptime - quietSince >= 1.4) [owner endCapture];
+    }];
+  }
   resolve(@{@"recording": @YES, @"maxSeconds": @20});
 }
 - (void)endCapture {
-  if (!self.engine || !self.task) return;
+  if (!self.engine || !self.task || self.endingCapture) return;
+  self.endingCapture = YES;
+  [self.endpointTimer invalidate]; self.endpointTimer = nil;
   [self.deadline invalidate];
   [self.engine stop];
   if (self.tapped) { [self.engine.inputNode removeTapOnBus:0]; self.tapped = NO; }
