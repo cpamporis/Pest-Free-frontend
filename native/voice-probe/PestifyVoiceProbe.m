@@ -6,7 +6,7 @@
 
 // Bounded foreground-only on-device recognition and read-back. Never writes files.
 @interface PestifyVoiceProbe : RCTEventEmitter <RCTBridgeModule, AVSpeechSynthesizerDelegate>
-@property(nonatomic, copy) NSString *requestTag;
+@property(nonatomic, copy) NSString *captureRequestTag;
 @property(nonatomic, strong) AVSpeechSynthesizer *synthesizer;
 @property(nonatomic, copy) RCTPromiseResolveBlock speechResolve;
 @property(nonatomic, strong) AVAudioEngine *engine;
@@ -56,11 +56,12 @@ RCT_EXPORT_MODULE(PestifyVoiceProbe)
 }
 - (void)finish:(NSDictionary *)result {
   NSMutableDictionary *payload = [result mutableCopy];
-  if (self.requestTag) payload[@"requestTag"] = self.requestTag;
+  if (self.captureRequestTag) payload[@"requestTag"] = self.captureRequestTag;
   [self cleanup];
   if (self.listening) [self sendEventWithName:@"PestifyVoiceProbeResult" body:payload];
 }
-RCT_EXPORT_METHOD(setRequestTag:(NSString *)tag) { self.requestTag = [tag copy]; }
+// Keep the exported selector distinct from the backing property setter.
+RCT_EXPORT_METHOD(setRequestTag:(NSString *)tag) { self.captureRequestTag = [tag copy]; }
 - (void)backgrounded:(NSNotification *)notification {
   if (self.engine || self.synthesizer) [self finish:@{@"code": @"BACKGROUND_STOPPED"}];
 }

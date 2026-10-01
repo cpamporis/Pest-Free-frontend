@@ -88,3 +88,15 @@ No production, backend, backup, Android or Web changes are included. No new API,
 audio file writes, transcript logging or biometric identification is introduced.
 The separate diagnostic's optional temporary-text preview is unchanged. No wake
 phrase, background recognition or screen-locked field mode is implemented yet.
+
+## Native crash fix (2026-10-01)
+
+The first phase-2 binary crashed when starting a command. Inspection found that
+`setRequestTag:` was both the exported React Native method and the setter for the
+Objective-C property `requestTag`. Its `self.requestTag = ...` assignment called
+itself indefinitely. The backing property is now `captureRequestTag`; the bridge
+method name and event field remain unchanged. A regression check fails on the
+original source and passes on the corrected source, guarding exported methods
+against property-setter collisions. The full JS/static suite passes 138 tests.
+This check is not a physical-device native execution test. A new development
+build is required; Metro reload cannot replace the faulty native binary.
