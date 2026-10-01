@@ -248,8 +248,8 @@ test("native multipart uploads replace legacy URI parts with Expo File", () => {
   );
   assert.equal(
     (source.match(/normalizeNativeMultipartBody\(/g) || []).length,
-    5,
-    "the helper and all four multipart request paths must be present"
+    6,
+    "the helper and all five multipart request paths must be present"
   );
 });
 

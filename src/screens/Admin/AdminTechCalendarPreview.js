@@ -1,3 +1,4 @@
+import WeekDatePicker from "../../components/WeekDatePicker";
 // AdminTechCalendarPreview.js
 import React, { useEffect, useState, useRef } from "react";
 import {
@@ -21,6 +22,7 @@ export default function AdminTechCalendarPreview({ onClose }) {
   const [appointments, setAppointments] = useState([]);
   const [technicians, setTechnicians] = useState([]);
   const [selectedTech, setSelectedTech] = useState(null);
+  const [showWeekPicker, setShowWeekPicker] = useState(false);
   const [weekStart, setWeekStart] = useState(getWeekStart(new Date()));
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -680,7 +682,7 @@ const getSpecialServiceLabel = (subtype) => {
             <View style={styles.weekNavCenter}>
                 <TouchableOpacity
                 style={styles.currentWeekButton}
-                onPress={handleToday}
+                onPress={() => setShowWeekPicker(true)}
                 activeOpacity={0.7}
                 >
                 <MaterialIcons name="today" size={16} color="#fff" />
@@ -946,6 +948,13 @@ const getSpecialServiceLabel = (subtype) => {
           </View>
           
         </ScrollView>
+        <WeekDatePicker visible={showWeekPicker} selectedDate={formatDateLocal(weekStart)}
+          onClose={() => setShowWeekPicker(false)}
+          onSelect={date => {
+            const [year, month, day] = date.split('-').map(Number);
+            setWeekStart(getWeekStart(new Date(year, month - 1, day)));
+            setShowWeekPicker(false);
+          }}/>
         <Modal
           visible={!!selectedAppointment}
           transparent
