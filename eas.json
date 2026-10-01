@@ -19,9 +19,22 @@
     "production": {
       "autoIncrement": true,
       "channel": "production"
+    },
+    "production-voice": {
+      "extends": "production",
+      "channel": "production-voice",
+      "env": {
+        "APP_VARIANT": "production",
+        "PESTIFY_VOICE_ENABLED": "1",
+        "PESTIFY_VOICE_LAB": "0",
+        "PESTIFY_VOICE_FIELD_LAB": "0"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "production-voice": {
+      "extends": "production"
+    }
   }
 }

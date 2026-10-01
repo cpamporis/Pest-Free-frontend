@@ -6,8 +6,21 @@ module.exports = ({ config }) => {
   const isDevelopment =
     process.env.APP_VARIANT === DEVELOPMENT_VARIANT;
 
+  const voiceEnabled = process.env.PESTIFY_VOICE_ENABLED === "1";
+  if (process.env.PESTIFY_VOICE_LAB === "1" || process.env.PESTIFY_VOICE_FIELD_LAB === "1")
+    throw new Error("Use the Security Lab checkout for Lab build flags");
+  if (voiceEnabled && (isDevelopment || config.ios.bundleIdentifier !== "com.cpamporis.pestfree"))
+    throw new Error("Production voice requires the production variant and bundle");
+  if (voiceEnabled && process.env.EAS_BUILD_PLATFORM && process.env.EAS_BUILD_PLATFORM !== "ios")
+    throw new Error("Production voice is currently iOS-only");
+
   return {
     ...config,
+    ...(voiceEnabled ? {
+      version: "1.4.0",
+      plugins: [...(config.plugins || []), "./plugins/withPestifyVoice"],
+      runtimeVersion: "pestify-ios-voice-1"
+    } : {}),
     name: isDevelopment ? "Pestify Dev" : config.name,
     ...(isDevelopment ? { scheme: DEVELOPMENT_SCHEME } : {}),
     ios: {
