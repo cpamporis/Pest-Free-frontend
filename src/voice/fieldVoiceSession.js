@@ -1,8 +1,9 @@
 'use strict';
+const defaultConfiguration=require('./fieldVoiceConfig');
 // Native owns wake detection, timeouts, audio and rearming, including while locked.
 // JS only resolves a complete command to the existing active-work data path.
 function createFieldVoiceSession({native,prepare,validate,commit,onState,onActive,onWakePreview=()=>{},
-  newId=()=>`${Date.now()}-${Math.random()}`}) {
+  configuration=defaultConfiguration,newId=()=>`${Date.now()}-${Math.random()}`}) {
   let session=null,epoch=0,busy=null;
   const consumed=new Set();
   function stop(message='Η λειτουργία πεδίου σταμάτησε.') {
@@ -11,19 +12,25 @@ function createFieldVoiceSession({native,prepare,validate,commit,onState,onActiv
   async function start() {
     stop('');const ticket=epoch;session=newId();onActive(true);onState('starting','Εκκίνηση λειτουργίας πεδίου…');
     try {
+      // Keep old binaries usable; v4 adds validated, idle-only native configuration.
+      if(typeof native.configureField==='function') {
+        const configured=await native.configureField(configuration);
+        if(ticket!==epoch)return;
+        if(!configured){stop('Δεν εφαρμόστηκαν οι ρυθμίσεις φωνής.');return;}
+      }
       const started=await native.startField(session);
       if(ticket!==epoch)return;
       if(!started)stop('Δεν ξεκίνησε η λειτουργία πεδίου.');
     } catch(error) {
-      if(ticket===epoch)stop(error.code==='LOCAL_LANGUAGES_REQUIRED' ? 'Χρειάζεται διαθέσιμη τοπική αναγνώριση ελληνικών.' : 'Δεν ξεκίνησε η λειτουργία πεδίου. Ελέγξτε άδειες και ήχο.');
+      if(ticket===epoch)stop(error.code==='INVALID_CONFIGURATION' || error.code==='CONFIGURATION_IDLE_REQUIRED' ? 'Δεν εφαρμόστηκαν οι ρυθμίσεις φωνής. Ελέγξτε τη διαμόρφωση.' : error.code==='LOCAL_LANGUAGES_REQUIRED' ? 'Χρειάζεται διαθέσιμη τοπική αναγνώριση ελληνικών.' : 'Δεν ξεκίνησε η λειτουργία πεδίου. Ελέγξτε άδειες και ήχο.');
     }
   }
   async function handleEvent(event) {
     if(!session || event.sessionId!==session)return;
     if(event.code==='WAKE_PREVIEW') {onWakePreview({stage:String(event.stage||''),text:String(event.text||'').slice(0,160)});return;}
     if(event.code==='STOPPED') {stop(`Η λειτουργία πεδίου σταμάτησε (${event.reason || 'διακοπή ήχου'}). Ξεκινήστε την ξανά με ανοικτή οθόνη.`);return;}
-    if(event.code==='WAITING_WAKE') {onState('wake','Αναμονή για «Αλέρτ». Το μικρόφωνο παραμένει ενεργό.');return;}
-    if(event.code==='LISTENING') {onState('listening','Έτοιμος — πείτε τον επόμενο σταθμό.');return;}
+    if(event.code==='WAITING_WAKE') {onState('wake',`Αναμονή για «${configuration.wakePhrases[0]}». Το μικρόφωνο παραμένει ενεργό.`);return;}
+    if(event.code==='LISTENING') {onState('listening',`${configuration.readyMessage} — πείτε τον επόμενο σταθμό ή κάτοψη.`);return;}
     if(event.code!=='COMMAND'||!event.commandId||busy||consumed.has(event.commandId))return;
     consumed.add(event.commandId);
     const ticket=epoch;busy=event.commandId;onState('processing','Επεξεργασία στη συσκευή…');

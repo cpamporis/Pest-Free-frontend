@@ -3,15 +3,20 @@ import { AppState, Button, NativeEventEmitter, NativeModules, Platform, ScrollVi
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import apiService from '../services/apiService';
 import { Picker } from '@react-native-picker/picker';
+const fieldConfiguration = require('./fieldVoiceConfig');
 const { stationDraft } = require('./parseStationFields');
 const { createFieldVoiceSession } = require('./fieldVoiceSession');
 const { createContinuousVoiceSession } = require('./continuousVoiceSession');
-const { contextKey, resolveStation, validateCandidate } = require('./stationVoiceSession');
+const { resolveVoiceRoute, validateVoiceCandidate, candidateContext } = require('./voiceMapRouting');
+const { contextKey, validateCandidate } = require('./stationVoiceSession');
 const native = Platform.OS === 'ios' ? NativeModules.PestifyVoiceProbe : null;
 const fieldNative = Platform.OS === 'ios' ? NativeModules.PestifyFieldSession : null;
 export const voiceLabAvailable = Boolean(native?.labEnabled);
 const errors = {
-  STATION_NOT_FOUND: 'Δεν υπάρχει αυτός ο δολωματικός σταθμός στην ενεργή κάτοψη.',
+  STATION_NOT_FOUND: 'Δεν υπάρχει αυτός ο δολωματικός σταθμός στις κατόψεις της εργασίας.',
+  MAP_NOT_FOUND: 'Δεν υπάρχει αυτή η κάτοψη. Πείτε κάτοψη και τον αριθμό της.',
+  AMBIGUOUS_MAP: 'Δεν προσδιορίζονται μοναδικά οι κατόψεις. Ελέγξτε την εργασία.',
+  CHOOSE_MAP: 'Ο σταθμός υπάρχει σε περισσότερες κατόψεις. Πείτε πρώτα κάτοψη και τον αριθμό της.',
   AMBIGUOUS_STATION: 'Ο αριθμός δεν προσδιορίζει μοναδικό σταθμό. Ελέγξτε την κάτοψη.',
   CONTEXT_CHANGED: 'Άλλαξε η εργασία ή ο σταθμός. Η εντολή ακυρώθηκε.',
   INACTIVE_CONTEXT: 'Ξεκινήστε εργασία σε συγκεκριμένο ραντεβού και επιλέξτε κάτοψη.',
@@ -49,20 +54,30 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
   const callbacks = {
     onState: (next,message) => { if (alive.current) { setPhase(next); setStatus(message); } },
     prepare: text => {
-      const { context:c, defaults:d, loggedStations:logs, technician:tech } = current.current;
-      const target = resolveStation(c,text);
+      const { context:source, defaults:d, loggedStations:logs, technician:tech } = current.current;
+      const target = resolveVoiceRoute(source,text);
       if (!target.ok) return {ok:false,message:errors[target.code] || 'Δεν αναγνωρίστηκε εντολή. Επαναλάβετε τον σταθμό και την κατανάλωση.'};
+      const c=target.targetContext;
+      const routeData={sourceKey:contextKey(source),targetKey:contextKey(c),targetMapId:String(c.map.mapId ?? c.map.map_id),kind:target.kind};
+      if(target.kind==='map')return {ok:true,candidate:{...routeData,mapNumber:target.mapNumber,mapName:c.map.name||'',expiresAt:Date.now()+60000},readback:`Κάτοψη ${target.mapNumber}, ${c.map.name || 'χωρίς όνομα'}.`};
       if (logs.filter(s => String(s.mapId ?? s.map_id ?? '') === String(c.map.mapId ?? c.map.map_id) && String(s.stationId) === String(target.stationId) && s.stationType === 'BS').length > 1)
         return {ok:false,message:errors.AMBIGUOUS_STATION};
       const data = { ...stationDraft(target,d), mapId:String(c.map.mapId ?? c.map.map_id),mapName:c.map.name || null,
         visitId:c.visitId,customerId:c.customerId,technicianId:tech?.id,technicianName:tech?.name,timestamp:new Date().toISOString() };
-      const value = { ...target,expiresAt:Date.now()+60000,data };
+      const {targetContext,...stationTarget}=target;
+      const value = { ...stationTarget,...routeData,expiresAt:Date.now()+60000,data };
       if (!validateCandidate(c,value).ok) return {ok:false,message:'Πείτε σταθμό και κατανάλωση μηδέν, είκοσι πέντε, πενήντα, εβδομήντα πέντε ή εκατό.'};
       const detail = data.access === 'No' ? 'πρόσβαση όχι' : data.condition === 'Missing' ? 'κατάσταση λείπει' : data.condition === 'Damaged' ? 'κατάσταση κατεστραμμένο' : `κατανάλωση ${data.consumption}`;
-      return {ok:true,candidate:value,readback:`Σταθμός ${value.stationId}, ${detail}.`};
+      return {ok:true,candidate:value,readback:`${contextKey(source)!==contextKey(c)?`Κάτοψη ${c.map.name || (source.maps||[]).findIndex(m=>String(m.mapId ?? m.map_id)===routeData.targetMapId)+1}. `:""}Σταθμός ${value.stationId}, ${detail}.`};
     },
-    validate: value => (AppState.currentState === 'active' || fieldActive.current) && contextKey(current.current.context) === mountedKey.current && validateCandidate(current.current.context,value).ok,
-    commit: value => current.current.onCommit(value),
+    validate: value => (AppState.currentState === 'active' || fieldActive.current) && contextKey(current.current.context) === mountedKey.current && validateVoiceCandidate(current.current.context,value),
+    commit: value => {
+      const target=candidateContext(current.current.context,value);
+      if(!target)throw new Error('VOICE_MAP_REMOVED');
+      current.current.onCommit(value);
+      mountedKey.current=contextKey(target);
+      current.current={...current.current,context:target};
+    },
   };
   if (!controller.current) controller.current = createContinuousVoiceSession({native,...callbacks});
   const fieldController = useRef(null);
@@ -114,11 +129,12 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     } catch { if (alive.current && token === permissionAttempt.current) pause('Δεν ολοκληρώθηκε ο έλεγχος αδειών.'); }
     finally { permissionPrompt.current = false; }
   }
-  const compatible = fieldMode ? Boolean(fieldNative?.labEnabled && fieldNative?.wakeVersion >= 3) : native?.phase >= 3 && typeof native?.startAutomatic === 'function';
+  const compatible = fieldMode ? Boolean(fieldNative?.labEnabled && fieldNative?.wakeVersion >= 4) : native?.phase >= 3 && typeof native?.startAutomatic === 'function';
   return <SafeAreaProvider><SafeAreaView style={{flex:1,backgroundColor:'#fff'}}><ScrollView contentContainerStyle={{padding:22,gap:18}}>
     <Text style={{fontSize:22,fontWeight:'700'}}>Φωνητική καταχώριση — Lab</Text>
     <Text>Ραντεβού: {context.appointmentId}{'\n'}Κάτοψη: {context.map?.name || 'Χωρίς όνομα'} ({context.map?.mapId ?? context.map?.map_id}){'\n'}Συσκευές: δολωματικοί σταθμοί (BS)</Text>
-    <Text>Επιλέξτε άλλη κάτοψη από την οθόνη μυοκτονίας. Η εντολή αναζητά σταθμό μόνο εδώ. {fieldMode ? "Η συνεδρία ξεκινά εδώ και μπορεί να δοκιμαστεί με κλειδωμένη οθόνη." : "Η οθόνη παραμένει ανοικτή."}</Text>
+    <Text>Πείτε «Κάτοψη δύο» για αλλαγή. Κοινοί αριθμοί σταθμών αφορούν την ενεργή κάτοψη. Αν ο σταθμός δεν υπάρχει εδώ, γίνεται μετάβαση μόνο όταν βρίσκεται σε μία άλλη κάτοψη. {fieldMode ? "Η συνεδρία ξεκινά εδώ και μπορεί να δοκιμαστεί με κλειδωμένη οθόνη." : "Η οθόνη παραμένει ανοικτή."}</Text>
+    <View>{(context.maps || [context.map]).map((map,index)=><Text key={String(map.mapId ?? map.map_id)}>Κάτοψη {index+1}: {map.name || 'Χωρίς όνομα'}</Text>)}</View>
     <Text>Χωρίς σχετική εντολή ισχύει Πρόσβαση: Ναι και Κατάσταση: Λειτουργικός. Μετά τη σύντομη επανάληψη καταχωρίζεται ο έλεγχος στην τρέχουσα εργασία και ακούω τον επόμενο. Η τελική αποθήκευση στον server γίνεται με την ολοκλήρωση εργασίας.</Text>
     {settingsOpen ? <View>
       <Text style={{fontWeight:'700'}}>Προεπιλογές για αυτή την εργασία</Text>
@@ -138,20 +154,20 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
       <Button title="Αλλαγή προεπιλογών" disabled={phase !== 'idle'} onPress={() => setSettingsOpen(true)} />
     </View>}
     <View>
-      <Text style={{fontWeight:'700'}}>Δοκιμαστική λειτουργία πεδίου — Αλέρτ</Text>
+      <Text style={{fontWeight:'700'}}>Δοκιμαστική λειτουργία πεδίου — {fieldConfiguration.wakePhrases[0]}</Text>
       <Switch accessibilityLabel="Λειτουργία πεδίου με ενεργό μικρόφωνο στην κλειδωμένη οθόνη" value={fieldMode} disabled={phase !== 'idle' || !fieldNative?.labEnabled} onValueChange={setFieldMode} />
       {!fieldNative?.labEnabled && <Text>Απαιτείται το νέο build security-lab-field.</Text>}
-      {fieldMode && <Text>Το μικρόφωνο παραμένει ενεργό ακόμη και στην αναμονή και με κλειδωμένη οθόνη. Πείτε «Αλέρτ», περιμένετε «Έτοιμος» και δώστε εντολές. Μετά από ένα λεπτό αδράνειας επιστρέφει στην αναμονή. Όσο ακούει εντολές, «Παύση» επιστρέφει στην αναμονή και «Τερματισμός» κλείνει το μικρόφωνο. Στην αναμονή πείτε πρώτα «Αλέρτ». Δοκιμάστε πρώτα με την οθόνη ανοικτή.</Text>}
+      {fieldMode && <Text>Το μικρόφωνο παραμένει ενεργό ακόμη και στην αναμονή και με κλειδωμένη οθόνη. Πείτε «{fieldConfiguration.wakePhrases[0]}», περιμένετε «{fieldConfiguration.readyMessage}» και δώστε εντολές. Μετά από {fieldConfiguration.idleSeconds} δευτερόλεπτα αδράνειας επιστρέφει στην αναμονή. Όσο ακούει εντολές, «Παύση» επιστρέφει στην αναμονή και «Τερματισμός» κλείνει το μικρόφωνο. Στην αναμονή πείτε πρώτα «{fieldConfiguration.wakePhrases[0]}». Δοκιμάστε πρώτα με την οθόνη ανοικτή.</Text>}
     </View>
-    {fieldMode && fieldNative?.wakeVersion >= 3 && <View style={{gap:8}}>
+    {fieldMode && fieldNative?.wakeVersion >= 4 && <View style={{gap:8}}>
       <Text>Προσωρινός έλεγχος φράσης ενεργοποίησης</Text>
       <Switch accessibilityLabel="Προσωρινή εμφάνιση όσων ακούει στην αναμονή" value={wakePreviewEnabled} onValueChange={value=>{wakePreviewOptIn.current=value;setWakePreviewEnabled(value);setWakePreview(null);fieldNative.configureWakePreview(value);}} />
-      <Text>Αν τον ενεργοποιήσετε, εμφανίζεται προσωρινά τι άκουσε στην αναμονή. Μόνο στη μνήμη, για 15 δευτερόλεπτα· κλείνει όταν φύγετε από την εφαρμογή. Δοκιμάστε μόνο τη φράση «Αλέρτ».</Text>
-      {wakePreview && <Text selectable>Άκουσα: {wakePreview.text || '(χωρίς κείμενο)'}{'\n'}Αποτέλεσμα: {({partial:'Αναγνώριση σε εξέλιξη',accepted:'Η φράση έγινε δεκτή',rejected:'Το τελικό κείμενο δεν ταιριάζει',no_text:'Δεν αναγνωρίστηκε κείμενο',capture_timeout:'Δεν ολοκληρώθηκε η φράση σε 20 δευτερόλεπτα',final_timeout:'Δεν επέστρεψε τελικό αποτέλεσμα'})[wakePreview.stage] || wakePreview.stage}</Text>}
+      <Text>Αν τον ενεργοποιήσετε, εμφανίζεται προσωρινά τι άκουσε στην αναμονή. Μόνο στη μνήμη, για 15 δευτερόλεπτα· κλείνει όταν φύγετε από την εφαρμογή. Δοκιμάστε μόνο τη φράση «{fieldConfiguration.wakePhrases[0]}».</Text>
+      {wakePreview && <Text selectable>Άκουσα: {wakePreview.text || '(χωρίς κείμενο)'}{'\n'}Αποτέλεσμα: {({partial:'Αναγνώριση σε εξέλιξη',accepted:'Η φράση έγινε δεκτή',rejected:'Το τελικό κείμενο δεν ταιριάζει',no_text:'Δεν αναγνωρίστηκε κείμενο',capture_timeout:`Δεν ολοκληρώθηκε η φράση σε ${fieldConfiguration.captureSeconds} δευτερόλεπτα`,final_timeout:'Δεν επέστρεψε τελικό αποτέλεσμα'})[wakePreview.stage] || wakePreview.stage}</Text>}
     </View>}
-    <Text>{compatible ? status : (fieldMode ? 'Απαιτείται νέο build security-lab-field με ενεργοποίηση «Αλέρτ» (έκδοση 3).' : 'Απαιτείται το νέο Dev build της φάσης 3 για αυτόματο τέλος ομιλίας.')}</Text>
+    <Text>{compatible ? status : (fieldMode ? 'Απαιτείται νέο build security-lab-field με παραμετρικές ρυθμίσεις (έκδοση 4).' : 'Απαιτείται το νέο Dev build της φάσης 3 για αυτόματο τέλος ομιλίας.')}</Text>
     <Text>{fieldMode ? "Περιμένετε να ολοκληρωθεί η εκφώνηση πριν πείτε την επόμενη εντολή." : "Μιλήστε όταν εμφανίζεται «Ακούω τον επόμενο σταθμό». Για παύση πείτε «Παύση» ή πατήστε το κουμπί."}</Text>
-    <Button title={fieldMode ? "Έναρξη συνεδρίας Αλέρτ" : "Έναρξη συνεχόμενης ακρόασης"} onPress={start} disabled={!compatible || phase !== 'idle' || settingsOpen || !defaults?.baitType || !defaults?.dosageG} />
+    <Button title={fieldMode ? `Έναρξη συνεδρίας ${fieldConfiguration.wakePhrases[0]}` : "Έναρξη συνεχόμενης ακρόασης"} onPress={start} disabled={!compatible || phase !== 'idle' || settingsOpen || !defaults?.baitType || !defaults?.dosageG} />
     {phase !== 'idle' && <Button title={fieldMode ? "Τερματισμός και κλείσιμο μικροφώνου" : "Παύση ακρόασης"} onPress={() => pause('Η ακρόαση σταμάτησε.')} />}
     <Button title="Επιστροφή στην κάτοψη" onPress={() => { pause(''); onClose(); }} />
   </ScrollView>

@@ -1,5 +1,9 @@
 # Security iOS Lab — optional background/wake-phrase experiment
 
+Superseded for current build instructions and map routing by
+[ios-voice-maps-config-20261001.md](ios-voice-maps-config-20261001.md).
+The user subsequently verified v3 wake and station entry in the background.
+
 The user confirmed correct consecutive station entries, their data and final
 report in the foreground prototype. This next phase is a separate opt-in native
 module and build profile. The existing phase-3 foreground controller and native

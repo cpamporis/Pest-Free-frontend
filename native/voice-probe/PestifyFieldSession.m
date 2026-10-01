@@ -28,6 +28,11 @@
 @property(nonatomic, assign) BOOL ending;
 @property(nonatomic, assign) BOOL acceptedReply;
 @property(nonatomic, assign) BOOL wakePreviewEnabled;
+@property(nonatomic, copy) NSArray<NSString *> *wakePhrases;
+@property(nonatomic, copy) NSString *readyMessage;
+@property(nonatomic, assign) NSTimeInterval idleSeconds;
+@property(nonatomic, assign) NSTimeInterval silenceSeconds;
+@property(nonatomic, assign) NSTimeInterval captureSeconds;
 @property(nonatomic, assign) NSUInteger revision;
 @property(nonatomic, assign) NSTimeInterval lastVoice;
 @property(nonatomic, assign) NSTimeInterval lastText;
@@ -41,12 +46,15 @@ RCT_EXPORT_MODULE(PestifyFieldSession)
   return [[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.cpamporis.pestfree.dev"] &&
     [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"PestifyFieldSessionEnabled"] boolValue];
 }
-- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"wakeVersion": @3}; }
+- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"wakeVersion": @4, @"configurationVersion": @1}; }
 - (NSArray<NSString *> *)supportedEvents { return @[@"PestifyFieldEvent"]; }
 - (void)startObserving { self.observes = YES; }
 - (void)stopObserving { self.observes = NO; [self shutdown:@"LISTENER_REMOVED"]; }
 - (instancetype)init {
   if ((self = [super init])) {
+    self.wakePhrases = @[@"Αλέρτ", @"Alert"];
+    self.readyMessage = @"Έτοιμος";
+    self.idleSeconds = 60; self.silenceSeconds = 1.4; self.captureSeconds = 20;
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(hideWakePreview:)
       name:UIApplicationWillResignActiveNotification object:nil];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(interrupted:)
@@ -157,20 +165,57 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   self.idleTimer = [NSTimer scheduledTimerWithTimeInterval:1 repeats:YES block:^(NSTimer *timer) {
     PestifyFieldSession *owner = weakSelf;
     if ([owner.mode isEqualToString:@"command"] && !owner.heardSpeech &&
-        [NSProcessInfo processInfo].systemUptime-owner.lastVoice >= 1.4 &&
-        [NSProcessInfo processInfo].systemUptime-owner.lastCommand >= 60)
+        [NSProcessInfo processInfo].systemUptime-owner.lastVoice >= owner.silenceSeconds &&
+        [NSProcessInfo processInfo].systemUptime-owner.lastCommand >= owner.idleSeconds)
       [owner beginRecognition:@"wake"];
   }];
   [self beginRecognition:@"wake"]; resolve(@YES);
 }
-- (BOOL)isWakePhrase:(NSString *)text {
+- (NSString *)normalizedWakePhrase:(NSString *)text {
   NSString *lower = [[text stringByFoldingWithOptions:NSDiacriticInsensitiveSearch locale:[NSLocale localeWithLocaleIdentifier:@"el-GR"]] lowercaseString];
   NSArray *words = [lower componentsSeparatedByCharactersInSet:[[NSCharacterSet alphanumericCharacterSet] invertedSet]];
   NSMutableArray *tokens = [NSMutableArray array];
   for (NSString *word in words) if (word.length) [tokens addObject:word];
-  // Entire final utterance only, no substring/fuzzy matching of conversations.
-  NSString *phrase = [tokens componentsJoinedByString:@" "];
-  return [phrase isEqualToString:@"alert"] || [phrase isEqualToString:@"αλερτ"];
+  return [tokens componentsJoinedByString:@" "];
+}
+- (BOOL)isWakePhrase:(NSString *)text {
+  NSString *phrase = [self normalizedWakePhrase:text];
+  // Complete final utterance only, never substring or partial recognition.
+  for (NSString *allowed in self.wakePhrases)
+    if ([phrase isEqualToString:[self normalizedWakePhrase:allowed]]) return YES;
+  return NO;
+}
+- (BOOL)validSeconds:(id)value minimum:(double)minimum maximum:(double)maximum {
+  return [value isKindOfClass:[NSNumber class]] && CFGetTypeID((__bridge CFTypeRef)value) != CFBooleanGetTypeID() &&
+    isfinite([value doubleValue]) && [value doubleValue]>=minimum && [value doubleValue]<=maximum;
+}
+RCT_REMAP_METHOD(configureField, configuration:(NSDictionary *)configuration resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+  if (![self isLab] || self.sessionKey || [UIApplication sharedApplication].applicationState != UIApplicationStateActive) {
+    reject(@"CONFIGURATION_IDLE_REQUIRED", @"Configure from the visible Lab before starting a session", nil); return;
+  }
+  if (![configuration isKindOfClass:[NSDictionary class]]) {
+    reject(@"INVALID_CONFIGURATION", @"Configuration must be a dictionary", nil); return;
+  }
+  NSSet *keys=[NSSet setWithArray:@[@"wakePhrases",@"readyMessage",@"idleSeconds",@"silenceSeconds",@"captureSeconds"]];
+  BOOL valid=configuration.count==keys.count;
+  for(id key in configuration) if(![keys containsObject:key])valid=NO;
+  id phrases=configuration[@"wakePhrases"], message=configuration[@"readyMessage"];
+  valid=valid && [phrases isKindOfClass:[NSArray class]] && [phrases count]>=1 && [phrases count]<=8;
+  if(valid)for(id phrase in phrases) {
+    if(![phrase isKindOfClass:[NSString class]] || [phrase length]>80 || [self normalizedWakePhrase:phrase].length==0) {valid=NO;break;}
+  }
+  valid=valid && [message isKindOfClass:[NSString class]] && [message length]<=160 &&
+    [[message stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]] length]>0 &&
+    [self validSeconds:configuration[@"idleSeconds"] minimum:15 maximum:300] &&
+    [self validSeconds:configuration[@"silenceSeconds"] minimum:0.7 maximum:3] &&
+    [self validSeconds:configuration[@"captureSeconds"] minimum:5 maximum:45];
+  if(!valid) {reject(@"INVALID_CONFIGURATION", @"Invalid field configuration; previous configuration retained",nil);return;}
+  // Atomic replacement only after every field passes validation. Values are fixed for the session.
+  self.wakePhrases=[phrases copy]; self.readyMessage=[message copy];
+  self.idleSeconds=[configuration[@"idleSeconds"] doubleValue];
+  self.silenceSeconds=[configuration[@"silenceSeconds"] doubleValue];
+  self.captureSeconds=[configuration[@"captureSeconds"] doubleValue];
+  resolve(@YES);
 }
 - (void)beginRecognition:(NSString *)mode {
   if (!self.sessionKey) return;
@@ -181,7 +226,7 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   SFSpeechAudioBufferRecognitionRequest *request = [SFSpeechAudioBufferRecognitionRequest new];
   request.requiresOnDeviceRecognition = YES; request.shouldReportPartialResults = YES;
   request.taskHint = SFSpeechRecognitionTaskHintConfirmation;
-  if ([mode isEqualToString:@"wake"]) request.contextualStrings = @[@"Αλέρτ", @"Alert"];
+  if ([mode isEqualToString:@"wake"]) request.contextualStrings = self.wakePhrases;
   @synchronized (self) { self.audioRequest = request; }
   self.lastText = self.lastVoice = [NSProcessInfo processInfo].systemUptime;
   NSUInteger revision = self.revision; __weak PestifyFieldSession *weakSelf = self;
@@ -199,7 +244,7 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
       else if (error) [owner shutdown:@"RECOGNITION_FAILED"];
     });
   }];
-  self.captureTimer = [NSTimer scheduledTimerWithTimeInterval:20 repeats:NO block:^(NSTimer *timer) {
+  self.captureTimer = [NSTimer scheduledTimerWithTimeInterval:self.captureSeconds repeats:NO block:^(NSTimer *timer) {
     PestifyFieldSession *owner = weakSelf;
     if (owner.sessionKey && owner.revision == revision) {
       if ([mode isEqualToString:@"wake"]) [owner previewWake:owner.heardSpeech ? @"capture_timeout" : @"no_text" text:owner.partial];
@@ -209,7 +254,7 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   self.endpointTimer = [NSTimer scheduledTimerWithTimeInterval:0.15 repeats:YES block:^(NSTimer *timer) {
     PestifyFieldSession *owner = weakSelf;
     if (!owner.sessionKey || owner.revision != revision || !owner.heardSpeech || owner.ending) return;
-    if ([NSProcessInfo processInfo].systemUptime-MAX(owner.lastText,owner.lastVoice) >= 1.4) {
+    if ([NSProcessInfo processInfo].systemUptime-MAX(owner.lastText,owner.lastVoice) >= owner.silenceSeconds) {
       owner.ending = YES; [owner.endpointTimer invalidate]; owner.endpointTimer=nil;
       [owner.captureTimer invalidate];
       @synchronized (owner) { [owner.audioRequest endAudio]; owner.audioRequest=nil; }
@@ -230,7 +275,7 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
     [self previewWake:accepted ? @"accepted" : @"rejected" text:text];
     if (accepted) {
       self.lastCommand = [NSProcessInfo processInfo].systemUptime;
-      self.mode = @"ready"; [self say:@"Έτοιμος"];
+      self.mode = @"ready"; [self say:self.readyMessage];
     } else [self beginRecognition:@"wake"];
     return;
   }

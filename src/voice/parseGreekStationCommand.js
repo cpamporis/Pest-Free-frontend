@@ -44,4 +44,4 @@ function parseGreekStationCommand(text) {
     return { ok:false, code:"INVALID_CONSUMPTION" };
   return { ok:true, stationNumber:station, consumption };
 }
-module.exports = { parseGreekStationCommand };
+module.exports = { parseGreekStationCommand, parseNumber:number };

@@ -1,5 +1,5 @@
 import VoiceStationFlow, { voiceLabAvailable } from "../../voice/VoiceStationFlow";
-const { validateCandidate } = require("../../voice/stationVoiceSession");
+const { validateVoiceCandidate, candidateContext } = require("../../voice/voiceMapRouting");
 import {stationOnMap, mapIdOf} from "../../utils/stationMapIdentity";
 import useStationNumbering from "../../components/useStationNumbering";
 import CommercialServicePanel from "../../components/CommercialServicePanel";
@@ -1012,7 +1012,7 @@ const handleSaveAll = async () => {
   };
 
   // In MyocideScreen.js - Update upsertLoggedStation
-  const upsertLoggedStation = (stationData, silent = false) => {
+  const upsertLoggedStation = (stationData, silent = false, targetMap = selectedMap) => {
     // Ensure stationType is included
     if (!stationData.stationType) {
       stationData.stationType = selectedStation?.type || "BS";
@@ -1028,8 +1028,8 @@ const handleSaveAll = async () => {
     // When access is "No", explicitly set other fields to null
     const normalized = normalizeStation({
       ...stationData,
-      mapId: mapIdOf(selectedMap),
-      mapName: selectedMap?.name || null,
+      mapId: mapIdOf(targetMap),
+      mapName: targetMap?.name || null,
       stationId: fixedStationId,
       stationType: stationData.stationType || "BS",
       // Ensure all fields are properly set (null for "No access", undefined otherwise)
@@ -1052,7 +1052,7 @@ const handleSaveAll = async () => {
     setLoggedStations(prev => {
       const index = prev.findIndex(
         s =>
-          stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(normalized.stationId) &&
+          stationOnMap(s, targetMap, customerMaps) && String(s.stationId) === String(normalized.stationId) &&
           s.stationType === normalized.stationType
       );
 
@@ -1419,6 +1419,7 @@ const handleSaveAll = async () => {
     technicianId: technician?.id,
     visitId: sessionVisitId,
     map: selectedMap,
+    maps: customerMaps,
     stations,
     active: workStarted && !editMode && !saving && !loadingCustomer && !serviceCompleted && !isEditCompletedVisit
   };
@@ -1427,8 +1428,10 @@ const handleSaveAll = async () => {
       defaults={voiceDefaults} onDefaultsChange={setVoiceDefaults}
       onClose={() => setVoiceOpen(false)}
       onCommit={candidate => {
-        if (!validateCandidate(voiceContext, candidate).ok) throw new Error("VOICE_CONTEXT_CHANGED");
-        upsertLoggedStation(candidate.data, true);
+        if (!validateVoiceCandidate(voiceContext, candidate)) throw new Error("VOICE_CONTEXT_CHANGED");
+        const target=candidateContext(voiceContext,candidate);
+        if(candidate.kind==='station')upsertLoggedStation(candidate.data, true, target.map);
+        if(mapIdOf(target.map)!==mapIdOf(selectedMap))handleMapSelect(target.map);
       }} />
   );
 

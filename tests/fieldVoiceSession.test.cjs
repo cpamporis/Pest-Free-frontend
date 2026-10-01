@@ -43,7 +43,7 @@ test('field configuration requires opt-in Lab build and leaves ordinary voice pr
   process.env.APP_VARIANT='development';process.env.PESTIFY_VOICE_LAB='1';delete process.env.PESTIFY_VOICE_FIELD_LAB;
   const base={name:'Pestify',ios:{bundleIdentifier:'com.cpamporis.pestfree'}};
   const normal=factory({config:base});assert.equal(normal.runtimeVersion,'pestify-voice-probe-3');assert.equal(normal.plugins.includes('./plugins/withPestifyFieldSession'),false);
-  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-3');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
+  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-4');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
   delete process.env.PESTIFY_VOICE_LAB;assert.throws(()=>factory({config:base}),/requires/);
   process.env.PESTIFY_VOICE_LAB='1';delete process.env.APP_VARIANT;assert.throws(()=>factory({config:base}),/restricted/);
  }finally{for(const k of ['APP_VARIANT','PESTIFY_VOICE_LAB','PESTIFY_VOICE_FIELD_LAB']){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}
@@ -63,4 +63,19 @@ test('wake preview is bounded and never advances the session',async()=>{
  const f=setup();await f.controller.start();
  await f.controller.handleEvent({code:'WAKE_PREVIEW',sessionId:f.id,stage:'accepted',text:'x'.repeat(500)});
  assert.equal(f.previews.at(-1).text.length,160);assert.equal(f.commits,0);assert.equal(f.continued,0);
+});
+test('configuration is applied before opening native capture',async()=>{
+ const calls=[];const configuration={wakePhrases:['Δοκιμή'],readyMessage:'Ναι',idleSeconds:90,silenceSeconds:2,captureSeconds:30};
+ const native={stopField(){},async configureField(value){calls.push(value);return true;},async startField(){calls.push('start');return true;}};
+ const flow=createFieldVoiceSession({native,configuration,onActive(){},onState(){}});await flow.start();assert.deepEqual(calls,[configuration,'start']);
+});
+test('invalid configuration never starts microphone capture',async()=>{
+ let started=false;const states=[];
+ const native={stopField(){},async configureField(){throw Object.assign(Error('invalid'),{code:'INVALID_CONFIGURATION'});},async startField(){started=true;}};
+ const flow=createFieldVoiceSession({native,onActive(){},onState:(...s)=>states.push(s)});await flow.start();assert.equal(started,false);assert.equal(states.at(-1)[0],'idle');
+});
+test('stop during configuration prevents delayed native start',async()=>{
+ let resolve,started=false;
+ const native={stopField(){},configureField(){return new Promise(r=>{resolve=r;});},async startField(){started=true;}};
+ const flow=createFieldVoiceSession({native,onActive(){},onState(){}});const pending=flow.start();flow.stop();resolve(true);await pending;assert.equal(started,false);
 });
