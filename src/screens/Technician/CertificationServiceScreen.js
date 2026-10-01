@@ -1,3 +1,5 @@
+import {stationOnMap, mapIdOf} from "../../utils/stationMapIdentity";
+import useStationNumbering from "../../components/useStationNumbering";
 import CommercialServicePanel from "../../components/CommercialServicePanel";
 import { normalizeStation } from "../../utils/stationCondition";
 import useServiceSettlement from "../../components/useServiceSettlement";
@@ -549,6 +551,8 @@ useEffect(() => {
           if (stationsArray.length > 0) {
             // Transform database stations to loggedStations format
             const transformedStations = stationsArray.map(station => ({
+              mapId: station.map_id ?? station.mapId ?? "",
+              mapName: station.map_name ?? station.mapName ?? null,
               stationId: station.station_id || station.station_number || station.id,
               stationType: station.station_type || station.type || "BS",
               capture: station.capture,
@@ -691,6 +695,8 @@ const handleSaveAll = async () => {
 
   // Transform stations to the format expected by the backend
   const stationsToSend = loggedStations.map(station => ({
+    map_id: station.mapId ?? station.map_id ?? "",
+    map_name: station.mapName ?? station.map_name ?? null,
     station_id: station.stationId,
     station_number: station.stationId,
     station_type: station.stationType,
@@ -1146,6 +1152,8 @@ const handleSaveAll = async () => {
     // When access is "No", explicitly set other fields to null
     const normalized = normalizeStation({
       ...stationData,
+      mapId: mapIdOf(selectedMap),
+      mapName: selectedMap?.name || null,
       stationId: fixedStationId,
       stationType: stationData.stationType || "BS",
       // Ensure all fields are properly set (null for "No access", undefined otherwise)
@@ -1169,7 +1177,7 @@ const handleSaveAll = async () => {
     setLoggedStations(prev => {
       const index = prev.findIndex(
         s =>
-          s.stationId === normalized.stationId &&
+          stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(normalized.stationId) &&
           s.stationType === normalized.stationType
       );
 
@@ -1202,7 +1210,7 @@ const handleSaveAll = async () => {
     // In CertificationServiceScreen.js - Update the isStationCompleted function
   const isStationCompleted = (stationId, stationType = "BS") => {
     const foundStation = loggedStations.find(s => 
-      s.stationId === stationId && (s.stationType || "BS") === stationType
+      stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(stationId) && (s.stationType || "BS") === stationType
     );
     
     if (!foundStation) {
@@ -1233,7 +1241,7 @@ const handleSaveAll = async () => {
 
   const debugStationData = (stationId, stationType) => {
     const station = loggedStations.find(s => 
-      s.stationId === stationId && s.stationType === stationType
+      stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(stationId) && s.stationType === stationType
     );
 
     
@@ -1241,6 +1249,12 @@ const handleSaveAll = async () => {
   };
 
   const handleMapSelect = (map) => {
+    if (editMode && mapIdOf(map) !== mapIdOf(selectedMap)) {
+      Alert.alert(i18n.t("technician.common.warning"), String(i18n.locale || "el").startsWith("en") ? "Save or cancel the floor plan changes before switching plans." : "Αποθήκευσε ή ακύρωσε τις αλλαγές της κάτοψης πριν επιλέξεις άλλη.");
+      return;
+    }
+    setSelectedStation(null);
+    setAddingStation(false);
     setSelectedMap(map);
     setStations((Array.isArray(map.stations) ? map.stations : []).map(s => ({ ...s, type: s.type || "BS" })));
     setShowMapDropdown(false);
@@ -1329,18 +1343,15 @@ const handleSaveAll = async () => {
     stations.forEach(st => {
       const isCompleted = isStationCompleted(st.id, st.type || "BS");
       const stationData = loggedStations.find(s => 
-        s.stationId === st.id && s.stationType === (st.type || "BS")
+        stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(st.id) && s.stationType === (st.type || "BS")
       );
 
     });
   };
 
-  const getNextIdForType = (type) => {
-    const sameType = stations.filter(s => (s.type || "BS") === type);
-    if (sameType.length === 0) return 1;
-    return Math.max(...sameType.map(s => Number(s.id) || 0)) + 1;
-  };
-  
+  const numbering = useStationNumbering({map: selectedMap, maps: customerMaps, stations, type: editStationType, onReady: () => setAddingStation(true)});
+  const getNextIdForType = () => numbering.next;
+
   const handleUpdateService = async () => {
 
     // Ensure technician name is available
@@ -1355,6 +1366,8 @@ const handleSaveAll = async () => {
     
     // Transform stations to the format expected by the backend
     const stationsToSend = loggedStations.map(station => ({
+      map_id: station.mapId ?? station.map_id ?? "",
+      map_name: station.mapName ?? station.map_name ?? null,
       station_id: station.stationId,
       station_number: station.stationId,
       station_type: station.stationType,
@@ -1978,7 +1991,7 @@ const handleSaveAll = async () => {
               <View style={{ flexDirection: "row", gap: 10 }}>
                 <TouchableOpacity
                   style={[styles.editBtn, { flex: 1 }, saving && { opacity: 0.7 }]}
-                  onPress={() => setAddingStation(true)}
+                  onPress={numbering.requestAdd}
                   disabled={saving}
                 >
                   <Text style={styles.editBtnText}>
@@ -2243,6 +2256,7 @@ const handleSaveAll = async () => {
               </SafeAreaView>
             )}
 
+          {numbering.prompt}
           {selectedStation && (workStarted || isEditCompletedVisit) && (
             <View style={styles.stationOverlay}>
               {selectedStation.type === "BS" && (
@@ -2265,7 +2279,7 @@ const handleSaveAll = async () => {
                   }}
                   existingStationData={
                     loggedStations.find(
-                      s => s.stationId === selectedStation.id && 
+                      s => stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(selectedStation.id) && 
                       s.stationType === (selectedStation.type || "BS")
                     ) || null
                   }
@@ -2295,7 +2309,7 @@ const handleSaveAll = async () => {
                   existingStationData={
                     loggedStations.find(
                       s =>
-                        s.stationId === selectedStation.id &&
+                        stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(selectedStation.id) &&
                         s.stationType === selectedStation.type
                     ) || null
                   }
@@ -2321,7 +2335,7 @@ const handleSaveAll = async () => {
                   }}
                   existingStationData={
                     loggedStations.find(
-                      s => s.stationId === selectedStation.id && s.stationType === "LT"
+                      s => stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(selectedStation.id) && s.stationType === "LT"
                     ) || null
                   }
                   onClose={() => setSelectedStation(null)}
@@ -2346,7 +2360,7 @@ const handleSaveAll = async () => {
                   }}
                   existingStationData={
                     loggedStations.find(
-                      s => s.stationId === selectedStation.id && s.stationType === "PT"
+                      s => stationOnMap(s, selectedMap, customerMaps) && String(s.stationId) === String(selectedStation.id) && s.stationType === "PT"
                     ) || null
                   }
                   onClose={() => setSelectedStation(null)}
