@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons, FontAwesome5, Ionicons, Feather } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import apiService from "../../services/apiService";
+import VoiceLabEntry from "../../voice/VoiceLabEntry";
 import pestfreeLogo from "../../../assets/pestfree_logo.png";
 import { useFocusEffect } from '@react-navigation/native';
 import { Modal, TextInput } from 'react-native';
@@ -703,6 +704,8 @@ export default function TechnicianHomeScreen({
             <Text style={styles.logoutText}>{i18n.t("technician.home.header.logout")}</Text>
           </TouchableOpacity>
         </View>
+
+        <VoiceLabEntry />
 
         {/* Welcome Section */}
         <View style={styles.welcomeCard}>

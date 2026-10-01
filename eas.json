@@ -4,6 +4,15 @@
     "appVersionSource": "remote"
   },
   "build": {
+    "security-lab-voice": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "security-lab-voice",
+      "env": {
+        "APP_VARIANT": "development",
+        "PESTIFY_VOICE_LAB": "1"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
