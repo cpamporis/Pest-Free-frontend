@@ -36,3 +36,27 @@ test('voice build is opt-in, rejects production, leaves normal update configurat
     if (oldVoice === undefined) delete process.env.PESTIFY_VOICE_LAB; else process.env.PESTIFY_VOICE_LAB=oldVoice;
   }
 });
+
+for (const text of [
+  'Δολωματικός σταθμός 10. Κατανάλωση 25%.',
+  'Σταθμός: δέκα, κατανάλωση: είκοσι πέντε.',
+  'Σταθμός:10,κατανάλωση:25%',
+  'Σταθμός δέκα· κατανάλωση είκοσι πέντε!',
+  'Σταθμός δέκα\nκατανάλωση είκοσι πέντε',
+]) test(`accepts punctuation only at command boundaries: ${text}`, () =>
+  assert.deepEqual(parse(text), {ok:true,stationNumber:10,consumption:25}));
+for (const text of [
+  'Σταθμός 10.5. Κατανάλωση 25%.',
+  'Σταθμός -10. Κατανάλωση 25%.',
+  'Σταθμός 10. Κατανάλωση: -25%.',
+  'Σταθμός 10. Κατανάλωση: 25,5%.',
+  'Σταθμός 10. Κατανάλωση: 25.5%.',
+  'Σταθμός 10. Κατανάλωση: 2 5%.',
+  'Σταθμός 10. Κατανάλωση 25%. Μίλα στον Γιάννη.',
+]) test(`punctuation tolerance does not accept unsafe input: ${text}`, () => assert.equal(parse(text).ok,false));
+test('diagnostic separates empty text, grammar, station and consumption errors without echoing input', () => {
+  assert.deepEqual(parse(''),{ok:false,code:'EMPTY_TRANSCRIPT'});
+  assert.deepEqual(parse('γειά σου'),{ok:false,code:'INVALID_COMMAND'});
+  assert.deepEqual(parse('σταθμός κάτι κατανάλωση 25'),{ok:false,code:'INVALID_STATION'});
+  assert.deepEqual(parse('σταθμός 10 κατανάλωση κάτι'),{ok:false,code:'INVALID_CONSUMPTION'});
+});

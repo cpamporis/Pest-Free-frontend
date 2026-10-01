@@ -1,9 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AppState, Button, Modal, NativeEventEmitter, NativeModules, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { AppState, Button, Modal, NativeEventEmitter, NativeModules, Platform, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 const { parseGreekStationCommand } = require("./parseGreekStationCommand");
 const probe = Platform.OS === "ios" ? NativeModules.PestifyVoiceProbe : null;
 const messages = {
+  EMPTY_TRANSCRIPT: "Η αναγνώριση επέστρεψε κενό κείμενο. Δοκιμάστε ξανά.",
+  INVALID_COMMAND: "Το κείμενο δεν έχει τη μορφή «Σταθμός … κατανάλωση …». Ενεργοποιήστε την προσωρινή εμφάνιση κειμένου και επαναλάβετε.",
+  INVALID_STATION: "Δεν αναγνωρίστηκε έγκυρος αριθμός σταθμού (1–999).",
+  INVALID_CONSUMPTION: "Δεν αναγνωρίστηκε έγκυρη κατανάλωση (ακέραιος 0–100).",
   GREEK_ON_DEVICE_UNAVAILABLE: "Η συσκευή δεν δηλώνει υποστήριξη τοπικής αναγνώρισης ελληνικών.",
   RECOGNIZER_UNAVAILABLE: "Η αναγνώριση δεν είναι διαθέσιμη αυτή τη στιγμή.",
   PERMISSION_REQUIRED: "Χρειάζονται άδειες μικροφώνου και αναγνώρισης ομιλίας από τις Ρυθμίσεις.",
@@ -16,23 +20,38 @@ function Diagnostic({ onClose }) {
   const [status, setStatus] = useState("Έλεγχος δυνατοτήτων…");
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
+  const [showText, setShowText] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const previewEnabled = useRef(false);
+  const previewTimer = useRef(null);
+  const accepting = useRef(false);
+  function clearPreview() { clearTimeout(previewTimer.current); previewTimer.current = null; setPreview(null); }
   const alive = useRef(true);
   const operation = useRef(0);
   useEffect(() => {
+    alive.current = true;
     const events = new NativeEventEmitter(probe);
     const subscription = events.addListener("PestifyVoiceProbeResult", event => {
+      if (!alive.current || !accepting.current) return;
+      accepting.current = false;
       operation.current++;
+      clearPreview();
       setPhase("idle");
       if (event.code === "RESULT") {
-        // Keep only numeric parsed fields in memory. Never log/store the transcript.
+        // Optional Lab-only preview in component memory, cleared after 30s.
+        // No transcript logging, persistence, analytics or network transport.
+        if (previewEnabled.current) {
+          setPreview(typeof event.text === "string" ? event.text.slice(0, 240) : "");
+          previewTimer.current = setTimeout(() => { if (alive.current) setPreview(null); }, 30000);
+        }
         const parsed = parseGreekStationCommand(event.text);
         setResult(parsed.ok ? { stationNumber: parsed.stationNumber, consumption: parsed.consumption } : null);
-        setStatus(parsed.ok ? "Αναγνωρίστηκε η εντολή. Δεν αποθηκεύτηκε έλεγχος." : "Δεν αναγνωρίστηκε έγκυρη εντολή. Πείτε μόνο το παράδειγμα.");
+        setStatus(parsed.ok ? "Αναγνωρίστηκε η εντολή. Δεν αποθηκεύτηκε έλεγχος." : messages[parsed.code] || "Δεν αναγνωρίστηκε έγκυρη εντολή.");
       } else { setResult(null); setStatus(messages[event.code] || "Η αναγνώριση δεν ολοκληρώθηκε."); }
     });
     const app = AppState.addEventListener("change", state => {
       if (state !== "active") {
-        operation.current++;
+        operation.current++; accepting.current = false; clearPreview();
         probe.stop(); setPhase(current => current === "permissions" ? current : "idle"); setResult(null);
         setStatus("Η δοκιμή σταμάτησε. Πατήστε έναρξη όταν επιστρέψετε.");
       }
@@ -40,7 +59,7 @@ function Diagnostic({ onClose }) {
     probe.getCapabilities().then(value => {
       if (alive.current) { setCaps(value); setStatus("Πατήστε «Άδειες και έλεγχος» πριν από τη δοκιμή."); }
     }).catch(() => { if (alive.current) setStatus("Αδυναμία ελέγχου δυνατοτήτων."); });
-    return () => { alive.current = false; operation.current++; probe.stop(); subscription.remove(); app.remove(); };
+    return () => { alive.current = false; accepting.current = false; clearTimeout(previewTimer.current); operation.current++; probe.stop(); subscription.remove(); app.remove(); };
   }, []);
   async function permissions() {
     setPhase("permissions");
@@ -54,14 +73,15 @@ function Diagnostic({ onClose }) {
     finally { if (alive.current) setPhase("idle"); }
   }
   async function start() {
+    clearPreview(); accepting.current = true;
     const token = ++operation.current;
     setResult(null); setPhase("recording"); setStatus("Ακούω έως 20 δευτερόλεπτα. Πείτε την εντολή και πατήστε «Τέλος ομιλίας».");
     try { await probe.start(); }
     catch (error) {
-      if (alive.current && token === operation.current) { setPhase("idle"); setStatus(messages[error.code] || "Το μικρόφωνο δεν ξεκίνησε. Ελέγξτε τις άδειες και δοκιμάστε ξανά."); }
+      if (alive.current && token === operation.current) { accepting.current = false; setPhase("idle"); setStatus(messages[error.code] || "Το μικρόφωνο δεν ξεκίνησε. Ελέγξτε τις άδειες και δοκιμάστε ξανά."); }
     }
   }
-  function cancel() { operation.current++; probe.stop(); setResult(null); setPhase("idle"); setStatus("Η δοκιμή ακυρώθηκε και το μικρόφωνο έκλεισε."); }
+  function cancel() { accepting.current = false; clearPreview(); operation.current++; probe.stop(); setResult(null); setPhase("idle"); setStatus("Η δοκιμή ακυρώθηκε και το μικρόφωνο έκλεισε."); }
   const ready = caps?.onDevice && caps?.speechAuthorized && caps?.microphoneAuthorized;
   return <SafeAreaView style={styles.screen}><ScrollView contentContainerStyle={styles.content}>
     <Text style={styles.title}>Δοκιμή φωνής — iOS Lab</Text>
@@ -69,13 +89,19 @@ function Diagnostic({ onClose }) {
     <Text>Ο ήχος και το κείμενο χρησιμοποιούνται προσωρινά στη μνήμη. Δεν αποθηκεύονται και δεν αποστέλλονται από αυτή τη δοκιμή. Δεν καταχωρίζεται πραγματικός έλεγχος σταθμού.</Text>
     <Text style={styles.example}>«Δολωματικός σταθμός δέκα, κατανάλωση είκοσι πέντε»</Text>
     {caps && <Text>Ελληνικά στη συσκευή: {caps.onDevice ? "Ναι" : "Όχι"}{"\n"}Αναγνώριση διαθέσιμη: {caps.available ? "Ναι" : "Όχι"}{"\n"}Άδεια ομιλίας: {caps.speechAuthorized ? "Ναι" : "Όχι"}{"\n"}Άδεια μικροφώνου: {caps.microphoneAuthorized ? "Ναι" : "Όχι"}</Text>}
+    <View>
+      <Text>Προσωρινή εμφάνιση αναγνωρισμένου κειμένου (30 δευτερόλεπτα)</Text>
+      <Switch accessibilityLabel="Προσωρινή εμφάνιση αναγνωρισμένου κειμένου" value={showText} disabled={phase !== "idle"} onValueChange={value => { previewEnabled.current = value; setShowText(value); clearPreview(); }} />
+      <Text>Μόνο για τη δοκιμαστική φράση. Το κείμενο εμφανίζεται στην οθόνη χωρίς αποθήκευση ή αποστολή.</Text>
+    </View>
     <Text accessibilityLiveRegion="polite">{status}</Text>
+    {preview !== null && <View><Text selectable>Αναγνωρίστηκε: «{preview || "(κενό κείμενο)"}»</Text><Button title="Απόκρυψη κειμένου" onPress={clearPreview} /></View>}
     {result && <Text style={styles.example}>Σταθμός {result.stationNumber} — κατανάλωση {result.consumption}%{"\n"}Μόνο προεπισκόπηση • χωρίς επιλογή κάτοψης</Text>}
     <Button title="Άδειες και έλεγχος" onPress={permissions} disabled={phase !== "idle"} />
     <Button title="Έναρξη δοκιμής" onPress={start} disabled={!ready || phase !== "idle"} />
     {phase === "recording" && <Button title="Τέλος ομιλίας" onPress={() => { setPhase("finishing"); setStatus("Επεξεργασία στη συσκευή…"); probe.finishInput(); }} />}
     {(phase === "recording" || phase === "finishing") && <Button title="Ακύρωση δοκιμής" onPress={cancel} />}
-    <Button title="Κλείσιμο" onPress={() => { probe.stop(); onClose(); }} />
+    <Button title="Κλείσιμο" onPress={() => { accepting.current = false; clearPreview(); probe.stop(); onClose(); }} />
   </ScrollView></SafeAreaView>;
 }
 export default function VoiceLabEntry() {

@@ -30,13 +30,18 @@ function number(text) {
 }
 function parseGreekStationCommand(text) {
   const s = normalize(text);
-  if (!s || s.length > 180) return { ok:false, code:"INVALID_COMMAND" };
-  const match = /^(?:δολωματικοσ\s+)?σταθμοσ\s+(.+?)\s*[,;:—–-]?\s+καταναλωση\s+(.+?)\s*[.!;]?$/u.exec(s);
+  if (!s) return { ok:false, code:"EMPTY_TRANSCRIPT" };
+  if (s.length > 180) return { ok:false, code:"INVALID_COMMAND" };
+  // Allow punctuation at command boundaries, never strip it from numbers:
+  // "10. Κατανάλωση: 25%." is valid, "10.5" / "-25" remain invalid.
+  const match = /^(?:δολωματικοσ\s+)?σταθμοσ(?:\s*:\s*|\s+)(.+?)(?:\s*[,;:.··—–-]\s*|\s+)καταναλωση(?:\s*:\s*|\s+)(.+?)\s*[.!;]?$/u.exec(s);
   if (!match) return { ok:false, code:"INVALID_COMMAND" };
-  const station = number(match[1].trim().replace(/[,;:—–-]$/, "").trim());
+  const station = number(match[1].trim());
   const consumption = number(match[2].replace(/\s*(?:%|τοισ εκατο)$/, "").trim());
-  if (!Number.isInteger(station) || station < 1 || station > 999 || !Number.isInteger(consumption) || consumption < 0 || consumption > 100)
-    return { ok:false, code:"INVALID_VALUES" };
+  if (!Number.isInteger(station) || station < 1 || station > 999)
+    return { ok:false, code:"INVALID_STATION" };
+  if (!Number.isInteger(consumption) || consumption < 0 || consumption > 100)
+    return { ok:false, code:"INVALID_CONSUMPTION" };
   return { ok:true, stationNumber:station, consumption };
 }
 module.exports = { parseGreekStationCommand };

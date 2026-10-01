@@ -22,7 +22,11 @@ are implemented in this phase.
 
 Audio buffers and the final transcript exist transiently in memory. The native
 module passes the final string directly to a strict Greek command parser; the UI
-retains only station number and consumption in component memory. This feature
+retains only station number and consumption in component memory by default. An
+opt-in Lab switch can show up to 240 characters of the final transcript for 30
+seconds, solely in component memory, to diagnose rejected test commands. The
+preview clears on timeout, hiding, the next capture, cancellation, backgrounding
+or closing. It is off whenever a new diagnostic screen opens. This feature
 has no file writes, analytics, transcript logging, API calls, or voiceprints.
 It does not promise that no audio processing occurs: local processing is exactly
 what is being tested. Developer debugging/recording of sensitive speech should
@@ -110,9 +114,24 @@ and validation; the present prototype handles only bait-station numbers.
 
 ## Validation in this change
 
-- Existing + new automated JS tests: 102 passed.
+- Existing + new automated JS tests: 115 passed.
 - Expo iOS JS export: passed.
 - Expo iOS prebuild using the installed local template: passed; verified source
   added to Sources, Speech/AVFoundation linked, and permissions/flag in Info.plist.
-- Native Xcode build and physical iPhone acceptance: pending; no Apple SDK here.
+- User installed the native build and the device reports all four capability/
+  permission flags as Yes. A returned transcript was rejected by the initial
+  parser. Successful numeric recognition and offline/device acceptance remain
+  pending. No local Apple SDK is available.
 - Dependencies and backup-related files unchanged.
+
+## Diagnostic follow-up (2026-10-01)
+
+The initial parser rejected sentence punctuation between station and consumption,
+and colons following the field names. Those boundary forms are now accepted;
+negative numbers, decimals, multiple alternatives and unrelated suffixes still
+fail. Errors distinguish empty transcript, grammar, station and consumption.
+These are JS-only changes compatible with the installed phase-1 native build.
+Pull this branch and reload from Metro; no new native build or EAS Update needed.
+Enable the temporary-text switch before repeating the example to identify any
+remaining transcription mismatch. Do not infer the exact cause of the first
+rejection without seeing the returned test phrase.
