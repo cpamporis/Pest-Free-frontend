@@ -1,5 +1,9 @@
 # iOS Security Lab — phase 1 offline Greek voice probe
 
+Historical phase-1 instructions. For the current native build and station-entry
+flow see `ios-voice-phase2-20261001.md`. The user has now confirmed successful
+recognition of different consumption values with internet disabled.
+
 Based on production-parity iOS commit `96b92c5bf95798b91e1a1c0e448223c33a916dd2`.
 This is a diagnostic prototype, not a complete hands-free field mode. No backend,
 backup, Android, Web, package.json, or lockfile changes are part of this phase.

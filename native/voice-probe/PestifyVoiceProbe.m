@@ -4,8 +4,11 @@
 #import <Speech/Speech.h>
 #import <UIKit/UIKit.h>
 
-// Phase 1: bounded foreground-only, on-device diagnostic. Never writes files.
-@interface PestifyVoiceProbe : RCTEventEmitter <RCTBridgeModule>
+// Bounded foreground-only on-device recognition and read-back. Never writes files.
+@interface PestifyVoiceProbe : RCTEventEmitter <RCTBridgeModule, AVSpeechSynthesizerDelegate>
+@property(nonatomic, copy) NSString *requestTag;
+@property(nonatomic, strong) AVSpeechSynthesizer *synthesizer;
+@property(nonatomic, copy) RCTPromiseResolveBlock speechResolve;
 @property(nonatomic, strong) AVAudioEngine *engine;
 @property(nonatomic, strong) SFSpeechRecognizer *recognizer;
 @property(nonatomic, strong) SFSpeechAudioBufferRecognitionRequest *request;
@@ -34,10 +37,14 @@ RCT_EXPORT_MODULE(PestifyVoiceProbe)
   }
   return self;
 }
-- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"phase": @1}; }
+- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"phase": @2}; }
 - (void)startObserving { self.listening = YES; }
 - (void)stopObserving { self.listening = NO; [self cleanup]; }
 - (void)cleanup {
+  RCTPromiseResolveBlock completion = self.speechResolve; self.speechResolve = nil;
+  self.synthesizer.delegate = nil;
+  [self.synthesizer stopSpeakingAtBoundary:AVSpeechBoundaryImmediate]; self.synthesizer = nil;
+  if (completion) completion(@NO);
   self.generation++;
   [self.deadline invalidate]; self.deadline = nil;
   [self.engine stop];
@@ -48,14 +55,17 @@ RCT_EXPORT_MODULE(PestifyVoiceProbe)
   [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:NULL];
 }
 - (void)finish:(NSDictionary *)result {
+  NSMutableDictionary *payload = [result mutableCopy];
+  if (self.requestTag) payload[@"requestTag"] = self.requestTag;
   [self cleanup];
-  if (self.listening) [self sendEventWithName:@"PestifyVoiceProbeResult" body:result];
+  if (self.listening) [self sendEventWithName:@"PestifyVoiceProbeResult" body:payload];
 }
+RCT_EXPORT_METHOD(setRequestTag:(NSString *)tag) { self.requestTag = [tag copy]; }
 - (void)backgrounded:(NSNotification *)notification {
-  if (self.engine) [self finish:@{@"code": @"BACKGROUND_STOPPED"}];
+  if (self.engine || self.synthesizer) [self finish:@{@"code": @"BACKGROUND_STOPPED"}];
 }
 - (void)interrupted:(NSNotification *)notification {
-  if ([notification.userInfo[AVAudioSessionInterruptionTypeKey] unsignedIntegerValue] == AVAudioSessionInterruptionTypeBegan && self.engine)
+  if ([notification.userInfo[AVAudioSessionInterruptionTypeKey] unsignedIntegerValue] == AVAudioSessionInterruptionTypeBegan && (self.engine || self.synthesizer))
     [self finish:@{@"code": @"AUDIO_INTERRUPTED"}];
 }
 - (NSDictionary *)capabilities {
@@ -149,6 +159,32 @@ RCT_REMAP_METHOD(start, startResolver:(RCTPromiseResolveBlock)resolve rejecter:(
     PestifyVoiceProbe *owner = weakSelf;
     if (owner && owner.generation == generation) [owner finish:@{@"code": @"NO_FINAL_RESULT"}];
   }];
+}
+// Phase 2: read-back finishes before the microphone can restart.
+RCT_REMAP_METHOD(speak, speakText:(NSString *)text resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject) {
+  if (![self isLab] || [UIApplication sharedApplication].applicationState != UIApplicationStateActive || text.length == 0 || text.length > 1200) {
+    reject(@"SPEECH_UNAVAILABLE", @"Open the Lab voice screen", nil); return;
+  }
+  [self cleanup];
+  NSError *error = nil;
+  AVAudioSession *audio = [AVAudioSession sharedInstance];
+  AVSpeechSynthesisVoice *voice = [AVSpeechSynthesisVoice voiceWithLanguage:@"el-GR"];
+  if (!voice || ![audio setCategory:AVAudioSessionCategoryPlayback mode:AVAudioSessionModeSpokenAudio options:0 error:&error] || ![audio setActive:YES error:&error]) {
+    [self cleanup]; reject(@"SPEECH_UNAVAILABLE", @"Greek playback unavailable", nil); return;
+  }
+  self.speechResolve = resolve;
+  self.synthesizer = [AVSpeechSynthesizer new]; self.synthesizer.delegate = self;
+  AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc] initWithString:text];
+  utterance.voice = voice;
+  [self.synthesizer speakUtterance:utterance];
+}
+- (void)speechSynthesizer:(AVSpeechSynthesizer *)synthesizer didFinishSpeechUtterance:(AVSpeechUtterance *)utterance {
+  if (synthesizer != self.synthesizer) return;
+  RCTPromiseResolveBlock completion = self.speechResolve; self.speechResolve = nil;
+  [self cleanup]; if (completion) completion(@YES);
+}
+- (void)speechSynthesizer:(AVSpeechSynthesizer *)synthesizer didCancelSpeechUtterance:(AVSpeechUtterance *)utterance {
+  if (synthesizer == self.synthesizer) [self cleanup];
 }
 RCT_EXPORT_METHOD(finishInput) { [self endCapture]; }
 RCT_EXPORT_METHOD(stop) { [self cleanup]; }

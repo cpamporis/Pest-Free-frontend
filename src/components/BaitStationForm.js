@@ -18,7 +18,7 @@ import { Dimensions } from "react-native";
 import i18n from "../services/i18n";
 
 
-function BaitStationForm({ stationId, onClose, customerId, technician, timerData, onStationLogged, onValidationError, existingStationData }) {
+function BaitStationForm({ stationId, onClose, customerId, technician, timerData, onStationLogged, onValidationError, existingStationData, submitLabel }) {
   const [consumption, setConsumption] = useState(existingStationData?.consumption || "");
   const [baitType, setBaitType] = useState(existingStationData?.baitType || "");
   const [condition, setCondition] = useState(existingStationData?.condition || null);
@@ -408,7 +408,7 @@ function BaitStationForm({ stationId, onClose, customerId, technician, timerData
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={styles.saveButtonText}>{i18n.t("components.stationForms.common.save")}</Text>
+                <Text style={styles.saveButtonText}>{submitLabel || i18n.t("components.stationForms.common.save")}</Text>
               )}
             </TouchableOpacity>
 

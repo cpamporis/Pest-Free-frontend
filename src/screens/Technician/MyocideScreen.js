@@ -1,3 +1,5 @@
+import VoiceStationFlow, { voiceLabAvailable } from "../../voice/VoiceStationFlow";
+const { validateCandidate } = require("../../voice/stationVoiceSession");
 import {stationOnMap, mapIdOf} from "../../utils/stationMapIdentity";
 import useStationNumbering from "../../components/useStationNumbering";
 import CommercialServicePanel from "../../components/CommercialServicePanel";
@@ -157,6 +159,7 @@ function MapScreen({ customer, onBack, session, technician, onGenerateReport }) 
     session?.visitId ?? null
   );
   
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [selectedMap, setSelectedMap] = useState(null);
   const [stations, setStations] = useState([]);
   const [selectedStation, setSelectedStation] = useState(null); 
@@ -1008,7 +1011,7 @@ const handleSaveAll = async () => {
   };
 
   // In MyocideScreen.js - Update upsertLoggedStation
-  const upsertLoggedStation = (stationData) => {
+  const upsertLoggedStation = (stationData, silent = false) => {
     // Ensure stationType is included
     if (!stationData.stationType) {
       stationData.stationType = selectedStation?.type || "BS";
@@ -1060,7 +1063,7 @@ const handleSaveAll = async () => {
       return [...prev, normalized];
     });
 
-    Alert.alert(
+    if (!silent) Alert.alert(
       i18n.t("technician.common.success"),
       i18n.t("technician.myocide.alerts.stationLogged", { 
         type: normalized.stationType, 
@@ -1401,6 +1404,24 @@ const handleSaveAll = async () => {
     setStations([...stations, newStation]);
     setAddingStation(false);
   };
+
+  const voiceContext = {
+    appointmentId: session?.appointmentId,
+    customerId: effectiveCustomer?.customerId,
+    technicianId: technician?.id,
+    visitId: sessionVisitId,
+    map: selectedMap,
+    stations,
+    active: workStarted && !editMode && !saving && !loadingCustomer && !serviceCompleted && !isEditCompletedVisit
+  };
+  if (voiceOpen && voiceLabAvailable) return (
+    <VoiceStationFlow context={voiceContext} loggedStations={loggedStations} technician={technician}
+      onClose={() => setVoiceOpen(false)}
+      onCommit={candidate => {
+        if (!validateCandidate(voiceContext, candidate).ok) throw new Error("VOICE_CONTEXT_CHANGED");
+        upsertLoggedStation(candidate.data, true);
+      }} />
+  );
 
   if (loadingCustomer) {
     return (
@@ -1969,6 +1990,11 @@ const handleSaveAll = async () => {
             )}
           </View>
 
+          {voiceLabAvailable && voiceContext.active && !selectedStation && (
+            <TouchableOpacity style={styles.backBtn} onPress={() => setVoiceOpen(true)}>
+              <Text style={styles.backBtnText}>Lab: Φωνητική καταχώριση στην ενεργή κάτοψη</Text>
+            </TouchableOpacity>
+          )}
           {numbering.prompt}
           {selectedStation && (workStarted || isEditCompletedVisit) && (
             <View style={styles.stationOverlay}>
