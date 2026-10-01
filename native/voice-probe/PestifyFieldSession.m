@@ -41,7 +41,7 @@ RCT_EXPORT_MODULE(PestifyFieldSession)
   return [[NSBundle mainBundle].bundleIdentifier isEqualToString:@"com.cpamporis.pestfree.dev"] &&
     [[[NSBundle mainBundle] objectForInfoDictionaryKey:@"PestifyFieldSessionEnabled"] boolValue];
 }
-- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"wakeVersion": @2}; }
+- (NSDictionary *)constantsToExport { return @{@"labEnabled": @([self isLab]), @"wakeVersion": @3}; }
 - (NSArray<NSString *> *)supportedEvents { return @[@"PestifyFieldEvent"]; }
 - (void)startObserving { self.observes = YES; }
 - (void)stopObserving { self.observes = NO; [self shutdown:@"LISTENER_REMOVED"]; }
@@ -170,7 +170,7 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   for (NSString *word in words) if (word.length) [tokens addObject:word];
   // Entire final utterance only, no substring/fuzzy matching of conversations.
   NSString *phrase = [tokens componentsJoinedByString:@" "];
-  return [phrase isEqualToString:@"pestify alert"] || [phrase isEqualToString:@"πεστιφαι αλερτ"];
+  return [phrase isEqualToString:@"alert"] || [phrase isEqualToString:@"αλερτ"];
 }
 - (void)beginRecognition:(NSString *)mode {
   if (!self.sessionKey) return;
@@ -181,7 +181,7 @@ RCT_REMAP_METHOD(startField, fieldIdentifier:(NSString *)identifier resolver:(RC
   SFSpeechAudioBufferRecognitionRequest *request = [SFSpeechAudioBufferRecognitionRequest new];
   request.requiresOnDeviceRecognition = YES; request.shouldReportPartialResults = YES;
   request.taskHint = SFSpeechRecognitionTaskHintConfirmation;
-  if ([mode isEqualToString:@"wake"]) request.contextualStrings = @[@"Πέστιφαϊ Αλέρτ", @"Pestify Alert"];
+  if ([mode isEqualToString:@"wake"]) request.contextualStrings = @[@"Αλέρτ", @"Alert"];
   @synchronized (self) { self.audioRequest = request; }
   self.lastText = self.lastVoice = [NSProcessInfo processInfo].systemUptime;
   NSUInteger revision = self.revision; __weak PestifyFieldSession *weakSelf = self;

@@ -20,7 +20,7 @@ not silent audio playback to keep arbitrary work alive. The input engine remains
 active during wake waiting and TTS; during TTS and JS processing its buffers are
 discarded and no recognition request receives them. No audio files are written.
 While waiting, the Greek on-device recognizer accepts ONLY a complete final
-utterance normalizing to `pestify alert` or `πεστιφαι αλερτ` (case, accents and
+utterance normalizing to `alert` or `αλερτ` (case, accents and
 punctuation ignored), with English and Greek contextual hints. It does not
 accept substrings, fuzzy variants or partial hypotheses. Actual recognition of
 the brand phrase MUST be tested on the device; the hint is not a guarantee.
@@ -34,7 +34,7 @@ review acceptance has not been established by this internal experiment.
 ## State flow
 
 - Start in wake waiting; lock the phone only after testing the phrase visibly.
-- Exact `Pestify Alert` / `Πέστιφαϊ Αλέρτ` -> native Greek TTS **Έτοιμος** -> Greek command capture.
+- Exact `Αλέρτ` / `Alert` -> native Greek TTS **Έτοιμος** -> Greek command capture.
 - Native recognition, endpointing, timeout and capture rearming use native timers,
   not JS timers. Endpointing uses the same 1.4-second quiet/transcript threshold
   as the foreground prototype. Twenty-second boundaries discard unfinished
@@ -53,7 +53,7 @@ review acceptance has not been established by this internal experiment.
   delay reaching that idle point; test factory noise separately.
 - While command mode is active, **Παύση** / **Ακύρωση** returns to wake waiting.
   **Τερματισμός** / **Σταμάτημα** closes the session and microphone. In wake waiting,
-  first say `Pestify Alert` before a termination command, or use the visible stop
+  first say `Αλέρτ` before a termination command, or use the visible stop
   button. These commands do not undo already committed checks.
 - Phone/audio interruptions, connecting/disconnecting an audio device, media
   reset, closing the screen/component or context change stop the session. It
@@ -67,7 +67,7 @@ backup changes, production changes or dependency changes are included.
 ## New build profile and installation
 
 `security-lab-field` extends `security-lab-voice`, uses the Dev bundle, disables
-OTA and selects runtime `pestify-field-lab-2`. Only this profile includes the new
+OTA and selects runtime `pestify-field-lab-3`. Only this profile includes the new
 module, background audio mode and its explicit microphone usage text. The normal
 voice profile still selects runtime `pestify-voice-probe-3` and its original
 foreground native module. Build from the managed checkout (generated /ios is not
@@ -89,10 +89,21 @@ npx expo start --dev-client -c
 ```
 
 Inside active myocide work, choose a map, open voice entry, set bait/dose, enable
-**Δοκιμαστική λειτουργία πεδίου — Pestify Alert**, and press **Έναρξη συνεδρίας
-Pestify Alert**. Enabling the switch alone does not open the microphone.
+**Δοκιμαστική λειτουργία πεδίου — Αλέρτ**, and press **Έναρξη συνεδρίας
+Αλέρτ**. Enabling the switch alone does not open the microphone.
 
-## Wake pronunciation correction — version 2
+## Single-word activation — version 3
+
+The user reported that version 2 transcribed “Πέστιφαϊ Αλέρτ” as “Πες τη φάει
+αλέρτ” and explicitly requested just **Αλέρτ**. Version 3 therefore accepts only
+the complete final utterance `Αλέρτ` or `Alert`, ignoring accents, capitalization
+and punctuation. The user now says only that one word, pauses, and waits for
+**Έτοιμος**. A longer sentence containing the word does not activate the session.
+The Greek local recognizer, diagnostic preview and command flow are retained.
+A new native build is required; the UI gates field mode on `wakeVersion >= 3`.
+Device pronunciation and locked-screen acceptance still require device testing.
+
+## Previous wake pronunciation correction — version 2
 
 The first device trial did not answer to “Πέστιφαϊ Αλέρτ”. Version 1 used an
 English recognizer and exact English spelling. That constraint is confirmed in
@@ -115,7 +126,7 @@ start the new field flow on a version-1 binary; the foreground flow stays usable
 
 ## Device acceptance gate (not yet completed)
 
-1. Visible screen: say `Pestify Alert`, wait for **Έτοιμος**, then enter a Lab
+1. Visible screen: say `Αλέρτ`, wait for **Έτοιμος**, then enter a Lab
    station. Verify that unrelated conversation in wake mode creates no entry.
 2. Lock the iPhone while waiting. Repeat the phrase, wait for **Έτοιμος**, speak
    three valid station commands and wait for each short read-back.

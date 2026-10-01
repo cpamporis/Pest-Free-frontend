@@ -114,7 +114,7 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
     } catch { if (alive.current && token === permissionAttempt.current) pause('Δεν ολοκληρώθηκε ο έλεγχος αδειών.'); }
     finally { permissionPrompt.current = false; }
   }
-  const compatible = fieldMode ? Boolean(fieldNative?.labEnabled && fieldNative?.wakeVersion >= 2) : native?.phase >= 3 && typeof native?.startAutomatic === 'function';
+  const compatible = fieldMode ? Boolean(fieldNative?.labEnabled && fieldNative?.wakeVersion >= 3) : native?.phase >= 3 && typeof native?.startAutomatic === 'function';
   return <SafeAreaProvider><SafeAreaView style={{flex:1,backgroundColor:'#fff'}}><ScrollView contentContainerStyle={{padding:22,gap:18}}>
     <Text style={{fontSize:22,fontWeight:'700'}}>Φωνητική καταχώριση — Lab</Text>
     <Text>Ραντεβού: {context.appointmentId}{'\n'}Κάτοψη: {context.map?.name || 'Χωρίς όνομα'} ({context.map?.mapId ?? context.map?.map_id}){'\n'}Συσκευές: δολωματικοί σταθμοί (BS)</Text>
@@ -138,20 +138,20 @@ export default function VoiceStationFlow({ context, loggedStations, technician, 
       <Button title="Αλλαγή προεπιλογών" disabled={phase !== 'idle'} onPress={() => setSettingsOpen(true)} />
     </View>}
     <View>
-      <Text style={{fontWeight:'700'}}>Δοκιμαστική λειτουργία πεδίου — Pestify Alert</Text>
+      <Text style={{fontWeight:'700'}}>Δοκιμαστική λειτουργία πεδίου — Αλέρτ</Text>
       <Switch accessibilityLabel="Λειτουργία πεδίου με ενεργό μικρόφωνο στην κλειδωμένη οθόνη" value={fieldMode} disabled={phase !== 'idle' || !fieldNative?.labEnabled} onValueChange={setFieldMode} />
       {!fieldNative?.labEnabled && <Text>Απαιτείται το νέο build security-lab-field.</Text>}
-      {fieldMode && <Text>Το μικρόφωνο παραμένει ενεργό ακόμη και στην αναμονή και με κλειδωμένη οθόνη. Πείτε «Pestify Alert», περιμένετε «Έτοιμος» και δώστε εντολές. Μετά από ένα λεπτό αδράνειας επιστρέφει στην αναμονή. Όσο ακούει εντολές, «Παύση» επιστρέφει στην αναμονή και «Τερματισμός» κλείνει το μικρόφωνο. Στην αναμονή πείτε πρώτα «Pestify Alert». Δοκιμάστε πρώτα με την οθόνη ανοικτή.</Text>}
+      {fieldMode && <Text>Το μικρόφωνο παραμένει ενεργό ακόμη και στην αναμονή και με κλειδωμένη οθόνη. Πείτε «Αλέρτ», περιμένετε «Έτοιμος» και δώστε εντολές. Μετά από ένα λεπτό αδράνειας επιστρέφει στην αναμονή. Όσο ακούει εντολές, «Παύση» επιστρέφει στην αναμονή και «Τερματισμός» κλείνει το μικρόφωνο. Στην αναμονή πείτε πρώτα «Αλέρτ». Δοκιμάστε πρώτα με την οθόνη ανοικτή.</Text>}
     </View>
-    {fieldMode && fieldNative?.wakeVersion >= 2 && <View style={{gap:8}}>
+    {fieldMode && fieldNative?.wakeVersion >= 3 && <View style={{gap:8}}>
       <Text>Προσωρινός έλεγχος φράσης ενεργοποίησης</Text>
       <Switch accessibilityLabel="Προσωρινή εμφάνιση όσων ακούει στην αναμονή" value={wakePreviewEnabled} onValueChange={value=>{wakePreviewOptIn.current=value;setWakePreviewEnabled(value);setWakePreview(null);fieldNative.configureWakePreview(value);}} />
-      <Text>Αν τον ενεργοποιήσετε, εμφανίζεται προσωρινά τι άκουσε στην αναμονή. Μόνο στη μνήμη, για 15 δευτερόλεπτα· κλείνει όταν φύγετε από την εφαρμογή. Δοκιμάστε μόνο τη φράση «Πέστιφαϊ Αλέρτ».</Text>
+      <Text>Αν τον ενεργοποιήσετε, εμφανίζεται προσωρινά τι άκουσε στην αναμονή. Μόνο στη μνήμη, για 15 δευτερόλεπτα· κλείνει όταν φύγετε από την εφαρμογή. Δοκιμάστε μόνο τη φράση «Αλέρτ».</Text>
       {wakePreview && <Text selectable>Άκουσα: {wakePreview.text || '(χωρίς κείμενο)'}{'\n'}Αποτέλεσμα: {({partial:'Αναγνώριση σε εξέλιξη',accepted:'Η φράση έγινε δεκτή',rejected:'Το τελικό κείμενο δεν ταιριάζει',no_text:'Δεν αναγνωρίστηκε κείμενο',capture_timeout:'Δεν ολοκληρώθηκε η φράση σε 20 δευτερόλεπτα',final_timeout:'Δεν επέστρεψε τελικό αποτέλεσμα'})[wakePreview.stage] || wakePreview.stage}</Text>}
     </View>}
-    <Text>{compatible ? status : (fieldMode ? 'Απαιτείται νέο build security-lab-field με ελληνικό alert (έκδοση 2).' : 'Απαιτείται το νέο Dev build της φάσης 3 για αυτόματο τέλος ομιλίας.')}</Text>
+    <Text>{compatible ? status : (fieldMode ? 'Απαιτείται νέο build security-lab-field με ενεργοποίηση «Αλέρτ» (έκδοση 3).' : 'Απαιτείται το νέο Dev build της φάσης 3 για αυτόματο τέλος ομιλίας.')}</Text>
     <Text>{fieldMode ? "Περιμένετε να ολοκληρωθεί η εκφώνηση πριν πείτε την επόμενη εντολή." : "Μιλήστε όταν εμφανίζεται «Ακούω τον επόμενο σταθμό». Για παύση πείτε «Παύση» ή πατήστε το κουμπί."}</Text>
-    <Button title={fieldMode ? "Έναρξη συνεδρίας Pestify Alert" : "Έναρξη συνεχόμενης ακρόασης"} onPress={start} disabled={!compatible || phase !== 'idle' || settingsOpen || !defaults?.baitType || !defaults?.dosageG} />
+    <Button title={fieldMode ? "Έναρξη συνεδρίας Αλέρτ" : "Έναρξη συνεχόμενης ακρόασης"} onPress={start} disabled={!compatible || phase !== 'idle' || settingsOpen || !defaults?.baitType || !defaults?.dosageG} />
     {phase !== 'idle' && <Button title={fieldMode ? "Τερματισμός και κλείσιμο μικροφώνου" : "Παύση ακρόασης"} onPress={() => pause('Η ακρόαση σταμάτησε.')} />}
     <Button title="Επιστροφή στην κάτοψη" onPress={() => { pause(''); onClose(); }} />
   </ScrollView>

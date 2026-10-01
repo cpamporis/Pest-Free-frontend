@@ -22,7 +22,7 @@ function createFieldVoiceSession({native,prepare,validate,commit,onState,onActiv
     if(!session || event.sessionId!==session)return;
     if(event.code==='WAKE_PREVIEW') {onWakePreview({stage:String(event.stage||''),text:String(event.text||'').slice(0,160)});return;}
     if(event.code==='STOPPED') {stop(`Η λειτουργία πεδίου σταμάτησε (${event.reason || 'διακοπή ήχου'}). Ξεκινήστε την ξανά με ανοικτή οθόνη.`);return;}
-    if(event.code==='WAITING_WAKE') {onState('wake','Αναμονή για «Pestify Alert». Το μικρόφωνο παραμένει ενεργό.');return;}
+    if(event.code==='WAITING_WAKE') {onState('wake','Αναμονή για «Αλέρτ». Το μικρόφωνο παραμένει ενεργό.');return;}
     if(event.code==='LISTENING') {onState('listening','Έτοιμος — πείτε τον επόμενο σταθμό.');return;}
     if(event.code!=='COMMAND'||!event.commandId||busy||consumed.has(event.commandId))return;
     consumed.add(event.commandId);

@@ -43,7 +43,7 @@ test('field configuration requires opt-in Lab build and leaves ordinary voice pr
   process.env.APP_VARIANT='development';process.env.PESTIFY_VOICE_LAB='1';delete process.env.PESTIFY_VOICE_FIELD_LAB;
   const base={name:'Pestify',ios:{bundleIdentifier:'com.cpamporis.pestfree'}};
   const normal=factory({config:base});assert.equal(normal.runtimeVersion,'pestify-voice-probe-3');assert.equal(normal.plugins.includes('./plugins/withPestifyFieldSession'),false);
-  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-2');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
+  process.env.PESTIFY_VOICE_FIELD_LAB='1';const field=factory({config:base});assert.equal(field.runtimeVersion,'pestify-field-lab-3');assert.equal(field.plugins.includes('./plugins/withPestifyFieldSession'),true);
   delete process.env.PESTIFY_VOICE_LAB;assert.throws(()=>factory({config:base}),/requires/);
   process.env.PESTIFY_VOICE_LAB='1';delete process.env.APP_VARIANT;assert.throws(()=>factory({config:base}),/restricted/);
  }finally{for(const k of ['APP_VARIANT','PESTIFY_VOICE_LAB','PESTIFY_VOICE_FIELD_LAB']){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}}
