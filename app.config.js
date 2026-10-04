@@ -5,6 +5,7 @@ const DEVELOPMENT_SCHEME = "pestify-dev";
 module.exports = ({ config }) => {
   const isDevelopment =
     process.env.APP_VARIANT === DEVELOPMENT_VARIANT;
+  if (!isDevelopment) throw new Error("Isolated restore requires APP_VARIANT=development");
   const fieldSession = process.env.PESTIFY_VOICE_FIELD_LAB === "1";
   const voiceProbe = process.env.PESTIFY_VOICE_LAB === "1";
   if (fieldSession && !voiceProbe) throw new Error("Field session requires the voice Lab build");
@@ -12,7 +13,8 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    name: isDevelopment ? "Pestify Dev" : config.name,
+    name: "Pestify Restore Test",
+    updates: { ...config.updates, enabled: false },
     ...(voiceProbe ? {
       plugins: [...(config.plugins || []), ...(fieldSession ? ["./plugins/withPestifyFieldSession"] : []), "./plugins/withPestifyVoiceProbe"],
       updates: { ...config.updates, enabled: false },

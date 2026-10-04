@@ -158,6 +158,9 @@ export default function LoginScreen({
       <View style={styles.backgroundOverlay} />
 
       <View style={styles.loginContent}>
+        <Text style={{ color: "#ffffff", backgroundColor: "#8b4513", padding: 10, textAlign: "center", fontWeight: "700", marginBottom: 12 }}>
+          ΔΟΚΙΜΗ ΕΠΑΝΑΦΟΡΑΣ BACKUP · 04/10/2026
+        </Text>
         <Image source={pestfreeLogo} style={styles.logo} resizeMode="contain" />
 
         {/* Language selector buttons */}
