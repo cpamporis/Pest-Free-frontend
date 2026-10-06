@@ -20,7 +20,7 @@ const {
 
 const AdminSessionContext = createContext(null);
 const WEB_CHANNEL_NAME =
-  "pestify.security-lab.admin-session.v1";
+  "pestify.production-restore-20261006.admin-session.v1";
 
 export function AdminSessionProvider({ children }) {
   const [active, setActive] = useState(null);
@@ -305,3 +305,4 @@ export function useAdminSession() {
 
   return context;
 }
+

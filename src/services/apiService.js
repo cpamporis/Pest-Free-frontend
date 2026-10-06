@@ -13,23 +13,50 @@ const {
 } = require("../security/authResponsePolicy");
 
 const SECURITY_LAB_API_ORIGIN =
-  "https://security-lab-security-lab.up.railway.app";
+  "https://192.168.1.71:43820";
 
 export const API_BASE_URL = `${SECURITY_LAB_API_ORIGIN}/api`;
 
 if (
+  !__DEV__ ||
   API_BASE_URL !== `${SECURITY_LAB_API_ORIGIN}/api` ||
   API_BASE_URL.includes("production")
 ) {
   throw new Error("Security Lab API configuration refused");
 }
 
+
+const { assertRestoreInfo } = require("../security/isolatedRestorePolicy");
+let restoreIdentityCheck = null;
+async function assertRestoredBackend() {
+  if (!restoreIdentityCheck) {
+    restoreIdentityCheck = (async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 10000);
+      try {
+        const response = await fetch(
+          `${SECURITY_LAB_API_ORIGIN}/_restore/info`,
+          { signal: controller.signal, cache: "no-store" }
+        );
+        if (!response.ok) throw new Error("Restore backend is unavailable");
+        assertRestoreInfo(await response.json());
+      } finally {
+        clearTimeout(timer);
+      }
+    })().catch(error => {
+      restoreIdentityCheck = null;
+      throw error;
+    });
+  }
+  await restoreIdentityCheck;
+}
+
 const STORAGE_KEYS = Object.freeze({
-  authToken: "pestify.security-lab.auth-token.v1",
-  mfaDevice: "pestify.security-lab.mfa-device.v1"
+  authToken: "pestify.production-restore-20261006.auth-token.v1",
+  mfaDevice: "pestify.production-restore-20261006.mfa-device.v1"
 });
 
-const LEGACY_AUTH_TOKEN_KEY = "authToken";
+const LEGACY_AUTH_TOKEN_KEY = "pestify.production-restore-20261006.legacy-auth-token";
 
 function getWebStorage() {
   if (
@@ -935,6 +962,7 @@ const apiService = {
 
   // LOGIN
   async login(email, password) {
+    await assertRestoredBackend();
     await clearAuthToken();
 
     const mfaDeviceAccount = normalizeMfaDeviceAccount(email);
@@ -2435,3 +2463,4 @@ export default {
   API_BASE_URL,
   ...apiService
 };
+
