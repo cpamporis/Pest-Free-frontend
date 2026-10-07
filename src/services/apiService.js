@@ -1,3 +1,4 @@
+const { uploadedFileUrl } = require("../utils/privateUploadUrl");
 import { createMaterialsCatalogClient } from "./materialsCatalogClient";
 // apiService.js - Pestify production client
 import { Platform } from "react-native";
@@ -620,33 +621,7 @@ async function uploadCustomerMap(formData) {
 }
 
 function getUploadedFileUrl(filename) {
-  if (!filename) return null;
-
-  const value = String(filename).trim();
-
-  const backendOrigin = API_BASE_URL.replace(/\/api\/?$/, "");
-
-  if (/^https?:\/\//i.test(value)) {
-    try {
-      const absoluteUrl = new URL(value);
-
-      if (
-        absoluteUrl.origin !== backendOrigin ||
-        !absoluteUrl.pathname.startsWith("/uploads/")
-      ) {
-        return null;
-      }
-
-      return absoluteUrl.toString();
-    } catch {
-      return null;
-    }
-  }
-  const cleanFilename = value
-    .replace(/^\/?uploads\//i, "")
-    .replace(/^\/+/, "");
-
-  return `${backendOrigin}/uploads/${encodeURIComponent(cleanFilename)}`;
+  return uploadedFileUrl(filename, API_BASE_URL);
 }
 
 async function uploadOrganizationImage({

@@ -179,11 +179,7 @@ test("uploaded images are bound to the active API origin", () => {
 
   assert.doesNotMatch(requestScreen, /IMAGE_BASE/);
   assert.match(requestScreen, /apiService\.getUploadedFileUrl/);
-  assert.match(apiSource, /absoluteUrl\.origin !== backendOrigin/);
-  assert.match(
-    apiSource,
-    /absoluteUrl\.pathname\.startsWith\("\/uploads\/"\)/
-  );
+  assert.match(apiSource, /uploadedFileUrl\(filename, API_BASE_URL\)/);
   assert.doesNotMatch(
     apiSource,
     /return value;/
