@@ -12,21 +12,15 @@ const {
   isValidAuthenticatedPrincipal
 } = require("../security/authResponsePolicy");
 
-const PRODUCTION_API_ORIGIN =
-  "https://field-inspections-backend-production.up.railway.app";
-
-export const API_BASE_URL = `${PRODUCTION_API_ORIGIN}/api`;
-
-if (
-  API_BASE_URL !== `${PRODUCTION_API_ORIGIN}/api` ||
-  API_BASE_URL.includes("security-lab")
-) {
-  throw new Error("Production API configuration refused");
-}
-
+const { resolveTarget } = require("../security/drTarget.cjs");
+const DR_ORIGIN = resolveTarget(
+  process.env.EXPO_PUBLIC_PESTIFY_TARGET,
+  process.env.EXPO_PUBLIC_HETZNER_API_ORIGIN
+);
+export const API_BASE_URL = `${DR_ORIGIN}/api`;
 const STORAGE_KEYS = Object.freeze({
-  authToken: "pestify.production.auth-token.v1",
-  mfaDevice: "pestify.production.mfa-device.v1"
+  authToken: "pestify.hetzner-dr-test.auth-token.v1",
+  mfaDevice: "pestify.hetzner-dr-test.mfa-device.v1"
 });
 
 const LEGACY_AUTH_TOKEN_KEY = "authToken";

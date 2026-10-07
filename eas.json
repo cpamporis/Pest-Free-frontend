@@ -29,6 +29,15 @@
         "PESTIFY_VOICE_LAB": "0",
         "PESTIFY_VOICE_FIELD_LAB": "0"
       }
+    },
+    "hetzner-dr-test": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "hetzner-dr-test-20261007",
+      "env": {
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_PESTIFY_TARGET": "hetzner-dr-test"
+      }
     }
   },
   "submit": {

@@ -28,17 +28,17 @@ function javascriptFiles(directory) {
   });
 }
 
-test("the production frontend is fail-closed to the production API", () => {
+test("the DR frontend uses isolated credentials and an explicit API target", () => {
   const source = read("src/services/apiService.js");
 
   assert.match(
     source,
-    /https:\/\/field-inspections-backend-production\.up\.railway\.app/
+    /EXPO_PUBLIC_HETZNER_API_ORIGIN/
   );
   assert.match(source, /SecureStore\.setItemAsync/);
   assert.match(source, /mfaDeviceToken/);
-  assert.match(source, /pestify\.production\.auth-token\.v1/);
-  assert.match(source, /pestify\.production\.mfa-device\.v1/);
+  assert.match(source, /pestify\.hetzner-dr-test\.auth-token\.v1/);
+  assert.match(source, /pestify\.hetzner-dr-test\.mfa-device\.v1/);
   assert.doesNotMatch(
     source,
     /https:\/\/security-lab-security-lab\.up\.railway\.app/

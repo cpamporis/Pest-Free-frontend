@@ -25,35 +25,21 @@ function evaluateConfig(variant) {
   }
 }
 
-test("production and development install as separate iOS apps", () => {
-  const production = evaluateConfig(undefined);
-  const development = evaluateConfig("development");
-
-  assert.equal(production.name, "Pestify");
-  assert.equal(
-    production.ios.bundleIdentifier,
-    "com.cpamporis.pestfree"
-  );
-  assert.equal(production.scheme, undefined);
-
-  assert.equal(development.name, "Pestify Dev");
-  assert.equal(
-    development.ios.bundleIdentifier,
-    "com.cpamporis.pestfree.dev"
-  );
-  assert.equal(development.scheme, "pestify-dev");
-
-  assert.equal(development.slug, production.slug);
-  assert.equal(
-    development.extra.eas.projectId,
-    production.extra.eas.projectId
-  );
-  assert.equal(development.updates.url, production.updates.url);
-  assert.deepEqual(
-    development.runtimeVersion,
-    production.runtimeVersion
-  );
-  assert.deepEqual(development.android, production.android);
+test("only the Dev identity is available, with OTA updates disabled", () => {
+  assert.throws(() => evaluateConfig(undefined), /refuses production/);
+  process.env.EXPO_PUBLIC_PESTIFY_TARGET = "hetzner-dr-test";
+  process.env.EXPO_PUBLIC_HETZNER_API_ORIGIN = "https://dr.example.test";
+  try {
+    const development = evaluateConfig("development");
+    assert.equal(development.name, "Pestify Dev");
+    assert.equal(development.ios.bundleIdentifier, "com.cpamporis.pestfree.dev");
+    assert.equal(development.scheme, "pestify-dev");
+    assert.equal(development.updates.enabled, false);
+    assert.equal(development.runtimeVersion, "pestify-hetzner-dr-test-1");
+  } finally {
+    delete process.env.EXPO_PUBLIC_PESTIFY_TARGET;
+    delete process.env.EXPO_PUBLIC_HETZNER_API_ORIGIN;
+  }
 });
 
 test("the EAS development profile selects only the development variant", () => {
