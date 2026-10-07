@@ -9,7 +9,7 @@ function configured(env={}) {
 }
 test('ordinary production retains current runtime, version, endpoints and no microphone plugin',()=>{
  const c=configured();assert.equal(c.version,baseline.version);assert.deepEqual(c.runtimeVersion,baseline.runtimeVersion);assert.deepEqual(c.plugins,baseline.plugins);assert.deepEqual(c.updates,baseline.updates);
- const api=fs.readFileSync(require.resolve('../src/services/apiService'),'utf8');assert.match(api,/https:\/\/field-inspections-backend-production\.up\.railway\.app/);
+ const api=fs.readFileSync(require.resolve('../src/services/apiService'),'utf8');assert.match(api,/https:\/\/api\.pestify\.gr/);
 });
 test('voice release has production identity, isolated runtime and no Lab diagnostics',()=>{
  const c=configured({PESTIFY_VOICE_ENABLED:'1',APP_VARIANT:'production',EAS_BUILD_PLATFORM:'ios'});

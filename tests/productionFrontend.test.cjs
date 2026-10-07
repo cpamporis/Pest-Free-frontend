@@ -33,7 +33,7 @@ test("the production frontend is fail-closed to the production API", () => {
 
   assert.match(
     source,
-    /https:\/\/field-inspections-backend-production\.up\.railway\.app/
+    /https:\/\/api\.pestify\.gr/
   );
   assert.match(source, /SecureStore\.setItemAsync/);
   assert.match(source, /mfaDeviceToken/);
@@ -179,11 +179,7 @@ test("uploaded images are bound to the active API origin", () => {
 
   assert.doesNotMatch(requestScreen, /IMAGE_BASE/);
   assert.match(requestScreen, /apiService\.getUploadedFileUrl/);
-  assert.match(apiSource, /absoluteUrl\.origin !== backendOrigin/);
-  assert.match(
-    apiSource,
-    /absoluteUrl\.pathname\.startsWith\("\/uploads\/"\)/
-  );
+  assert.match(apiSource, /uploadedFileUrl\(filename, API_BASE_URL\)/);
   assert.doesNotMatch(
     apiSource,
     /return value;/
