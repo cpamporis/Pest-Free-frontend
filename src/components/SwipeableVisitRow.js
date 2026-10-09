@@ -1,4 +1,4 @@
-import SdsDownloadButton from "./SdsDownloadButton";
+import ReportDownloadsMenu from "./ReportDownloadsMenu";
 // components/SwipeableVisitRow.js - UPDATED
 import React, { useRef, useState } from 'react';
 import {
@@ -303,65 +303,7 @@ if (
 
   const [sdsAvailable, setSdsAvailable] = useState(false);
 
-  const renderRightActions = () => {
-    return (
-      <View
-        style={[
-          styles.rightActionContainer,
-          canDownloadCertificate &&
-            styles.rightActionContainerWithCertificate,
-          sdsAvailable && { width: canDownloadCertificate ? 274 : 184 }
-        ]}
-      >
-        <TouchableOpacity 
-          style={[
-            styles.pdfButton,
-            canDownloadCertificate && styles.pdfButtonPaired,
-            activeDownloadType === "report" &&
-              styles.pdfButtonDownloading
-          ]}
-          onPress={() => handleDownloadPDF("report")}
-          activeOpacity={0.7}
-          disabled={isDownloading}
-        >
-          {activeDownloadType === "report" ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <View style={styles.pdfButtonContent}>
-              <MaterialIcons name="picture-as-pdf" size={22} color="#fff" />
-              <Text style={styles.pdfButtonText}>{i18n.t("components.swipeableVisitRow.download")}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <SdsDownloadButton reportId={visit.visitId || visit.logId || visit.id} onAvailabilityChange={setSdsAvailable} style={{ width: 76, height: "100%", margin: 0, borderRadius: 0 }} />
-
-        {canDownloadCertificate && (
-          <TouchableOpacity
-            style={[
-              styles.certificateButton,
-              activeDownloadType === "certificate" &&
-                styles.pdfButtonDownloading
-            ]}
-            onPress={() => handleDownloadPDF("certificate")}
-            activeOpacity={0.7}
-            disabled={isDownloading}
-          >
-            {activeDownloadType === "certificate" ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <View style={styles.pdfButtonContent}>
-                <MaterialIcons name="verified" size={22} color="#fff" />
-                <Text style={styles.certificateButtonText}>
-                  {certificateCopy.label}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  };
+  const renderRightActions = () => (<View style={{justifyContent:"center",paddingLeft:8}}><ReportDownloadsMenu visit={visit} canDownloadCertificate={canDownloadCertificate}/></View>);
 
   return (
     <Swipeable
